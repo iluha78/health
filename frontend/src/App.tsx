@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import type { ChangeEvent, FormEvent } from "react";
 import { observer } from "mobx-react-lite";
 import { userStore } from "./stores/user";
 import "./App.css";
@@ -37,6 +38,22 @@ type DiaryDay = {
   items: DiaryItem[];
 };
 
+type Healthiness = "healthy" | "balanced" | "caution";
+
+type PhotoResult = {
+  title: string;
+  description: string;
+  estimated_calories: number | null;
+  healthiness: Healthiness;
+  reasoning: string;
+  tips: string[];
+};
+
+type AssistantMessage = {
+  role: "user" | "assistant";
+  content: string;
+};
+
 const App = observer(() => {
   const [mode, setMode] = useState<"login" | "register">("login");
   const [email, setEmail] = useState("");
@@ -62,6 +79,22 @@ const App = observer(() => {
   const [foods, setFoods] = useState<Food[]>([]);
   const [diaryForm, setDiaryForm] = useState({ foodId: "", grams: "", note: "" });
 
+  const [adviceFocus, setAdviceFocus] = useState("");
+  const [adviceText, setAdviceText] = useState("");
+  const [adviceLoading, setAdviceLoading] = useState(false);
+  const [adviceError, setAdviceError] = useState<string | null>(null);
+
+  const [photoFile, setPhotoFile] = useState<File | null>(null);
+  const [photoPreview, setPhotoPreview] = useState<string | null>(null);
+  const [photoResult, setPhotoResult] = useState<PhotoResult | null>(null);
+  const [photoLoading, setPhotoLoading] = useState(false);
+  const [photoError, setPhotoError] = useState<string | null>(null);
+
+  const [assistantMessages, setAssistantMessages] = useState<AssistantMessage[]>([]);
+  const [assistantInput, setAssistantInput] = useState("");
+  const [assistantLoading, setAssistantLoading] = useState(false);
+  const [assistantError, setAssistantError] = useState<string | null>(null);
+
   useEffect(() => {
     if (userStore.targets) {
       setProfileForm({
@@ -77,30 +110,52 @@ const App = observer(() => {
     }
   }, [userStore.targets]);
 
+  const authHeaders = useMemo(() => {
+    if (!userStore.token) return undefined;
+    return { Authorization: `Bearer ${userStore.token}` } as Record<string, string>;
+  }, [userStore.token]);
+
+  const jsonHeaders = useMemo(() => {
+    if (!userStore.token) return undefined;
+    return {
+      Authorization: `Bearer ${userStore.token}`,
+      "Content-Type": "application/json"
+    } as Record<string, string>;
+  }, [userStore.token]);
+
   useEffect(() => {
     if (userStore.token) {
-      loadLipids();
-      loadDiary(diaryDate);
+      void loadLipids();
+      void loadDiary(diaryDate);
+      void searchFoods();
       if (!userStore.me) {
-        userStore.refresh();
+        void userStore.refresh();
       }
     } else {
       setLipids([]);
       setDiary(null);
+      setFoods([]);
+      setAdviceText("");
+      setPhotoFile(null);
+      if (photoPreview) {
+        URL.revokeObjectURL(photoPreview);
+      }
+      setPhotoPreview(null);
+      setPhotoResult(null);
+      setAssistantMessages([]);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [userStore.token]);
 
-  const authHeaders = useMemo(() => {
-    const headers = new Headers();
-    if (userStore.token) {
-      headers.set("Authorization", `Bearer ${userStore.token}`);
-      headers.set("Content-Type", "application/json");
-    }
-    return headers;
-  }, [userStore.token]);
+  useEffect(() => {
+    return () => {
+      if (photoPreview) {
+        URL.revokeObjectURL(photoPreview);
+      }
+    };
+  }, [photoPreview]);
 
-  async function handleAuthSubmit(e: React.FormEvent) {
+  async function handleAuthSubmit(e: FormEvent) {
     e.preventDefault();
     try {
       if (mode === "login") {
@@ -114,15 +169,19 @@ const App = observer(() => {
   }
 
   async function loadLipids() {
-    if (!userStore.token) return;
-    const r = await fetch("/backend/lipids", { headers: authHeaders });
-    const data = await r.json();
-    setLipids(Array.isArray(data) ? data : []);
+    if (!userStore.token || !authHeaders) return;
+    try {
+      const r = await fetch("/backend/lipids", { headers: authHeaders });
+      const data = await r.json();
+      setLipids(Array.isArray(data) ? data : []);
+    } catch (err) {
+      console.error(err);
+    }
   }
 
-  async function saveLipid(e: React.FormEvent) {
+  async function saveLipid(e: FormEvent) {
     e.preventDefault();
-    if (!userStore.token) return;
+    if (!userStore.token || !jsonHeaders) return;
     const body = {
       dt: lipidForm.dt,
       chol: lipidForm.chol ? Number(lipidForm.chol) : undefined,
@@ -133,7 +192,7 @@ const App = observer(() => {
     };
     const r = await fetch("/backend/lipids", {
       method: "POST",
-      headers: authHeaders,
+      headers: jsonHeaders,
       body: JSON.stringify(body)
     });
     if (r.ok) {
@@ -143,17 +202,17 @@ const App = observer(() => {
   }
 
   async function deleteLipid(id: number) {
-    if (!userStore.token) return;
-    await fetch(`/backend/lipids/${id}`, { method: "DELETE", headers: { Authorization: `Bearer ${userStore.token}` } });
+    if (!userStore.token || !authHeaders) return;
+    await fetch(`/backend/lipids/${id}`, { method: "DELETE", headers: authHeaders });
     await loadLipids();
   }
 
-  async function saveProfile(e: React.FormEvent) {
+  async function saveProfile(e: FormEvent) {
     e.preventDefault();
-    if (!userStore.token) return;
+    if (!userStore.token || !jsonHeaders) return;
     const r = await fetch("/backend/profile", {
       method: "PUT",
-      headers: authHeaders,
+      headers: jsonHeaders,
       body: JSON.stringify(profileForm)
     });
     if (r.ok) {
@@ -162,15 +221,19 @@ const App = observer(() => {
   }
 
   async function loadDiary(date: string) {
-    if (!userStore.token) return;
-    const r = await fetch(`/backend/diary/${date}`, { headers: { Authorization: `Bearer ${userStore.token}` } });
-    const data = await r.json();
-    setDiary(data);
+    if (!userStore.token || !authHeaders) return;
+    try {
+      const r = await fetch(`/backend/diary/${date}`, { headers: authHeaders });
+      const data = await r.json();
+      setDiary(data);
+    } catch (err) {
+      console.error(err);
+    }
   }
 
-  async function addDiaryItem(e: React.FormEvent) {
+  async function addDiaryItem(e: FormEvent) {
     e.preventDefault();
-    if (!userStore.token || !diary) return;
+    if (!userStore.token || !jsonHeaders || !diary) return;
     const body = {
       food_id: Number(diaryForm.foodId),
       grams: diaryForm.grams ? Number(diaryForm.grams) : null,
@@ -178,7 +241,7 @@ const App = observer(() => {
     };
     const r = await fetch(`/backend/diary/${diary.date}/items`, {
       method: "POST",
-      headers: authHeaders,
+      headers: jsonHeaders,
       body: JSON.stringify(body)
     });
     if (r.ok) {
@@ -187,19 +250,23 @@ const App = observer(() => {
     }
   }
 
-  async function searchFoods(e?: React.FormEvent) {
+  async function searchFoods(e?: FormEvent) {
     e?.preventDefault();
-    if (!userStore.token) return;
-    const r = await fetch(`/backend/foods?q=${encodeURIComponent(foodQuery)}`, {
-      headers: { Authorization: `Bearer ${userStore.token}` }
-    });
-    const data = await r.json();
-    setFoods(Array.isArray(data) ? data : []);
+    if (!userStore.token || !authHeaders) return;
+    try {
+      const r = await fetch(`/backend/foods?q=${encodeURIComponent(foodQuery)}`, {
+        headers: authHeaders
+      });
+      const data = await r.json();
+      setFoods(Array.isArray(data) ? data : []);
+    } catch (err) {
+      console.error(err);
+    }
   }
 
-  async function createFood(e: React.FormEvent<HTMLFormElement>) {
+  async function createFood(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
-    if (!userStore.token) return;
+    if (!userStore.token || !jsonHeaders) return;
     const form = new FormData(e.currentTarget);
     const numericFields = new Set(["kcal", "protein_g", "fat_g", "sfa_g", "carbs_g", "fiber_g", "soluble_fiber_g"]);
     const body: Record<string, string | number> = {};
@@ -215,12 +282,149 @@ const App = observer(() => {
     });
     const r = await fetch("/backend/foods", {
       method: "POST",
-      headers: authHeaders,
+      headers: jsonHeaders,
       body: JSON.stringify(body)
     });
     if (r.ok) {
       e.currentTarget.reset();
       await searchFoods();
+    }
+  }
+
+  async function requestAdvice(e: FormEvent) {
+    e.preventDefault();
+    if (!userStore.token || !jsonHeaders) return;
+    setAdviceLoading(true);
+    setAdviceError(null);
+    try {
+      const r = await fetch("/backend/advice/nutrition", {
+        method: "POST",
+        headers: jsonHeaders,
+        body: JSON.stringify({ focus: adviceFocus })
+      });
+      const data = await r.json();
+      if (!r.ok) {
+        setAdviceError(data.error ?? "Не удалось получить рекомендации");
+        setAdviceText("");
+      } else {
+        setAdviceText((data.advice ?? "").trim());
+      }
+    } catch (err) {
+      console.error(err);
+      setAdviceError("Сервис рекомендаций временно недоступен");
+    } finally {
+      setAdviceLoading(false);
+    }
+  }
+
+  function handlePhotoChange(e: ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0] ?? null;
+    if (photoPreview) {
+      URL.revokeObjectURL(photoPreview);
+    }
+    setPhotoFile(file);
+    if (file) {
+      const url = URL.createObjectURL(file);
+      setPhotoPreview(url);
+    } else {
+      setPhotoPreview(null);
+    }
+    setPhotoResult(null);
+    setPhotoError(null);
+  }
+
+  async function analyzePhoto(e: FormEvent) {
+    e.preventDefault();
+    if (!userStore.token || !authHeaders || !photoFile) {
+      setPhotoError("Загрузите фото блюда");
+      return;
+    }
+    setPhotoLoading(true);
+    setPhotoError(null);
+    try {
+      const formData = new FormData();
+      formData.append("photo", photoFile);
+      const r = await fetch("/backend/analysis/photo", {
+        method: "POST",
+        headers: authHeaders,
+        body: formData
+      });
+      const data = await r.json();
+      if (!r.ok) {
+        setPhotoError(data.error ?? "Не удалось проанализировать фото");
+        setPhotoResult(null);
+      } else {
+        const safeTips = Array.isArray(data.tips) ? data.tips.filter((tip: unknown): tip is string => typeof tip === "string") : [];
+        const rawHealthiness = typeof data.healthiness === "string" ? data.healthiness : "";
+        const healthiness: Healthiness = rawHealthiness === "healthy" || rawHealthiness === "balanced" || rawHealthiness === "caution"
+          ? rawHealthiness
+          : "balanced";
+        const caloriesValue = typeof data.estimated_calories === "number"
+          ? data.estimated_calories
+          : Number.parseFloat(data.estimated_calories);
+        setPhotoResult({
+          title: data.title ?? "Блюдо",
+          description: data.description ?? "",
+          estimated_calories: Number.isFinite(caloriesValue) ? Math.round(caloriesValue) : null,
+          healthiness,
+          reasoning: data.reasoning ?? "",
+          tips: safeTips
+        });
+      }
+    } catch (err) {
+      console.error(err);
+      setPhotoError("Сервис анализа временно недоступен");
+      setPhotoResult(null);
+    } finally {
+      setPhotoLoading(false);
+    }
+  }
+
+  async function sendAssistantMessage(e: FormEvent) {
+    e.preventDefault();
+    const text = assistantInput.trim();
+    if (!text) return;
+    if (!userStore.token || !jsonHeaders) return;
+
+    const historyPayload = assistantMessages.map(m => ({ role: m.role, content: m.content }));
+    setAssistantMessages(prev => [...prev, { role: "user", content: text }]);
+    setAssistantInput("");
+    setAssistantLoading(true);
+    setAssistantError(null);
+    try {
+      const r = await fetch("/backend/assistant/chat", {
+        method: "POST",
+        headers: jsonHeaders,
+        body: JSON.stringify({ message: text, history: historyPayload })
+      });
+      const data = await r.json();
+      if (!r.ok) {
+        setAssistantError(data.error ?? "Ассистент недоступен");
+      } else if (data.reply) {
+        setAssistantMessages(prev => [...prev, { role: "assistant", content: String(data.reply).trim() }]);
+      }
+    } catch (err) {
+      console.error(err);
+      setAssistantError("Ассистент недоступен, попробуйте позже");
+    } finally {
+      setAssistantLoading(false);
+    }
+  }
+
+  function resetAssistant() {
+    setAssistantMessages([]);
+    setAssistantError(null);
+    setAssistantInput("");
+  }
+
+  function healthinessLabel(value: Healthiness): string {
+    switch (value) {
+      case "healthy":
+        return "Полезно";
+      case "caution":
+        return "С осторожностью";
+      default:
+        return "Умеренно";
     }
   }
 
@@ -390,6 +594,96 @@ const App = observer(() => {
             <button type="submit">Создать продукт</button>
           </form>
         </details>
+      </section>
+
+      <section>
+        <h2>Персональные советы по питанию</h2>
+        <form className="card advice-form" onSubmit={requestAdvice}>
+          <label>Что вас беспокоит?
+            <textarea
+              placeholder="Например: хочу снизить холестерин, но люблю сыр и сладкое."
+              value={adviceFocus}
+              onChange={e => setAdviceFocus(e.target.value)}
+              rows={4}
+            />
+          </label>
+          <div className="form-actions">
+            <button type="submit" disabled={adviceLoading}>{adviceLoading ? "Формируем рекомендации..." : "Получить рекомендации"}</button>
+            {adviceError && <p className="error">{adviceError}</p>}
+          </div>
+        </form>
+        {adviceText && (
+          <article className="card advice-result">
+            <h3>Рекомендации</h3>
+            <pre className="advice-text">{adviceText}</pre>
+          </article>
+        )}
+      </section>
+
+      <section>
+        <h2>Анализ блюда по фото</h2>
+        <form className="card photo-card" onSubmit={analyzePhoto}>
+          <label className="photo-upload">
+            Загрузите фото блюда
+            <input type="file" accept="image/*" onChange={handlePhotoChange} />
+          </label>
+          {photoPreview && <img className="photo-preview" src={photoPreview} alt="Предпросмотр блюда" />}
+          <div className="form-actions">
+            <button type="submit" disabled={photoLoading || !photoFile}>{photoLoading ? "Анализируем..." : "Проанализировать"}</button>
+            {photoError && <p className="error">{photoError}</p>}
+          </div>
+        </form>
+        {photoResult && (
+          <div className="card photo-result">
+            <div className="photo-result-header">
+              <h3>{photoResult.title}</h3>
+              <span className={`badge ${photoResult.healthiness}`}>{healthinessLabel(photoResult.healthiness)}</span>
+            </div>
+            {photoResult.description && <p>{photoResult.description}</p>}
+            {photoResult.estimated_calories !== null && (
+              <p className="muted">Примерная калорийность порции: {photoResult.estimated_calories} ккал</p>
+            )}
+            {photoResult.reasoning && <p>{photoResult.reasoning}</p>}
+            {photoResult.tips.length > 0 && (
+              <ul>
+                {photoResult.tips.map((tip, index) => (
+                  <li key={index}>{tip}</li>
+                ))}
+              </ul>
+            )}
+          </div>
+        )}
+      </section>
+
+      <section>
+        <h2>AI-ассистент</h2>
+        <div className="card assistant">
+          <div className="assistant-header">
+            <h3>Спросите о здоровье сердца</h3>
+            <button type="button" className="ghost" onClick={resetAssistant} disabled={assistantMessages.length === 0 || assistantLoading}>
+              Очистить диалог
+            </button>
+          </div>
+          <div className="assistant-log">
+            {assistantMessages.length === 0 && <p className="muted">Задайте вопрос, например: «Что съесть на ужин при высоком холестерине?»</p>}
+            {assistantMessages.map((msg, index) => (
+              <div key={index} className={`assistant-message ${msg.role}`}>
+                <span>{msg.content}</span>
+              </div>
+            ))}
+          </div>
+          {assistantError && <p className="error">{assistantError}</p>}
+          <form className="assistant-form" onSubmit={sendAssistantMessage}>
+            <input
+              value={assistantInput}
+              onChange={e => setAssistantInput(e.target.value)}
+              placeholder="Задайте вопрос ассистенту"
+            />
+            <button type="submit" disabled={assistantLoading || assistantInput.trim() === ""}>
+              {assistantLoading ? "Отправляем..." : "Спросить"}
+            </button>
+          </form>
+        </div>
       </section>
     </div>
   );

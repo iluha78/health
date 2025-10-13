@@ -6,6 +6,9 @@ use App\Controllers\ProfileController;
 use App\Controllers\LipidController;
 use App\Controllers\DiaryController;
 use App\Controllers\FoodController;
+use App\Controllers\AdviceController;
+use App\Controllers\AnalysisController;
+use App\Controllers\AssistantController;
 use App\Middleware\JwtMiddleware;
 
 /** @var App $app */
@@ -24,3 +27,7 @@ $app->get('/diary/{date}',              [DiaryController::class, 'getDay'])->add
 $app->post('/diary/{date}/items',       [DiaryController::class, 'addItem'])->add(new JwtMiddleware());
 $app->get('/foods',                     [FoodController::class, 'search'])->add(new JwtMiddleware());
 $app->post('/foods',                    [FoodController::class, 'create'])->add(new JwtMiddleware());
+$app->post('/advice/nutrition',         [AdviceController::class, 'nutrition'])->add(new JwtMiddleware());
+$app->post('/analysis/photo',           [AnalysisController::class, 'photo'])->add(new JwtMiddleware());
+$app->post('/assistant/chat',           [AssistantController::class, 'chat'])->add(new JwtMiddleware());
+
