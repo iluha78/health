@@ -59,6 +59,8 @@ const App = observer(() => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
 
+  const [showPassword, setShowPassword] = useState(false);
+
   const [lipids, setLipids] = useState<Lipid[]>([]);
   const [lipidForm, setLipidForm] = useState({ dt: "", chol: "", hdl: "", ldl: "", trig: "", note: "" });
 
@@ -132,6 +134,7 @@ const App = observer(() => {
         void userStore.refresh();
       }
     } else {
+      setShowPassword(false);
       setLipids([]);
       setDiary(null);
       setFoods([]);
@@ -434,15 +437,43 @@ const App = observer(() => {
         <h1>CholestoFit</h1>
         <p>Войдите или зарегистрируйтесь, чтобы начать отслеживать здоровье сердца.</p>
         <div className="toggle">
-          <button className={mode === "login" ? "active" : ""} onClick={() => setMode("login")}>Вход</button>
-          <button className={mode === "register" ? "active" : ""} onClick={() => setMode("register")}>Регистрация</button>
+          <button
+            className={mode === "login" ? "active" : ""}
+            onClick={() => {
+              setMode("login");
+              setShowPassword(false);
+            }}
+          >Вход</button>
+          <button
+            className={mode === "register" ? "active" : ""}
+            onClick={() => {
+              setMode("register");
+              setShowPassword(false);
+            }}
+          >Регистрация</button>
         </div>
         <form onSubmit={handleAuthSubmit} className="card">
           <label>Email
             <input type="email" value={email} onChange={e => setEmail(e.target.value)} required />
           </label>
           <label>Пароль
-            <input type="password" value={password} onChange={e => setPassword(e.target.value)} required />
+            <div className="password-input">
+              <input
+                type={showPassword ? "text" : "password"}
+                autoComplete={mode === "login" ? "current-password" : "new-password"}
+                value={password}
+                onChange={e => setPassword(e.target.value)}
+                required
+              />
+              <button
+                type="button"
+                className="ghost"
+                onClick={() => setShowPassword(prev => !prev)}
+                aria-label={showPassword ? "Скрыть пароль" : "Показать пароль"}
+              >
+                {showPassword ? "Скрыть" : "Показать"}
+              </button>
+            </div>
           </label>
           <button type="submit">{mode === "login" ? "Войти" : "Создать аккаунт"}</button>
           {userStore.error && <p className="error">{userStore.error}</p>}

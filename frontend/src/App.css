@@ -85,6 +85,16 @@ body {
   font-size: 0.95rem;
 }
 
+.password-input {
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+}
+
+.password-input input {
+  flex: 1;
+}
+
 label {
   display: flex;
   flex-direction: column;
@@ -130,6 +140,17 @@ button:disabled {
 
 button:disabled:hover {
   background: #3a57f1;
+}
+
+.ghost {
+  background: transparent;
+  border: 1px solid #3a57f1;
+  color: #3a57f1;
+  padding: 0.55rem 0.9rem;
+}
+
+.ghost:hover {
+  background: rgba(58, 87, 241, 0.1);
 }
 
 .error {
