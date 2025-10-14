@@ -2,57 +2,21 @@ import { useEffect, useMemo, useState } from "react";
 import type { ChangeEvent, FormEvent } from "react";
 import { observer } from "mobx-react-lite";
 import { userStore } from "./stores/user";
+import type {
+  AssistantMessage,
+  DiaryDay,
+  Food,
+  Healthiness,
+  Lipid,
+  PhotoAnalysis,
+} from "./types/api";
+import {
+  normalizeDiaryDay,
+  normalizeFoods,
+  normalizeLipids,
+  normalizePhotoAnalysis,
+} from "./types/api";
 import "./App.css";
-
-type Lipid = {
-  id: number;
-  dt: string;
-  chol?: number;
-  hdl?: number;
-  ldl?: number;
-  trig?: number;
-  note?: string;
-};
-
-type Food = {
-  id: number;
-  name: string;
-  kcal: number;
-  protein_g?: number;
-  fat_g?: number;
-  sfa_g?: number;
-  carbs_g?: number;
-  fiber_g?: number;
-  soluble_fiber_g?: number;
-};
-
-type DiaryItem = {
-  id: number;
-  grams: number;
-  note?: string;
-  food: Food | null;
-};
-
-type DiaryDay = {
-  date: string;
-  items: DiaryItem[];
-};
-
-type Healthiness = "healthy" | "balanced" | "caution";
-
-type PhotoResult = {
-  title: string;
-  description: string;
-  estimated_calories: number | null;
-  healthiness: Healthiness;
-  reasoning: string;
-  tips: string[];
-};
-
-type AssistantMessage = {
-  role: "user" | "assistant";
-  content: string;
-};
 
 const App = observer(() => {
   const [mode, setMode] = useState<"login" | "register">("login");
@@ -88,7 +52,7 @@ const App = observer(() => {
 
   const [photoFile, setPhotoFile] = useState<File | null>(null);
   const [photoPreview, setPhotoPreview] = useState<string | null>(null);
-  const [photoResult, setPhotoResult] = useState<PhotoResult | null>(null);
+  const [photoResult, setPhotoResult] = useState<PhotoAnalysis | null>(null);
   const [photoLoading, setPhotoLoading] = useState(false);
   const [photoError, setPhotoError] = useState<string | null>(null);
 
@@ -101,13 +65,13 @@ const App = observer(() => {
     if (userStore.targets) {
       setProfileForm({
         sex: userStore.targets.sex ?? "",
-        age: userStore.targets.age ?? "",
-        height_cm: userStore.targets.height_cm ?? "",
-        weight_kg: userStore.targets.weight_kg ?? "",
+        age: userStore.targets.age == null ? "" : String(userStore.targets.age),
+        height_cm: userStore.targets.height_cm == null ? "" : String(userStore.targets.height_cm),
+        weight_kg: userStore.targets.weight_kg == null ? "" : String(userStore.targets.weight_kg),
         activity: userStore.targets.activity ?? "",
-        kcal_goal: userStore.targets.kcal_goal ?? "",
-        sfa_limit_g: userStore.targets.sfa_limit_g ?? "",
-        fiber_goal_g: userStore.targets.fiber_goal_g ?? ""
+        kcal_goal: userStore.targets.kcal_goal == null ? "" : String(userStore.targets.kcal_goal),
+        sfa_limit_g: userStore.targets.sfa_limit_g == null ? "" : String(userStore.targets.sfa_limit_g),
+        fiber_goal_g: userStore.targets.fiber_goal_g == null ? "" : String(userStore.targets.fiber_goal_g)
       });
     }
   }, [userStore.targets]);
@@ -176,7 +140,7 @@ const App = observer(() => {
     try {
       const r = await fetch("/backend/lipids", { headers: authHeaders });
       const data = await r.json();
-      setLipids(Array.isArray(data) ? data : []);
+      setLipids(normalizeLipids(data));
     } catch (err) {
       console.error(err);
     }
@@ -228,7 +192,7 @@ const App = observer(() => {
     try {
       const r = await fetch(`/backend/diary/${date}`, { headers: authHeaders });
       const data = await r.json();
-      setDiary(data);
+      setDiary(normalizeDiaryDay(data));
     } catch (err) {
       console.error(err);
     }
@@ -261,7 +225,7 @@ const App = observer(() => {
         headers: authHeaders
       });
       const data = await r.json();
-      setFoods(Array.isArray(data) ? data : []);
+      setFoods(normalizeFoods(data));
     } catch (err) {
       console.error(err);
     }
@@ -354,25 +318,16 @@ const App = observer(() => {
       });
       const data = await r.json();
       if (!r.ok) {
-        setPhotoError(data.error ?? "Не удалось проанализировать фото");
+        setPhotoError(typeof data.error === "string" ? data.error : "Не удалось проанализировать фото");
         setPhotoResult(null);
       } else {
-        const safeTips = Array.isArray(data.tips) ? data.tips.filter((tip: unknown): tip is string => typeof tip === "string") : [];
-        const rawHealthiness = typeof data.healthiness === "string" ? data.healthiness : "";
-        const healthiness: Healthiness = rawHealthiness === "healthy" || rawHealthiness === "balanced" || rawHealthiness === "caution"
-          ? rawHealthiness
-          : "balanced";
-        const caloriesValue = typeof data.estimated_calories === "number"
-          ? data.estimated_calories
-          : Number.parseFloat(data.estimated_calories);
-        setPhotoResult({
-          title: data.title ?? "Блюдо",
-          description: data.description ?? "",
-          estimated_calories: Number.isFinite(caloriesValue) ? Math.round(caloriesValue) : null,
-          healthiness,
-          reasoning: data.reasoning ?? "",
-          tips: safeTips
-        });
+        const parsed = normalizePhotoAnalysis(data);
+        if (!parsed) {
+          setPhotoError("Модель вернула неожиданный ответ");
+          setPhotoResult(null);
+        } else {
+          setPhotoResult(parsed);
+        }
       }
     } catch (err) {
       console.error(err);
