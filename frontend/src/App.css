@@ -1,5 +1,5 @@
 :root {
-  color-scheme: light dark;
+  color-scheme: light;
   font-family: "Inter", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
 }
 
@@ -111,6 +111,12 @@ textarea {
   border: 1px solid #cfd6ee;
   background: #fff;
   font: inherit;
+  color: #1f2933;
+}
+
+input::placeholder,
+textarea::placeholder {
+  color: #7a869f;
 }
 
 textarea {
