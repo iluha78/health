@@ -1,5 +1,6 @@
 import { makeAutoObservable, runInAction } from "mobx";
 import type { ApiError, AuthSuccess, ProfileTargets, UserSummary } from "../types/api";
+import { apiUrl } from "../lib/api";
 
 const isAuthSuccess = (payload: unknown): payload is AuthSuccess =>
     typeof payload === "object" && payload !== null && typeof (payload as AuthSuccess).token === "string";
@@ -20,7 +21,7 @@ class UserStore {
 
     async register(email: string, pass: string){
         this.error = null;
-        const r = await fetch("/backend/auth/register", {
+        const r = await fetch(apiUrl("/auth/register"), {
             method: "POST",
             headers: { "Content-Type":"application/json" },
             body: JSON.stringify({ email, pass })
@@ -41,7 +42,7 @@ class UserStore {
 
     async login(email:string, pass:string){
         this.error = null;
-        const r = await fetch("/backend/auth/login", {
+        const r = await fetch(apiUrl("/auth/login"), {
             method: "POST", headers: { "Content-Type":"application/json" },
             body: JSON.stringify({ email, pass })
         });
@@ -62,8 +63,8 @@ class UserStore {
     async refresh(){
         if (!this.token) return;
         try {
-            const me = await this._get<UserSummary>("/backend/me");
-            const targets = await this._get<ProfileTargets>("/backend/targets");
+            const me = await this._get<UserSummary>("/me");
+            const targets = await this._get<ProfileTargets>("/targets");
             runInAction(() => {
                 this.me = me;
                 this.targets = targets;
@@ -79,8 +80,8 @@ class UserStore {
         this.targets = null;
     }
 
-    private async _get<T>(url:string): Promise<T>{
-        const r = await fetch(url, { headers: { Authorization: `Bearer ${this.token}` }});
+    private async _get<T>(path: string): Promise<T>{
+        const r = await fetch(apiUrl(path), { headers: { Authorization: `Bearer ${this.token}` }});
         const data = await r.json();
         if (!r.ok) {
             const message = (data as ApiError).error ?? "Ошибка запроса";

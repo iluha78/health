@@ -17,6 +17,7 @@ import {
   normalizePhotoAnalysis,
 } from "./types/api";
 import "./App.css";
+import { apiUrl } from "./lib/api";
 
 const App = observer(() => {
   const [mode, setMode] = useState<"login" | "register">("login");
@@ -138,7 +139,7 @@ const App = observer(() => {
   async function loadLipids() {
     if (!userStore.token || !authHeaders) return;
     try {
-      const r = await fetch("/backend/lipids", { headers: authHeaders });
+      const r = await fetch(apiUrl("/lipids"), { headers: authHeaders });
       const data = await r.json();
       setLipids(normalizeLipids(data));
     } catch (err) {
@@ -157,7 +158,7 @@ const App = observer(() => {
       trig: lipidForm.trig ? Number(lipidForm.trig) : undefined,
       note: lipidForm.note || undefined
     };
-    const r = await fetch("/backend/lipids", {
+    const r = await fetch(apiUrl("/lipids"), {
       method: "POST",
       headers: jsonHeaders,
       body: JSON.stringify(body)
@@ -170,14 +171,14 @@ const App = observer(() => {
 
   async function deleteLipid(id: number) {
     if (!userStore.token || !authHeaders) return;
-    await fetch(`/backend/lipids/${id}`, { method: "DELETE", headers: authHeaders });
+    await fetch(apiUrl(`/lipids/${id}`), { method: "DELETE", headers: authHeaders });
     await loadLipids();
   }
 
   async function saveProfile(e: FormEvent) {
     e.preventDefault();
     if (!userStore.token || !jsonHeaders) return;
-    const r = await fetch("/backend/profile", {
+    const r = await fetch(apiUrl("/profile"), {
       method: "PUT",
       headers: jsonHeaders,
       body: JSON.stringify(profileForm)
@@ -190,7 +191,7 @@ const App = observer(() => {
   async function loadDiary(date: string) {
     if (!userStore.token || !authHeaders) return;
     try {
-      const r = await fetch(`/backend/diary/${date}`, { headers: authHeaders });
+      const r = await fetch(apiUrl(`/diary/${date}`), { headers: authHeaders });
       const data = await r.json();
       setDiary(normalizeDiaryDay(data));
     } catch (err) {
@@ -206,7 +207,7 @@ const App = observer(() => {
       grams: diaryForm.grams ? Number(diaryForm.grams) : null,
       note: diaryForm.note || undefined
     };
-    const r = await fetch(`/backend/diary/${diary.date}/items`, {
+    const r = await fetch(apiUrl(`/diary/${diary.date}/items`), {
       method: "POST",
       headers: jsonHeaders,
       body: JSON.stringify(body)
@@ -221,7 +222,8 @@ const App = observer(() => {
     e?.preventDefault();
     if (!userStore.token || !authHeaders) return;
     try {
-      const r = await fetch(`/backend/foods?q=${encodeURIComponent(foodQuery)}`, {
+      const url = apiUrl("/foods", { q: foodQuery || undefined });
+      const r = await fetch(url, {
         headers: authHeaders
       });
       const data = await r.json();
@@ -247,7 +249,7 @@ const App = observer(() => {
         body[key] = value.toString();
       }
     });
-    const r = await fetch("/backend/foods", {
+    const r = await fetch(apiUrl("/foods"), {
       method: "POST",
       headers: jsonHeaders,
       body: JSON.stringify(body)
@@ -264,7 +266,7 @@ const App = observer(() => {
     setAdviceLoading(true);
     setAdviceError(null);
     try {
-      const r = await fetch("/backend/advice/nutrition", {
+      const r = await fetch(apiUrl("/advice/nutrition"), {
         method: "POST",
         headers: jsonHeaders,
         body: JSON.stringify({ focus: adviceFocus })
@@ -311,7 +313,7 @@ const App = observer(() => {
     try {
       const formData = new FormData();
       formData.append("photo", photoFile);
-      const r = await fetch("/backend/analysis/photo", {
+      const r = await fetch(apiUrl("/analysis/photo"), {
         method: "POST",
         headers: authHeaders,
         body: formData
@@ -350,7 +352,7 @@ const App = observer(() => {
     setAssistantLoading(true);
     setAssistantError(null);
     try {
-      const r = await fetch("/backend/assistant/chat", {
+      const r = await fetch(apiUrl("/assistant/chat"), {
         method: "POST",
         headers: jsonHeaders,
         body: JSON.stringify({ message: text, history: historyPayload })
