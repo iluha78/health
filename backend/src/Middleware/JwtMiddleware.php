@@ -3,6 +3,7 @@ namespace App\Middleware;
 
 use App\Models\User;
 use App\Support\Auth;
+use App\Support\Env;
 use App\Support\ResponseHelper;
 use Firebase\JWT\JWT;
 use Firebase\JWT\Key;
@@ -27,7 +28,7 @@ class JwtMiddleware implements MiddlewareInterface
         }
 
         try {
-            $secret = $_ENV['JWT_SECRET'] ?? 'dev-secret';
+            $secret = Env::string('JWT_SECRET', 'dev-secret') ?? 'dev-secret';
             $decoded = JWT::decode($token, new Key($secret, 'HS256'));
         } catch (\Throwable $e) {
             return $this->unauthorized('Невалидный токен');

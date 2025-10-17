@@ -2,6 +2,7 @@
 namespace App\Controllers;
 
 use App\Models\User;
+use App\Support\Env;
 use App\Support\ResponseHelper;
 use Firebase\JWT\JWT;
 use Psr\Http\Message\ResponseInterface as Response;
@@ -56,7 +57,7 @@ class AuthController
 
     private function makeToken(User $user): string
     {
-        $secret = $_ENV['JWT_SECRET'] ?? 'dev-secret';
+        $secret = Env::string('JWT_SECRET', 'dev-secret') ?? 'dev-secret';
         $payload = [
             'sub'   => $user->id,
             'email' => $user->email,

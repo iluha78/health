@@ -1,6 +1,8 @@
 <?php
 namespace App\Services;
 
+use App\Support\Env;
+
 class OpenAiService
 {
     private ?string $apiKey;
@@ -9,9 +11,9 @@ class OpenAiService
 
     public function __construct(?string $apiKey = null, ?string $baseUrl = null, ?string $model = null)
     {
-        $this->apiKey = $apiKey ?? ($_ENV['OPENAI_API_KEY'] ?? null);
-        $this->baseUrl = rtrim($baseUrl ?? ($_ENV['OPENAI_BASE_URL'] ?? 'https://api.openai.com'), '/');
-        $this->model = $model ?? ($_ENV['OPENAI_MODEL'] ?? 'gpt-4o-mini');
+        $this->apiKey = $apiKey ?? Env::string('OPENAI_API_KEY');
+        $this->baseUrl = rtrim($baseUrl ?? (Env::string('OPENAI_BASE_URL', 'https://api.openai.com') ?? 'https://api.openai.com'), '/');
+        $this->model = $model ?? (Env::string('OPENAI_MODEL', 'gpt-4o-mini') ?? 'gpt-4o-mini');
     }
 
     public function isConfigured(): bool

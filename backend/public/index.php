@@ -1,4 +1,5 @@
 <?php
+use App\Support\Env;
 use App\Support\MigrationRunner;
 use Psr\Http\Message\ResponseInterface as Response;
 use Psr\Http\Message\ServerRequestInterface as Request;
@@ -13,7 +14,7 @@ $app = AppFactory::create();
 $app->addBodyParsingMiddleware();
 $app->addRoutingMiddleware();
 
-$corsRaw = $_ENV['CORS_ALLOWED_ORIGINS'] ?? '*';
+$corsRaw = Env::string('CORS_ALLOWED_ORIGINS', '*') ?? '*';
 $allowedOrigins = array_values(array_filter(array_map('trim', explode(',', $corsRaw))));
 
 $app->add(function (Request $request, RequestHandler $handler) use ($allowedOrigins, $app): Response {
@@ -47,12 +48,7 @@ $app->add(function (Request $request, RequestHandler $handler) use ($allowedOrig
 
 require __DIR__ . '/../config/db.php';
 
-$autoMigrateRaw = $_ENV['AUTO_RUN_MIGRATIONS'] ?? 'true';
-$shouldAutoMigrate = filter_var($autoMigrateRaw, FILTER_VALIDATE_BOOL, FILTER_NULL_ON_FAILURE);
-
-if ($shouldAutoMigrate === null) {
-    $shouldAutoMigrate = strtolower((string) $autoMigrateRaw) !== 'false';
-}
+$shouldAutoMigrate = Env::bool('AUTO_RUN_MIGRATIONS', true);
 
 if ($shouldAutoMigrate) {
     try {
