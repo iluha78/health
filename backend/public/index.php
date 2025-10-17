@@ -1,8 +1,10 @@
 <?php
+use App\Support\MigrationRunner;
 use Psr\Http\Message\ResponseInterface as Response;
 use Psr\Http\Message\ServerRequestInterface as Request;
 use Psr\Http\Server\RequestHandlerInterface as RequestHandler;
 use Slim\Factory\AppFactory;
+use Throwable;
 
 require __DIR__ . '/../vendor/autoload.php';
 (Dotenv\Dotenv::createImmutable(dirname(__DIR__)))->safeLoad();
@@ -44,6 +46,30 @@ $app->add(function (Request $request, RequestHandler $handler) use ($allowedOrig
 });
 
 require __DIR__ . '/../config/db.php';
+
+$autoMigrateRaw = $_ENV['AUTO_RUN_MIGRATIONS'] ?? 'true';
+$shouldAutoMigrate = filter_var($autoMigrateRaw, FILTER_VALIDATE_BOOL, FILTER_NULL_ON_FAILURE);
+
+if ($shouldAutoMigrate === null) {
+    $shouldAutoMigrate = strtolower((string) $autoMigrateRaw) !== 'false';
+}
+
+if ($shouldAutoMigrate) {
+    try {
+        $runner = new MigrationRunner();
+        $applied = $runner->run();
+
+        if ($applied > 0) {
+            error_log("Применены {$applied} миграции(й) при старте приложения.");
+        }
+    } catch (Throwable $e) {
+        error_log('Не удалось применить миграции: ' . $e->getMessage());
+        http_response_code(500);
+        echo 'Сервер не готов к обработке запросов (ошибка миграции).';
+        exit(1);
+    }
+}
+
 require __DIR__ . '/../config/routes.php';
 
 $app->run();
