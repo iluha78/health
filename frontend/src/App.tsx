@@ -584,15 +584,6 @@ const App = observer(() => {
     return (
       <div className="tab-panel">
         <h2>Цели и профиль</h2>
-        <div className="card profile-meta">
-          <div className="profile-meta-text">
-            <span className="profile-meta-label">Аккаунт</span>
-            <span className="profile-meta-value">{userStore.me?.email ?? "—"}</span>
-          </div>
-          <button type="button" onClick={() => userStore.logout()}>
-            Выйти
-          </button>
-        </div>
         <form className="card" onSubmit={saveProfile}>
           <div className="grid">
             <label>Пол
@@ -925,6 +916,15 @@ const App = observer(() => {
         <div className="brand">
           <h1>CholestoFit</h1>
           <p>Ваш персональный помощник по здоровью сердца</p>
+        </div>
+        <div className="topbar-profile">
+          <div className="topbar-profile-text">
+            <span className="topbar-profile-label">Аккаунт</span>
+            <span className="topbar-profile-email">{userStore.me?.email ?? "—"}</span>
+          </div>
+          <button type="button" onClick={() => userStore.logout()}>
+            Выйти
+          </button>
         </div>
       </header>
       <main className="content">
