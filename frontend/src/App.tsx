@@ -27,13 +27,13 @@ import { apiUrl } from "./lib/api";
 
 type TabKey = "assistant" | "profile" | "lipids" | "diary" | "advice" | "analysis";
 
-const TAB_ITEMS: { key: TabKey; label: string }[] = [
-  { key: "assistant", label: "Ассистент" },
-  { key: "profile", label: "Профиль" },
-  { key: "lipids", label: "Липиды" },
-  { key: "diary", label: "Дневник" },
-  { key: "advice", label: "Советы" },
-  { key: "analysis", label: "Фото" }
+const TAB_ITEMS: { key: TabKey; label: string; icon: string }[] = [
+  { key: "assistant", label: "Ассистент", icon: "🤖" },
+  { key: "profile", label: "Профиль", icon: "👤" },
+  { key: "lipids", label: "Липиды", icon: "🩸" },
+  { key: "diary", label: "Дневник", icon: "📘" },
+  { key: "advice", label: "Советы", icon: "🥗" },
+  { key: "analysis", label: "Фото", icon: "📸" }
 ];
 
 const App = observer(() => {
@@ -584,6 +584,15 @@ const App = observer(() => {
     return (
       <div className="tab-panel">
         <h2>Цели и профиль</h2>
+        <div className="card profile-meta">
+          <div className="profile-meta-text">
+            <span className="profile-meta-label">Аккаунт</span>
+            <span className="profile-meta-value">{userStore.me?.email ?? "—"}</span>
+          </div>
+          <button type="button" onClick={() => userStore.logout()}>
+            Выйти
+          </button>
+        </div>
         <form className="card" onSubmit={saveProfile}>
           <div className="grid">
             <label>Пол
@@ -917,10 +926,6 @@ const App = observer(() => {
           <h1>CholestoFit</h1>
           <p>Ваш персональный помощник по здоровью сердца</p>
         </div>
-        <div className="topbar-user">
-          <span>{userStore.me?.email}</span>
-          <button onClick={() => userStore.logout()}>Выйти</button>
-        </div>
       </header>
       <main className="content">
         <div className="tab-container">{renderActiveTab()}</div>
@@ -933,7 +938,10 @@ const App = observer(() => {
             className={`tab-button${activeTab === item.key ? " active" : ""}`}
             onClick={() => setActiveTab(item.key)}
           >
-            {item.label}
+            <span className="tab-icon" aria-hidden="true">
+              {item.icon}
+            </span>
+            <span className="tab-label">{item.label}</span>
           </button>
         ))}
       </nav>

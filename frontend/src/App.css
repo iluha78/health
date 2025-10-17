@@ -32,9 +32,9 @@ body {
 
 .topbar {
   display: flex;
-  justify-content: space-between;
+  justify-content: center;
   align-items: center;
-  gap: 1.5rem;
+  text-align: center;
 }
 
 .brand h1 {
@@ -46,21 +46,6 @@ body {
   margin: 0.25rem 0 0;
   color: #5a6b91;
   font-weight: 500;
-}
-
-.topbar-user {
-  display: flex;
-  flex-direction: column;
-  gap: 0.4rem;
-  align-items: flex-end;
-}
-
-.topbar-user span {
-  font-weight: 600;
-}
-
-.topbar-user button {
-  padding: 0.55rem 1.2rem;
 }
 
 .content {
@@ -111,10 +96,24 @@ body {
   border: none;
   background: transparent;
   color: #3a57f1;
-  padding: 0.65rem 0.5rem;
+  padding: 0.55rem 0.5rem 0.65rem;
   border-radius: 0.85rem;
   font-weight: 600;
   transition: background 0.2s ease, color 0.2s ease, box-shadow 0.2s ease;
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  align-items: center;
+  justify-content: center;
+}
+
+.tab-icon {
+  font-size: 1.4rem;
+  line-height: 1;
+}
+
+.tab-label {
+  font-size: 0.85rem;
 }
 
 .tab-button:hover {
@@ -125,6 +124,30 @@ body {
   background: linear-gradient(135deg, #5b7cff, #3a57f1);
   color: #fff;
   box-shadow: 0 14px 24px -18px rgba(30, 63, 180, 0.6);
+}
+
+.profile-meta {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.profile-meta-text {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+}
+
+.profile-meta-label {
+  font-size: 0.8rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: #5a6b91;
+}
+
+.profile-meta-value {
+  font-weight: 600;
 }
 
 .auth h1 {
@@ -551,12 +574,7 @@ details summary {
 @media (max-width: 720px) {
   .topbar {
     flex-direction: column;
-    align-items: flex-start;
-    gap: 0.75rem;
-  }
-
-  .topbar-user {
-    align-items: flex-start;
+    gap: 0.5rem;
   }
 
   .tabbar {
