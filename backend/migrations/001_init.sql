@@ -1,11 +1,11 @@
-CREATE TABLE users (
+CREATE TABLE IF NOT EXISTS users (
   id INT AUTO_INCREMENT PRIMARY KEY,
   email VARCHAR(190) UNIQUE NOT NULL,
   pass_hash VARCHAR(255) NOT NULL,
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
-CREATE TABLE profiles (
+CREATE TABLE IF NOT EXISTS profiles (
   user_id INT PRIMARY KEY,
   sex ENUM('male','female'),
   age INT, height_cm INT,
@@ -15,7 +15,7 @@ CREATE TABLE profiles (
   FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
 );
 
-CREATE TABLE lipids (
+CREATE TABLE IF NOT EXISTS lipids (
   id INT AUTO_INCREMENT PRIMARY KEY,
   user_id INT NOT NULL,
   dt DATE NOT NULL,
@@ -24,7 +24,7 @@ CREATE TABLE lipids (
   FOREIGN KEY (user_id) REFERENCES users(id)
 );
 
-CREATE TABLE foods (
+CREATE TABLE IF NOT EXISTS foods (
   id INT AUTO_INCREMENT PRIMARY KEY,
   source ENUM('local','off') DEFAULT 'local',
   off_id VARCHAR(64),
@@ -34,14 +34,14 @@ CREATE TABLE foods (
   carbs_g DECIMAL(6,2), fiber_g DECIMAL(6,2), soluble_fiber_g DECIMAL(6,2) NULL
 );
 
-CREATE TABLE diary_days (
+CREATE TABLE IF NOT EXISTS diary_days (
   id INT AUTO_INCREMENT PRIMARY KEY,
   user_id INT NOT NULL, d DATE NOT NULL,
   UNIQUE(user_id,d),
   FOREIGN KEY (user_id) REFERENCES users(id)
 );
 
-CREATE TABLE diary_items (
+CREATE TABLE IF NOT EXISTS diary_items (
   id INT AUTO_INCREMENT PRIMARY KEY,
   day_id INT NOT NULL, food_id INT NOT NULL, grams INT NOT NULL,
   note VARCHAR(255),
