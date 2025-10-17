@@ -8,7 +8,7 @@ use Slim\Factory\AppFactory;
 use Throwable;
 
 require __DIR__ . '/../vendor/autoload.php';
-(Dotenv\Dotenv::createImmutable(dirname(__DIR__)))->safeLoad();
+Env::bootstrap([dirname(__DIR__), dirname(__DIR__, 2)]);
 
 $app = AppFactory::create();
 $app->addBodyParsingMiddleware();

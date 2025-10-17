@@ -1,8 +1,8 @@
 <?php
 declare(strict_types=1);
 
+use App\Support\Env;
 use App\Support\MigrationRunner;
-use Dotenv\Dotenv;
 use Throwable;
 
 require __DIR__ . '/../vendor/autoload.php';
@@ -14,10 +14,7 @@ if ($projectRoot === false) {
     exit(1);
 }
 
-$envPath = $projectRoot . '/.env';
-if (file_exists($envPath)) {
-    Dotenv::createImmutable($projectRoot)->safeLoad();
-}
+Env::bootstrap([$projectRoot, dirname($projectRoot)]);
 
 require $projectRoot . '/config/db.php';
 

@@ -11,9 +11,23 @@ class OpenAiService
 
     public function __construct(?string $apiKey = null, ?string $baseUrl = null, ?string $model = null)
     {
-        $this->apiKey = $apiKey ?? Env::string('OPENAI_API_KEY');
-        $this->baseUrl = rtrim($baseUrl ?? (Env::string('OPENAI_BASE_URL', 'https://api.openai.com') ?? 'https://api.openai.com'), '/');
-        $this->model = $model ?? (Env::string('OPENAI_MODEL', 'gpt-4o-mini') ?? 'gpt-4o-mini');
+        Env::bootstrap();
+
+        $key = $apiKey ?? Env::string('OPENAI_API_KEY');
+        $key = $key !== null ? trim($key) : null;
+        $this->apiKey = $key === '' ? null : $key;
+
+        $resolvedBase = $baseUrl ?? Env::string('OPENAI_BASE_URL');
+        if ($resolvedBase === null || $resolvedBase === '') {
+            $resolvedBase = 'https://api.openai.com';
+        }
+        $this->baseUrl = rtrim($resolvedBase, '/');
+
+        $resolvedModel = $model ?? Env::string('OPENAI_MODEL');
+        if ($resolvedModel === null || $resolvedModel === '') {
+            $resolvedModel = 'gpt-4o-mini';
+        }
+        $this->model = $resolvedModel;
     }
 
     public function isConfigured(): bool
