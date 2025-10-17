@@ -25,6 +25,17 @@ import {
 import "./App.css";
 import { apiUrl } from "./lib/api";
 
+type TabKey = "assistant" | "profile" | "lipids" | "diary" | "advice" | "analysis";
+
+const TAB_ITEMS: { key: TabKey; label: string }[] = [
+  { key: "assistant", label: "Ассистент" },
+  { key: "profile", label: "Профиль" },
+  { key: "lipids", label: "Липиды" },
+  { key: "diary", label: "Дневник" },
+  { key: "advice", label: "Советы" },
+  { key: "analysis", label: "Фото" }
+];
+
 const App = observer(() => {
   const [mode, setMode] = useState<"login" | "register">("login");
   const [email, setEmail] = useState("");
@@ -70,6 +81,7 @@ const App = observer(() => {
   const [assistantLoading, setAssistantLoading] = useState(false);
   const [assistantError, setAssistantError] = useState<string | null>(null);
   const [assistantHistory, setAssistantHistory] = useState<AssistantHistoryItem[]>([]);
+  const [activeTab, setActiveTab] = useState<TabKey>("assistant");
 
   useEffect(() => {
     if (userStore.targets) {
@@ -169,6 +181,7 @@ const App = observer(() => {
 
   useEffect(() => {
     if (userStore.token) {
+      setActiveTab("assistant");
       void loadLipids();
       void loadDiary(diaryDate);
       void searchFoods();
@@ -179,6 +192,7 @@ const App = observer(() => {
         void userStore.refresh();
       }
     } else {
+      setActiveTab("assistant");
       setShowPassword(false);
       setLipids([]);
       setDiary(null);
@@ -515,7 +529,7 @@ const App = observer(() => {
     }
   }
 
-  if (!userStore.token) {
+  function renderAuth() {
     return (
       <div className="auth">
         <h1>CholestoFit</h1>
@@ -566,17 +580,9 @@ const App = observer(() => {
     );
   }
 
-  return (
-    <div className="app">
-      <header>
-        <h1>CholestoFit</h1>
-        <div>
-          <span>{userStore.me?.email}</span>
-          <button onClick={() => userStore.logout()}>Выйти</button>
-        </div>
-      </header>
-
-      <section>
+  function renderProfileTab() {
+    return (
+      <div className="tab-panel">
         <h2>Цели и профиль</h2>
         <form className="card" onSubmit={saveProfile}>
           <div className="grid">
@@ -618,9 +624,13 @@ const App = observer(() => {
           </div>
           <button type="submit">Сохранить профиль</button>
         </form>
-      </section>
+      </div>
+    );
+  }
 
-      <section>
+  function renderLipidsTab() {
+    return (
+      <div className="tab-panel">
         <h2>Липидный профиль</h2>
         <form className="card" onSubmit={saveLipid}>
           <div className="grid">
@@ -655,9 +665,13 @@ const App = observer(() => {
           ))}
           {lipids.length === 0 && <li>Записей пока нет.</li>}
         </ul>
-      </section>
+      </div>
+    );
+  }
 
-      <section>
+  function renderDiaryTab() {
+    return (
+      <div className="tab-panel tab-stack">
         <h2>Пищевой дневник</h2>
         <div className="card">
           <label>Дата
@@ -709,9 +723,13 @@ const App = observer(() => {
             <button type="submit">Создать продукт</button>
           </form>
         </details>
-      </section>
+      </div>
+    );
+  }
 
-      <section>
+  function renderAdviceTab() {
+    return (
+      <div className="tab-panel tab-stack">
         <h2>Персональные советы по питанию</h2>
         <form className="card advice-form" onSubmit={requestAdvice}>
           <label>Что вас беспокоит?
@@ -727,33 +745,37 @@ const App = observer(() => {
             {adviceError && <p className="error">{adviceError}</p>}
           </div>
         </form>
-      {adviceText && (
-        <article className="card advice-result">
-          <h3>Рекомендации</h3>
-          <pre className="advice-text">{adviceText}</pre>
-        </article>
-      )}
-      {adviceHistory.length > 0 && (
-        <details className="card history-card">
-          <summary>История рекомендаций</summary>
-          <ul className="history-list">
-            {adviceHistory.map(item => (
-              <li key={item.id}>
-                <div className="history-meta">
-                  <span className="muted">{formatDateTime(item.created_at)}</span>
-                  {item.focus && <span className="history-tag">{item.focus}</span>}
-                </div>
-                <pre className="advice-text">{item.advice}</pre>
-              </li>
-            ))}
-          </ul>
-        </details>
-      )}
-    </section>
+        {adviceText && (
+          <article className="card advice-result">
+            <h3>Рекомендации</h3>
+            <pre className="advice-text">{adviceText}</pre>
+          </article>
+        )}
+        {adviceHistory.length > 0 && (
+          <details className="card history-card">
+            <summary>История рекомендаций</summary>
+            <ul className="history-list">
+              {adviceHistory.map(item => (
+                <li key={item.id}>
+                  <div className="history-meta">
+                    <span className="muted">{formatDateTime(item.created_at)}</span>
+                    {item.focus && <span className="history-tag">{item.focus}</span>}
+                  </div>
+                  <pre className="advice-text">{item.advice}</pre>
+                </li>
+              ))}
+            </ul>
+          </details>
+        )}
+      </div>
+    );
+  }
 
-    <section>
-      <h2>Анализ блюда по фото</h2>
-      <form className="card photo-card" onSubmit={analyzePhoto}>
+  function renderAnalysisTab() {
+    return (
+      <div className="tab-panel tab-stack">
+        <h2>Анализ блюда по фото</h2>
+        <form className="card photo-card" onSubmit={analyzePhoto}>
           <label className="photo-upload">
             Загрузите фото блюда
             <input type="file" accept="image/*" onChange={handlePhotoChange} />
@@ -784,83 +806,137 @@ const App = observer(() => {
             )}
           </div>
         )}
-      {photoHistory.length > 0 && (
-        <details className="card history-card">
-          <summary>История анализов</summary>
-          <ul className="history-list">
-            {photoHistory.map(item => (
-              <li key={item.id} className="photo-history-item">
-                <div className="history-meta">
-                  <span className="muted">{formatDateTime(item.created_at)}</span>
-                  {item.original_filename && <span className="history-tag">{item.original_filename}</span>}
-                  <span className={`badge ${item.healthiness}`}>{healthinessLabel(item.healthiness)}</span>
-                </div>
-                <h4>{item.title}</h4>
-                {item.description && <p>{item.description}</p>}
-                {item.estimated_calories !== null && (
-                  <p className="muted">Примерно {item.estimated_calories} ккал</p>
-                )}
-                {item.reasoning && <p>{item.reasoning}</p>}
-                {item.tips.length > 0 && (
-                  <ul>
-                    {item.tips.map((tip, tipIndex) => (
-                      <li key={tipIndex}>{tip}</li>
-                    ))}
-                  </ul>
-                )}
-              </li>
-            ))}
-          </ul>
-        </details>
-      )}
-    </section>
-
-    <section>
-      <h2>AI-ассистент</h2>
-      <div className="card assistant">
-        <div className="assistant-header">
-          <h3>Спросите о здоровье сердца</h3>
-          <button type="button" className="ghost" onClick={resetAssistant} disabled={assistantMessages.length === 0 || assistantLoading}>
-            Очистить диалог
-          </button>
-        </div>
-        <div className="assistant-log">
-          {assistantMessages.length === 0 && <p className="muted">Задайте вопрос, например: «Что съесть на ужин при высоком холестерине?»</p>}
-          {assistantMessages.map((msg, index) => (
-            <div key={index} className={`assistant-message ${msg.role}`}>
-              <span>{msg.content}</span>
-            </div>
-          ))}
-        </div>
-        {assistantError && <p className="error">{assistantError}</p>}
-        <form className="assistant-form" onSubmit={sendAssistantMessage}>
-          <input
-            value={assistantInput}
-            onChange={e => setAssistantInput(e.target.value)}
-            placeholder="Задайте вопрос ассистенту"
-          />
-          <button type="submit" disabled={assistantLoading || assistantInput.trim() === ""}>
-            {assistantLoading ? "Отправляем..." : "Спросить"}
-          </button>
-        </form>
+        {photoHistory.length > 0 && (
+          <details className="card history-card">
+            <summary>История анализов</summary>
+            <ul className="history-list">
+              {photoHistory.map(item => (
+                <li key={item.id} className="photo-history-item">
+                  <div className="history-meta">
+                    <span className="muted">{formatDateTime(item.created_at)}</span>
+                    {item.original_filename && <span className="history-tag">{item.original_filename}</span>}
+                    <span className={`badge ${item.healthiness}`}>{healthinessLabel(item.healthiness)}</span>
+                  </div>
+                  <h4>{item.title}</h4>
+                  {item.description && <p>{item.description}</p>}
+                  {item.estimated_calories !== null && (
+                    <p className="muted">Примерно {item.estimated_calories} ккал</p>
+                  )}
+                  {item.reasoning && <p>{item.reasoning}</p>}
+                  {item.tips.length > 0 && (
+                    <ul>
+                      {item.tips.map((tip, tipIndex) => (
+                        <li key={tipIndex}>{tip}</li>
+                      ))}
+                    </ul>
+                  )}
+                </li>
+              ))}
+            </ul>
+          </details>
+        )}
       </div>
-      {assistantHistory.length > 0 && (
-        <details className="card history-card">
-          <summary>Архив диалогов</summary>
-          <ul className="history-list">
-            {assistantHistory.map(item => (
-              <li key={item.id}>
-                <div className="history-meta">
-                  <span className="muted">{formatDateTime(item.created_at)}</span>
-                </div>
-                <p className="history-user"><strong>Вы:</strong> {item.user_message}</p>
-                <p className="history-assistant"><strong>Ассистент:</strong> {item.assistant_reply}</p>
-              </li>
+    );
+  }
+
+  function renderAssistantTab() {
+    return (
+      <div className="tab-panel assistant-panel">
+        <div className="card assistant">
+          <div className="assistant-header">
+            <h3>Спросите о здоровье сердца</h3>
+            <button type="button" className="ghost" onClick={resetAssistant} disabled={assistantMessages.length === 0 || assistantLoading}>
+              Очистить диалог
+            </button>
+          </div>
+          <div className="assistant-log">
+            {assistantMessages.length === 0 && <p className="muted">Задайте вопрос, например: «Что съесть на ужин при высоком холестерине?»</p>}
+            {assistantMessages.map((msg, index) => (
+              <div key={index} className={`assistant-message ${msg.role}`}>
+                <span>{msg.content}</span>
+              </div>
             ))}
-          </ul>
-        </details>
-      )}
-    </section>
+          </div>
+          {assistantError && <p className="error">{assistantError}</p>}
+          <form className="assistant-form" onSubmit={sendAssistantMessage}>
+            <input
+              value={assistantInput}
+              onChange={e => setAssistantInput(e.target.value)}
+              placeholder="Задайте вопрос ассистенту"
+            />
+            <button type="submit" disabled={assistantLoading || assistantInput.trim() === ""}>
+              {assistantLoading ? "Отправляем..." : "Спросить"}
+            </button>
+          </form>
+        </div>
+        {assistantHistory.length > 0 && (
+          <details className="card history-card">
+            <summary>Архив диалогов</summary>
+            <ul className="history-list">
+              {assistantHistory.map(item => (
+                <li key={item.id}>
+                  <div className="history-meta">
+                    <span className="muted">{formatDateTime(item.created_at)}</span>
+                  </div>
+                  <p className="history-user"><strong>Вы:</strong> {item.user_message}</p>
+                  <p className="history-assistant"><strong>Ассистент:</strong> {item.assistant_reply}</p>
+                </li>
+              ))}
+            </ul>
+          </details>
+        )}
+      </div>
+    );
+  }
+
+  function renderActiveTab() {
+    switch (activeTab) {
+      case "profile":
+        return renderProfileTab();
+      case "lipids":
+        return renderLipidsTab();
+      case "diary":
+        return renderDiaryTab();
+      case "advice":
+        return renderAdviceTab();
+      case "analysis":
+        return renderAnalysisTab();
+      default:
+        return renderAssistantTab();
+    }
+  }
+
+  if (!userStore.token) {
+    return renderAuth();
+  }
+
+  return (
+    <div className="app-shell">
+      <header className="topbar">
+        <div className="brand">
+          <h1>CholestoFit</h1>
+          <p>Ваш персональный помощник по здоровью сердца</p>
+        </div>
+        <div className="topbar-user">
+          <span>{userStore.me?.email}</span>
+          <button onClick={() => userStore.logout()}>Выйти</button>
+        </div>
+      </header>
+      <main className="content">
+        <div className="tab-container">{renderActiveTab()}</div>
+      </main>
+      <nav className="tabbar">
+        {TAB_ITEMS.map(item => (
+          <button
+            key={item.key}
+            type="button"
+            className={`tab-button${activeTab === item.key ? " active" : ""}`}
+            onClick={() => setActiveTab(item.key)}
+          >
+            {item.label}
+          </button>
+        ))}
+      </nav>
     </div>
   );
 });
