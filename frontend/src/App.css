@@ -59,7 +59,33 @@ body {
   box-shadow: 0 12px 24px -18px rgba(47, 70, 175, 0.4);
 }
 
-.topbar-profile button {
+.topbar-profile-info {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  padding: 0;
+  color: inherit;
+}
+
+.topbar-profile-info:focus-visible {
+  outline: 2px solid rgba(47, 70, 175, 0.5);
+  outline-offset: 2px;
+}
+
+.topbar-profile-info.active .topbar-profile-label,
+.topbar-profile-info.active .topbar-profile-email {
+  color: #2f46af;
+}
+
+.topbar-profile-icon {
+  font-size: 1.25rem;
+  line-height: 1;
+}
+
+.topbar-profile button:not(.topbar-profile-info) {
   border-radius: 999px;
   padding: 0.45rem 1.1rem;
 }

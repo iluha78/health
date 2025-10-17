@@ -27,9 +27,14 @@ import { apiUrl } from "./lib/api";
 
 type TabKey = "assistant" | "profile" | "lipids" | "diary" | "advice" | "analysis";
 
+const PROFILE_TAB: { key: TabKey; label: string; icon: string } = {
+  key: "profile",
+  label: "Профиль",
+  icon: "👤"
+};
+
 const TAB_ITEMS: { key: TabKey; label: string; icon: string }[] = [
   { key: "assistant", label: "Ассистент", icon: "🤖" },
-  { key: "profile", label: "Профиль", icon: "👤" },
   { key: "lipids", label: "Липиды", icon: "🩸" },
   { key: "diary", label: "Дневник", icon: "📘" },
   { key: "advice", label: "Советы", icon: "🥗" },
@@ -918,10 +923,20 @@ const App = observer(() => {
           <p>Ваш персональный помощник по здоровью сердца</p>
         </div>
         <div className="topbar-profile">
-          <div className="topbar-profile-text">
-            <span className="topbar-profile-label">Аккаунт</span>
-            <span className="topbar-profile-email">{userStore.me?.email ?? "—"}</span>
-          </div>
+          <button
+            type="button"
+            className={`topbar-profile-info${activeTab === "profile" ? " active" : ""}`}
+            onClick={() => setActiveTab("profile")}
+            aria-label="Открыть профиль"
+          >
+            <span className="topbar-profile-icon" aria-hidden="true">
+              {PROFILE_TAB.icon}
+            </span>
+            <div className="topbar-profile-text">
+              <span className="topbar-profile-label">Аккаунт</span>
+              <span className="topbar-profile-email">{userStore.me?.email ?? "—"}</span>
+            </div>
+          </button>
           <button type="button" onClick={() => userStore.logout()}>
             Выйти
           </button>
