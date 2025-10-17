@@ -5,7 +5,7 @@ services:
     build:
       context: ./backend
     ports:
-      - "8080:8080"
+      - "8180:8080"
     environment:
       APP_ENV: development
       DB_HOST: db
@@ -28,7 +28,7 @@ services:
       MYSQL_USER: cholestofit
       MYSQL_PASSWORD: secret
     ports:
-      - "3306:3306"
+      - "3307:3306"
     healthcheck:
       test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
       interval: 10s

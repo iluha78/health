@@ -26,6 +26,6 @@ WORKDIR /app
 
 COPY --from=vendor /app /app
 
-EXPOSE 8080
+EXPOSE 8180
 
-CMD ["php", "-S", "0.0.0.0:8080", "-t", "public", "public/index.php"]
+CMD ["php", "-S", "0.0.0.0:8180", "-t", "public", "public/index.php"]
