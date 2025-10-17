@@ -1,6 +1,7 @@
 <?php
 namespace App\Controllers;
 
+use App\Models\AssistantInteraction;
 use App\Services\OpenAiService;
 use App\Support\Auth;
 use App\Support\ResponseHelper;
@@ -11,7 +12,7 @@ class AssistantController
 {
     public function chat(Request $request, Response $response): Response
     {
-        Auth::user($request); // проверка авторизации
+        $user = Auth::user($request); // проверка авторизации
         $data = (array) $request->getParsedBody();
 
         $message = trim((string) ($data['message'] ?? ''));
@@ -70,8 +71,46 @@ class AssistantController
             ], 500);
         }
 
+        $record = AssistantInteraction::create([
+            'user_id' => $user->id,
+            'user_message' => $message,
+            'assistant_reply' => $answer,
+        ]);
+        $record->refresh();
+
         return ResponseHelper::json($response, [
             'reply' => $answer,
+            'history' => $this->serializeHistory([$record]),
         ]);
+    }
+
+    public function history(Request $request, Response $response): Response
+    {
+        $user = Auth::user($request);
+
+        $records = AssistantInteraction::where('user_id', $user->id)
+            ->orderByDesc('created_at')
+            ->limit(50)
+            ->get();
+
+        return ResponseHelper::json($response, $this->serializeHistory($records->all()));
+    }
+
+    /**
+     * @param array<int, AssistantInteraction> $records
+     * @return array<int, array<string, mixed>>
+     */
+    private function serializeHistory(array $records): array
+    {
+        return array_map(static function (AssistantInteraction $interaction): array {
+            return [
+                'id' => (int) $interaction->id,
+                'user_message' => $interaction->user_message,
+                'assistant_reply' => $interaction->assistant_reply,
+                'created_at' => $interaction->created_at instanceof \DateTimeInterface
+                    ? $interaction->created_at->format(DATE_ATOM)
+                    : ($interaction->created_at ?: null),
+            ];
+        }, $records);
     }
 }

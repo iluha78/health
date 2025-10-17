@@ -27,7 +27,10 @@ $app->get('/diary/{date}',              [DiaryController::class, 'getDay'])->add
 $app->post('/diary/{date}/items',       [DiaryController::class, 'addItem'])->add(new JwtMiddleware());
 $app->get('/foods',                     [FoodController::class, 'search'])->add(new JwtMiddleware());
 $app->post('/foods',                    [FoodController::class, 'create'])->add(new JwtMiddleware());
+$app->get('/advice/nutrition/history',  [AdviceController::class, 'history'])->add(new JwtMiddleware());
 $app->post('/advice/nutrition',         [AdviceController::class, 'nutrition'])->add(new JwtMiddleware());
+$app->get('/analysis/photo/history',    [AnalysisController::class, 'history'])->add(new JwtMiddleware());
 $app->post('/analysis/photo',           [AnalysisController::class, 'photo'])->add(new JwtMiddleware());
+$app->get('/assistant/history',         [AssistantController::class, 'history'])->add(new JwtMiddleware());
 $app->post('/assistant/chat',           [AssistantController::class, 'chat'])->add(new JwtMiddleware());
 

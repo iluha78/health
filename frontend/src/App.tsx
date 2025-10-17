@@ -3,18 +3,24 @@ import type { ChangeEvent, FormEvent } from "react";
 import { observer } from "mobx-react-lite";
 import { userStore } from "./stores/user";
 import type {
+  AdviceHistoryItem,
+  AssistantHistoryItem,
   AssistantMessage,
   DiaryDay,
   Food,
   Healthiness,
   Lipid,
   PhotoAnalysis,
+  PhotoAnalysisHistoryItem,
 } from "./types/api";
 import {
+  normalizeAdviceHistory,
+  normalizeAssistantHistory,
   normalizeDiaryDay,
   normalizeFoods,
   normalizeLipids,
   normalizePhotoAnalysis,
+  normalizePhotoAnalysisHistory,
 } from "./types/api";
 import "./App.css";
 import { apiUrl } from "./lib/api";
@@ -50,17 +56,20 @@ const App = observer(() => {
   const [adviceText, setAdviceText] = useState("");
   const [adviceLoading, setAdviceLoading] = useState(false);
   const [adviceError, setAdviceError] = useState<string | null>(null);
+  const [adviceHistory, setAdviceHistory] = useState<AdviceHistoryItem[]>([]);
 
   const [photoFile, setPhotoFile] = useState<File | null>(null);
   const [photoPreview, setPhotoPreview] = useState<string | null>(null);
   const [photoResult, setPhotoResult] = useState<PhotoAnalysis | null>(null);
   const [photoLoading, setPhotoLoading] = useState(false);
   const [photoError, setPhotoError] = useState<string | null>(null);
+  const [photoHistory, setPhotoHistory] = useState<PhotoAnalysisHistoryItem[]>([]);
 
   const [assistantMessages, setAssistantMessages] = useState<AssistantMessage[]>([]);
   const [assistantInput, setAssistantInput] = useState("");
   const [assistantLoading, setAssistantLoading] = useState(false);
   const [assistantError, setAssistantError] = useState<string | null>(null);
+  const [assistantHistory, setAssistantHistory] = useState<AssistantHistoryItem[]>([]);
 
   useEffect(() => {
     if (userStore.targets) {
@@ -90,11 +99,82 @@ const App = observer(() => {
     } as Record<string, string>;
   }, [userStore.token]);
 
+  const timestampValue = (value: string | null) => {
+    if (!value) return 0;
+    const parsed = Date.parse(value);
+    return Number.isFinite(parsed) ? parsed : 0;
+  };
+
+  function mergeAdviceHistoryItems(items: AdviceHistoryItem[]) {
+    if (items.length === 0) return;
+    setAdviceHistory(prev => {
+      const map = new Map<number, AdviceHistoryItem>();
+      [...items, ...prev].forEach(item => {
+        map.set(item.id, item);
+      });
+      return Array.from(map.values()).sort((a, b) => {
+        const diff = timestampValue(b.created_at) - timestampValue(a.created_at);
+        return diff !== 0 ? diff : b.id - a.id;
+      });
+    });
+  }
+
+  function mergePhotoHistoryItems(items: PhotoAnalysisHistoryItem[]) {
+    if (items.length === 0) return;
+    setPhotoHistory(prev => {
+      const map = new Map<number, PhotoAnalysisHistoryItem>();
+      [...items, ...prev].forEach(item => {
+        map.set(item.id, item);
+      });
+      return Array.from(map.values()).sort((a, b) => {
+        const diff = timestampValue(b.created_at) - timestampValue(a.created_at);
+        return diff !== 0 ? diff : b.id - a.id;
+      });
+    });
+  }
+
+  function mergeAssistantHistoryItems(items: AssistantHistoryItem[]) {
+    if (items.length === 0) return;
+    setAssistantHistory(prev => {
+      const map = new Map<number, AssistantHistoryItem>();
+      [...items, ...prev].forEach(item => {
+        map.set(item.id, item);
+      });
+      const merged = Array.from(map.values()).sort((a, b) => {
+        const diff = timestampValue(b.created_at) - timestampValue(a.created_at);
+        return diff !== 0 ? diff : b.id - a.id;
+      });
+      const chronological = [...merged].sort((a, b) => {
+        const diff = timestampValue(a.created_at) - timestampValue(b.created_at);
+        return diff !== 0 ? diff : a.id - b.id;
+      });
+      const reconstructed: AssistantMessage[] = [];
+      chronological.forEach(entry => {
+        reconstructed.push({ role: "user", content: entry.user_message });
+        reconstructed.push({ role: "assistant", content: entry.assistant_reply });
+      });
+      setAssistantMessages(reconstructed);
+      return merged;
+    });
+  }
+
+  function formatDateTime(value: string | null): string {
+    if (!value) return "Без даты";
+    const date = new Date(value);
+    if (Number.isNaN(date.getTime())) {
+      return value;
+    }
+    return date.toLocaleString();
+  }
+
   useEffect(() => {
     if (userStore.token) {
       void loadLipids();
       void loadDiary(diaryDate);
       void searchFoods();
+      void loadAdviceHistory();
+      void loadPhotoHistory();
+      void loadAssistantHistory();
       if (!userStore.me) {
         void userStore.refresh();
       }
@@ -104,13 +184,16 @@ const App = observer(() => {
       setDiary(null);
       setFoods([]);
       setAdviceText("");
+      setAdviceHistory([]);
       setPhotoFile(null);
       if (photoPreview) {
         URL.revokeObjectURL(photoPreview);
       }
       setPhotoPreview(null);
       setPhotoResult(null);
+      setPhotoHistory([]);
       setAssistantMessages([]);
+      setAssistantHistory([]);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [userStore.token]);
@@ -142,6 +225,47 @@ const App = observer(() => {
       const r = await fetch(apiUrl("/lipids"), { headers: authHeaders });
       const data = await r.json();
       setLipids(normalizeLipids(data));
+    } catch (err) {
+      console.error(err);
+    }
+  }
+
+  async function loadAdviceHistory() {
+    if (!userStore.token || !authHeaders) return;
+    try {
+      const r = await fetch(apiUrl("/advice/nutrition/history"), { headers: authHeaders });
+      const data = await r.json();
+      const normalized = normalizeAdviceHistory(data);
+      setAdviceHistory([...normalized].sort((a, b) => {
+        const diff = timestampValue(b.created_at) - timestampValue(a.created_at);
+        return diff !== 0 ? diff : b.id - a.id;
+      }));
+    } catch (err) {
+      console.error(err);
+    }
+  }
+
+  async function loadPhotoHistory() {
+    if (!userStore.token || !authHeaders) return;
+    try {
+      const r = await fetch(apiUrl("/analysis/photo/history"), { headers: authHeaders });
+      const data = await r.json();
+      const normalized = normalizePhotoAnalysisHistory(data);
+      setPhotoHistory([...normalized].sort((a, b) => {
+        const diff = timestampValue(b.created_at) - timestampValue(a.created_at);
+        return diff !== 0 ? diff : b.id - a.id;
+      }));
+    } catch (err) {
+      console.error(err);
+    }
+  }
+
+  async function loadAssistantHistory() {
+    if (!userStore.token || !authHeaders) return;
+    try {
+      const r = await fetch(apiUrl("/assistant/history"), { headers: authHeaders });
+      const data = await r.json();
+      mergeAssistantHistoryItems(normalizeAssistantHistory(data));
     } catch (err) {
       console.error(err);
     }
@@ -276,7 +400,8 @@ const App = observer(() => {
         setAdviceError(data.error ?? "Не удалось получить рекомендации");
         setAdviceText("");
       } else {
-        setAdviceText((data.advice ?? "").trim());
+        setAdviceText(typeof data.advice === "string" ? data.advice.trim() : "");
+        mergeAdviceHistoryItems(normalizeAdviceHistory((data as { history?: unknown }).history));
       }
     } catch (err) {
       console.error(err);
@@ -329,6 +454,7 @@ const App = observer(() => {
           setPhotoResult(null);
         } else {
           setPhotoResult(parsed);
+          mergePhotoHistoryItems(normalizePhotoAnalysisHistory((data as { history?: unknown }).history));
         }
       }
     } catch (err) {
@@ -363,6 +489,7 @@ const App = observer(() => {
       } else if (data.reply) {
         setAssistantMessages(prev => [...prev, { role: "assistant", content: String(data.reply).trim() }]);
       }
+      mergeAssistantHistoryItems(normalizeAssistantHistory((data as { history?: unknown }).history));
     } catch (err) {
       console.error(err);
       setAssistantError("Ассистент недоступен, попробуйте позже");
@@ -600,17 +727,33 @@ const App = observer(() => {
             {adviceError && <p className="error">{adviceError}</p>}
           </div>
         </form>
-        {adviceText && (
-          <article className="card advice-result">
-            <h3>Рекомендации</h3>
-            <pre className="advice-text">{adviceText}</pre>
-          </article>
-        )}
-      </section>
+      {adviceText && (
+        <article className="card advice-result">
+          <h3>Рекомендации</h3>
+          <pre className="advice-text">{adviceText}</pre>
+        </article>
+      )}
+      {adviceHistory.length > 0 && (
+        <details className="card history-card">
+          <summary>История рекомендаций</summary>
+          <ul className="history-list">
+            {adviceHistory.map(item => (
+              <li key={item.id}>
+                <div className="history-meta">
+                  <span className="muted">{formatDateTime(item.created_at)}</span>
+                  {item.focus && <span className="history-tag">{item.focus}</span>}
+                </div>
+                <pre className="advice-text">{item.advice}</pre>
+              </li>
+            ))}
+          </ul>
+        </details>
+      )}
+    </section>
 
-      <section>
-        <h2>Анализ блюда по фото</h2>
-        <form className="card photo-card" onSubmit={analyzePhoto}>
+    <section>
+      <h2>Анализ блюда по фото</h2>
+      <form className="card photo-card" onSubmit={analyzePhoto}>
           <label className="photo-upload">
             Загрузите фото блюда
             <input type="file" accept="image/*" onChange={handlePhotoChange} />
@@ -641,38 +784,83 @@ const App = observer(() => {
             )}
           </div>
         )}
-      </section>
-
-      <section>
-        <h2>AI-ассистент</h2>
-        <div className="card assistant">
-          <div className="assistant-header">
-            <h3>Спросите о здоровье сердца</h3>
-            <button type="button" className="ghost" onClick={resetAssistant} disabled={assistantMessages.length === 0 || assistantLoading}>
-              Очистить диалог
-            </button>
-          </div>
-          <div className="assistant-log">
-            {assistantMessages.length === 0 && <p className="muted">Задайте вопрос, например: «Что съесть на ужин при высоком холестерине?»</p>}
-            {assistantMessages.map((msg, index) => (
-              <div key={index} className={`assistant-message ${msg.role}`}>
-                <span>{msg.content}</span>
-              </div>
+      {photoHistory.length > 0 && (
+        <details className="card history-card">
+          <summary>История анализов</summary>
+          <ul className="history-list">
+            {photoHistory.map(item => (
+              <li key={item.id} className="photo-history-item">
+                <div className="history-meta">
+                  <span className="muted">{formatDateTime(item.created_at)}</span>
+                  {item.original_filename && <span className="history-tag">{item.original_filename}</span>}
+                  <span className={`badge ${item.healthiness}`}>{healthinessLabel(item.healthiness)}</span>
+                </div>
+                <h4>{item.title}</h4>
+                {item.description && <p>{item.description}</p>}
+                {item.estimated_calories !== null && (
+                  <p className="muted">Примерно {item.estimated_calories} ккал</p>
+                )}
+                {item.reasoning && <p>{item.reasoning}</p>}
+                {item.tips.length > 0 && (
+                  <ul>
+                    {item.tips.map((tip, tipIndex) => (
+                      <li key={tipIndex}>{tip}</li>
+                    ))}
+                  </ul>
+                )}
+              </li>
             ))}
-          </div>
-          {assistantError && <p className="error">{assistantError}</p>}
-          <form className="assistant-form" onSubmit={sendAssistantMessage}>
-            <input
-              value={assistantInput}
-              onChange={e => setAssistantInput(e.target.value)}
-              placeholder="Задайте вопрос ассистенту"
-            />
-            <button type="submit" disabled={assistantLoading || assistantInput.trim() === ""}>
-              {assistantLoading ? "Отправляем..." : "Спросить"}
-            </button>
-          </form>
+          </ul>
+        </details>
+      )}
+    </section>
+
+    <section>
+      <h2>AI-ассистент</h2>
+      <div className="card assistant">
+        <div className="assistant-header">
+          <h3>Спросите о здоровье сердца</h3>
+          <button type="button" className="ghost" onClick={resetAssistant} disabled={assistantMessages.length === 0 || assistantLoading}>
+            Очистить диалог
+          </button>
         </div>
-      </section>
+        <div className="assistant-log">
+          {assistantMessages.length === 0 && <p className="muted">Задайте вопрос, например: «Что съесть на ужин при высоком холестерине?»</p>}
+          {assistantMessages.map((msg, index) => (
+            <div key={index} className={`assistant-message ${msg.role}`}>
+              <span>{msg.content}</span>
+            </div>
+          ))}
+        </div>
+        {assistantError && <p className="error">{assistantError}</p>}
+        <form className="assistant-form" onSubmit={sendAssistantMessage}>
+          <input
+            value={assistantInput}
+            onChange={e => setAssistantInput(e.target.value)}
+            placeholder="Задайте вопрос ассистенту"
+          />
+          <button type="submit" disabled={assistantLoading || assistantInput.trim() === ""}>
+            {assistantLoading ? "Отправляем..." : "Спросить"}
+          </button>
+        </form>
+      </div>
+      {assistantHistory.length > 0 && (
+        <details className="card history-card">
+          <summary>Архив диалогов</summary>
+          <ul className="history-list">
+            {assistantHistory.map(item => (
+              <li key={item.id}>
+                <div className="history-meta">
+                  <span className="muted">{formatDateTime(item.created_at)}</span>
+                </div>
+                <p className="history-user"><strong>Вы:</strong> {item.user_message}</p>
+                <p className="history-assistant"><strong>Ассистент:</strong> {item.assistant_reply}</p>
+              </li>
+            ))}
+          </ul>
+        </details>
+      )}
+    </section>
     </div>
   );
 });

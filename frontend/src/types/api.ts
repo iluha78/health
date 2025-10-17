@@ -71,9 +71,30 @@ export interface PhotoAnalysis {
   tips: string[];
 }
 
+export interface AdviceHistoryItem {
+  id: number;
+  focus: string | null;
+  advice: string;
+  created_at: string | null;
+}
+
+export interface PhotoAnalysisHistoryItem extends PhotoAnalysis {
+  id: number;
+  created_at: string | null;
+  original_filename: string | null;
+}
+
+export interface AssistantHistoryItem {
+  id: number;
+  user_message: string;
+  assistant_reply: string;
+  created_at: string | null;
+}
+
 export interface AdviceResponse {
   advice?: string;
   error?: string;
+  history?: AdviceHistoryItem[];
   [key: string]: unknown;
 }
 
@@ -85,6 +106,7 @@ export interface AssistantMessage {
 export interface AssistantReply {
   reply?: string;
   error?: string;
+  history?: AssistantHistoryItem[];
   [key: string]: unknown;
 }
 
@@ -227,4 +249,77 @@ export function normalizePhotoAnalysis(value: unknown): PhotoAnalysis | null {
     reasoning,
     tips,
   } satisfies PhotoAnalysis;
+}
+
+export function normalizeAdviceHistory(value: unknown): AdviceHistoryItem[] {
+  if (!Array.isArray(value)) {
+    return [];
+  }
+  return value
+    .map(item => {
+      if (!isRecord(item)) {
+        return null;
+      }
+      const id = toNumberOrNull(item.id);
+      const advice = typeof item.advice === "string" ? item.advice : null;
+      if (id === null || advice === null) {
+        return null;
+      }
+      return {
+        id,
+        focus: toStringOrNull(item.focus),
+        advice,
+        created_at: toStringOrNull(item.created_at),
+      } satisfies AdviceHistoryItem;
+    })
+    .filter((item): item is AdviceHistoryItem => item !== null);
+}
+
+export function normalizePhotoAnalysisHistory(value: unknown): PhotoAnalysisHistoryItem[] {
+  if (!Array.isArray(value)) {
+    return [];
+  }
+  return value
+    .map(item => {
+      if (!isRecord(item)) {
+        return null;
+      }
+      const id = toNumberOrNull(item.id);
+      const analysis = normalizePhotoAnalysis(item);
+      if (id === null || !analysis) {
+        return null;
+      }
+      return {
+        id,
+        ...analysis,
+        created_at: toStringOrNull(item.created_at),
+        original_filename: toStringOrNull(item.original_filename),
+      } satisfies PhotoAnalysisHistoryItem;
+    })
+    .filter((item): item is PhotoAnalysisHistoryItem => item !== null);
+}
+
+export function normalizeAssistantHistory(value: unknown): AssistantHistoryItem[] {
+  if (!Array.isArray(value)) {
+    return [];
+  }
+  return value
+    .map(item => {
+      if (!isRecord(item)) {
+        return null;
+      }
+      const id = toNumberOrNull(item.id);
+      const userMessage = typeof item.user_message === "string" ? item.user_message : null;
+      const assistantReply = typeof item.assistant_reply === "string" ? item.assistant_reply : null;
+      if (id === null || userMessage === null || assistantReply === null) {
+        return null;
+      }
+      return {
+        id,
+        user_message: userMessage,
+        assistant_reply: assistantReply,
+        created_at: toStringOrNull(item.created_at),
+      } satisfies AssistantHistoryItem;
+    })
+    .filter((item): item is AssistantHistoryItem => item !== null);
 }

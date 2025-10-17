@@ -2,6 +2,7 @@
 namespace App\Controllers;
 
 use App\Models\Lipid;
+use App\Models\NutritionAdvice;
 use App\Models\Profile;
 use App\Services\OpenAiService;
 use App\Support\Auth;
@@ -75,9 +76,47 @@ class AdviceController
             ], 500);
         }
 
-        return ResponseHelper::json($response, [
-            'advice' => $advice,
+        $record = NutritionAdvice::create([
+            'user_id' => $user->id,
+            'focus'   => $focus !== '' ? $focus : null,
+            'advice'  => $advice,
         ]);
+        $record->refresh();
+
+        return ResponseHelper::json($response, [
+            'advice'  => $advice,
+            'history' => $this->serializeHistory([$record]),
+        ]);
+    }
+
+    public function history(Request $request, Response $response): Response
+    {
+        $user = Auth::user($request);
+
+        $records = NutritionAdvice::where('user_id', $user->id)
+            ->orderByDesc('created_at')
+            ->limit(20)
+            ->get();
+
+        return ResponseHelper::json($response, $this->serializeHistory($records->all()));
+    }
+
+    /**
+     * @param array<int, NutritionAdvice> $records
+     * @return array<int, array<string, mixed>>
+     */
+    private function serializeHistory(array $records): array
+    {
+        return array_map(static function (NutritionAdvice $advice): array {
+            return [
+                'id'         => (int) $advice->id,
+                'focus'      => $advice->focus ?: null,
+                'advice'     => $advice->advice,
+                'created_at' => $advice->created_at instanceof \DateTimeInterface
+                    ? $advice->created_at->format(DATE_ATOM)
+                    : ($advice->created_at ?: null),
+            ];
+        }, $records);
     }
 
     private function formatValue($value): string

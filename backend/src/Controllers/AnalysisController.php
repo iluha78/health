@@ -1,6 +1,7 @@
 <?php
 namespace App\Controllers;
 
+use App\Models\PhotoAnalysis;
 use App\Services\OpenAiService;
 use App\Support\Auth;
 use App\Support\ResponseHelper;
@@ -12,7 +13,7 @@ class AnalysisController
 {
     public function photo(Request $request, Response $response): Response
     {
-        Auth::user($request); // доступ требуется, но пользователь не используется явно
+        $user = Auth::user($request);
 
         $files = $request->getUploadedFiles();
         /** @var UploadedFile|null $photo */
@@ -96,13 +97,73 @@ class AnalysisController
             ], 500);
         }
 
-        return ResponseHelper::json($response, [
+        $tips = [];
+        if (isset($parsed['tips']) && is_array($parsed['tips'])) {
+            $tips = array_values(array_filter(array_map(static function ($tip): string {
+                return trim((string) $tip);
+            }, $parsed['tips']), static function (string $tip): bool {
+                return $tip !== '';
+            }));
+        }
+
+        $result = [
             'title' => $parsed['title'] ?? 'Блюдо',
             'description' => $parsed['description'] ?? '',
             'estimated_calories' => $parsed['estimated_calories'] ?? null,
             'healthiness' => $parsed['healthiness'] ?? 'balanced',
             'reasoning' => $parsed['reasoning'] ?? '',
-            'tips' => $parsed['tips'] ?? [],
+            'tips' => $tips,
+        ];
+
+        $record = PhotoAnalysis::create([
+            'user_id' => $user->id,
+            'title' => $result['title'],
+            'description' => $result['description'],
+            'estimated_calories' => $result['estimated_calories'],
+            'healthiness' => $result['healthiness'],
+            'reasoning' => $result['reasoning'],
+            'tips' => $result['tips'],
+            'original_filename' => $photo->getClientFilename() ?: null,
         ]);
+        $record->refresh();
+
+        return ResponseHelper::json($response, $result + [
+            'history' => $this->serializeHistory([$record]),
+        ]);
+    }
+
+    public function history(Request $request, Response $response): Response
+    {
+        $user = Auth::user($request);
+
+        $records = PhotoAnalysis::where('user_id', $user->id)
+            ->orderByDesc('created_at')
+            ->limit(20)
+            ->get();
+
+        return ResponseHelper::json($response, $this->serializeHistory($records->all()));
+    }
+
+    /**
+     * @param array<int, PhotoAnalysis> $records
+     * @return array<int, array<string, mixed>>
+     */
+    private function serializeHistory(array $records): array
+    {
+        return array_map(static function (PhotoAnalysis $analysis): array {
+            return [
+                'id' => (int) $analysis->id,
+                'title' => $analysis->title,
+                'description' => $analysis->description,
+                'estimated_calories' => $analysis->estimated_calories !== null ? (int) $analysis->estimated_calories : null,
+                'healthiness' => $analysis->healthiness,
+                'reasoning' => $analysis->reasoning,
+                'tips' => $analysis->tips ?: [],
+                'original_filename' => $analysis->original_filename ?: null,
+                'created_at' => $analysis->created_at instanceof \DateTimeInterface
+                    ? $analysis->created_at->format(DATE_ATOM)
+                    : ($analysis->created_at ?: null),
+            ];
+        }, $records);
     }
 }
