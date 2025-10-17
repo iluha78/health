@@ -25,7 +25,10 @@ RUN apt-get update \
 WORKDIR /app
 
 COPY --from=vendor /app /app
+COPY docker-entrypoint.sh /usr/local/bin/docker-entrypoint.sh
+RUN chmod +x /usr/local/bin/docker-entrypoint.sh
 
 EXPOSE 8080
 
-CMD ["php", "-S", "0.0.0.0:8080", "-t", "public", "public/index.php"]
+ENTRYPOINT ["/usr/local/bin/docker-entrypoint.sh"]
+CMD []
