@@ -37,7 +37,30 @@ if ($allowAllOrigins) {
     unset($allowedOrigins['*']);
 }
 
-$normalizedOrigins = array_keys(array_filter($allowedOrigins));
+$normalizedOrigins = [];
+
+foreach (array_keys(array_filter($allowedOrigins)) as $origin) {
+    $normalizedOrigins[] = $origin;
+
+    $parsed = parse_url($origin);
+
+    if ($parsed === false || !isset($parsed['host'])) {
+        continue;
+    }
+
+    $scheme = $parsed['scheme'] ?? 'http';
+    $port = isset($parsed['port']) ? ':' . $parsed['port'] : '';
+
+    if (strcasecmp($parsed['host'], 'localhost') === 0) {
+        $normalizedOrigins[] = sprintf('%s://127.0.0.1%s', $scheme, $port);
+    }
+
+    if ($parsed['host'] === '127.0.0.1') {
+        $normalizedOrigins[] = sprintf('%s://localhost%s', $scheme, $port);
+    }
+}
+
+$normalizedOrigins = array_values(array_unique($normalizedOrigins, SORT_STRING));
 
 $app->add(function (Request $request, RequestHandler $handler) use ($normalizedOrigins, $allowAllOrigins, $app): Response {
     $isPreflight = strtoupper($request->getMethod()) === 'OPTIONS';
