@@ -19,7 +19,26 @@ $corsRaw = Env::string('CORS_ALLOWED_ORIGINS', '*') ?? '*';
 if ($corsRaw === '') {
     $corsRaw = '*';
 }
-$allowedOrigins = [];
+$allowedPatterns = [];
+$patternKeys = [];
+
+$addPattern = static function (string $scheme, string $host, ?int $port, bool $wildcardPort) use (&$allowedPatterns, &$patternKeys): void {
+    $scheme = strtolower($scheme);
+    $host = strtolower($host);
+    $key = $scheme . '|' . $host . '|' . ($wildcardPort ? '*' : ($port === null ? '' : (string) $port));
+
+    if (isset($patternKeys[$key])) {
+        return;
+    }
+
+    $patternKeys[$key] = true;
+    $allowedPatterns[] = [
+        'scheme' => $scheme,
+        'host' => $host,
+        'port' => $port,
+        'wildcardPort' => $wildcardPort,
+    ];
+};
 
 foreach (explode(',', $corsRaw) as $item) {
     $trimmed = trim($item);
@@ -29,44 +48,56 @@ foreach (explode(',', $corsRaw) as $item) {
     }
 
     if ($trimmed === '*') {
-        $allowedOrigins['*'] = true;
+        $allowedPatterns['*'] = true;
         continue;
     }
 
-    $allowedOrigins[rtrim($trimmed, '/')] = true;
-}
+    $candidate = rtrim($trimmed, '/');
+    if (strpos($candidate, '://') === false) {
+        $candidate = 'http://' . $candidate;
+    }
 
-$allowAllOrigins = isset($allowedOrigins['*']);
-if ($allowAllOrigins) {
-    unset($allowedOrigins['*']);
-}
-
-$normalizedOrigins = [];
-
-foreach (array_keys(array_filter($allowedOrigins)) as $origin) {
-    $normalizedOrigins[] = $origin;
-
-    $parsed = parse_url($origin);
+    $parsed = parse_url($candidate);
 
     if ($parsed === false || !isset($parsed['host'])) {
         continue;
     }
 
     $scheme = $parsed['scheme'] ?? 'http';
-    $port = isset($parsed['port']) ? ':' . $parsed['port'] : '';
+    $host = $parsed['host'];
+    $port = isset($parsed['port']) ? (int) $parsed['port'] : null;
+    $wildcardPort = !isset($parsed['port']);
 
-    if (strcasecmp($parsed['host'], 'localhost') === 0) {
-        $normalizedOrigins[] = sprintf('%s://127.0.0.1%s', $scheme, $port);
+    $addPattern($scheme, $host, $port, $wildcardPort);
+
+    $mirrorHosts = [];
+    $lowerHost = strtolower($host);
+
+    if ($lowerHost === 'localhost') {
+        $mirrorHosts = ['127.0.0.1', 'host.docker.internal'];
+    } elseif ($lowerHost === '127.0.0.1') {
+        $mirrorHosts = ['localhost', 'host.docker.internal'];
+    } elseif ($lowerHost === 'host.docker.internal') {
+        $mirrorHosts = ['localhost', '127.0.0.1'];
+    } elseif ($lowerHost === '0.0.0.0') {
+        $mirrorHosts = ['localhost', '127.0.0.1', 'host.docker.internal'];
     }
 
-    if ($parsed['host'] === '127.0.0.1') {
-        $normalizedOrigins[] = sprintf('%s://localhost%s', $scheme, $port);
+    foreach ($mirrorHosts as $mirror) {
+        $addPattern($scheme, $mirror, $port, $wildcardPort);
     }
 }
 
-$normalizedOrigins = array_values(array_unique($normalizedOrigins, SORT_STRING));
+$allowAllOrigins = isset($allowedPatterns['*']);
+if ($allowAllOrigins) {
+    unset($allowedPatterns['*']);
+}
 
-$app->add(function (Request $request, RequestHandler $handler) use ($normalizedOrigins, $allowAllOrigins, $app): Response {
+$defaultPort = static function (string $scheme): int {
+    return strtolower($scheme) === 'https' ? 443 : 80;
+};
+
+$app->add(function (Request $request, RequestHandler $handler) use ($allowedPatterns, $allowAllOrigins, $app, $defaultPort): Response {
     $isPreflight = strtoupper($request->getMethod()) === 'OPTIONS';
     $response = $isPreflight ? $app->getResponseFactory()->createResponse(204) : $handler->handle($request);
 
@@ -77,10 +108,33 @@ $app->add(function (Request $request, RequestHandler $handler) use ($normalizedO
     if ($allowAllOrigins) {
         $allowOrigin = $origin !== '' ? $origin : '*';
     } elseif ($origin !== '') {
-        foreach ($normalizedOrigins as $candidate) {
-            if (strcasecmp($candidate, $origin) === 0) {
-                $allowOrigin = $originHeader; // сохраняем оригинальное значение для заголовка
-                break;
+        $parsedOrigin = parse_url($origin);
+
+        if ($parsedOrigin !== false && isset($parsedOrigin['host'])) {
+            $originHost = strtolower($parsedOrigin['host']);
+            $originScheme = strtolower($parsedOrigin['scheme'] ?? 'http');
+            $originPort = $parsedOrigin['port'] ?? $defaultPort($originScheme);
+
+            foreach ($allowedPatterns as $pattern) {
+                if ($pattern['host'] !== $originHost) {
+                    continue;
+                }
+
+                if ($pattern['scheme'] !== $originScheme) {
+                    continue;
+                }
+
+                if ($pattern['wildcardPort']) {
+                    $allowOrigin = $originHeader;
+                    break;
+                }
+
+                $patternPort = $pattern['port'] ?? $defaultPort($pattern['scheme']);
+
+                if ($patternPort === $originPort) {
+                    $allowOrigin = $originHeader;
+                    break;
+                }
             }
         }
     }
