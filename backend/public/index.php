@@ -15,6 +15,10 @@ $app->addBodyParsingMiddleware();
 $app->addRoutingMiddleware();
 
 $corsRaw = Env::string('CORS_ALLOWED_ORIGINS', '*') ?? '*';
+
+if ($corsRaw === '') {
+    $corsRaw = '*';
+}
 $allowedOrigins = [];
 
 foreach (explode(',', $corsRaw) as $item) {
