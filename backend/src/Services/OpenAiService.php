@@ -13,9 +13,7 @@ class OpenAiService
     {
         Env::bootstrap();
 
-        $key = $apiKey ?? Env::string('OPENAI_API_KEY');
-        $key = $key !== null ? trim($key) : null;
-        $this->apiKey = $key === '' ? null : $key;
+        $this->apiKey = $this->resolveApiKey($apiKey);
 
         $resolvedBase = $baseUrl ?? Env::string('OPENAI_BASE_URL');
         if ($resolvedBase === null || $resolvedBase === '') {
@@ -32,6 +30,12 @@ class OpenAiService
 
     public function isConfigured(): bool
     {
+        if (!empty($this->apiKey)) {
+            return true;
+        }
+
+        $this->apiKey = $this->resolveApiKey(null);
+
         return !empty($this->apiKey);
     }
 
@@ -119,6 +123,43 @@ class OpenAiService
         }
 
         return $this->postWithStream($url, $payloadJson);
+    }
+
+    private function resolveApiKey(?string $override): ?string
+    {
+        $candidate = $override !== null ? trim($override) : null;
+
+        if ($candidate === null || $candidate === '') {
+            $envKey = Env::string('OPENAI_API_KEY');
+            $candidate = $envKey !== null ? trim($envKey) : null;
+        }
+
+        if ($candidate === null || $candidate === '') {
+            $filePath = Env::string('OPENAI_API_KEY_FILE');
+            if ($filePath !== null && $filePath !== '') {
+                $resolvedPath = trim($filePath);
+                if ($resolvedPath === '') {
+                    return null;
+                }
+
+                if (!is_file($resolvedPath) || !is_readable($resolvedPath)) {
+                    throw new \RuntimeException(
+                        sprintf('Файл с ключом OpenAI недоступен: %s', $resolvedPath)
+                    );
+                }
+
+                $fileContents = file_get_contents($resolvedPath);
+                if ($fileContents === false) {
+                    throw new \RuntimeException(
+                        sprintf('Не удалось прочитать ключ OpenAI из файла: %s', $resolvedPath)
+                    );
+                }
+
+                $candidate = trim($fileContents);
+            }
+        }
+
+        return $candidate === '' ? null : $candidate;
     }
 
     /**
