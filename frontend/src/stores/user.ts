@@ -53,23 +53,40 @@ class UserStore {
         await this.refresh();
     }
 
-    async login(email:string, pass:string){
+    async login(email: string, pass: string) {
         this.error = null;
-        const r = await fetch(apiUrl("/auth/login"), {
-            method: "POST", headers: { "Content-Type":"application/json" },
-            body: JSON.stringify({ email, pass })
-        });
-        const payload = await r.json() as AuthSuccess | ApiError;
-        if (!r.ok || !isAuthSuccess(payload)) {
-            const message = (payload as ApiError).error ?? "Ошибка входа";
-            runInAction(() => {
-                this.error = message;
+        let resp: Response | null = null;
+        let bodyText = "";
+
+        try {
+            resp = await fetch(apiUrl('/auth/login'), {
+                method: 'POST',
+                headers: { 'Accept':'application/json', 'Content-Type':'application/json' },
+                body: JSON.stringify({ email, pass }),
             });
-            throw new Error(message);
+
+            bodyText = await resp.text();
+            const payload = bodyText ? JSON.parse(bodyText) : null;
+
+
+            this.setToken(payload.token);
+
+            // Не блокируем логин из-за возможного CORS на refresh
+            this.refresh().catch((e) => {
+                console.warn("refresh failed (likely CORS/preflight):", e);
+            });
+
+            return payload;
+        } catch (e) {
+            if (!this.error) {
+                runInAction(() => {
+                    this.error = `Сеть/CORS: ${e instanceof Error ? e.message : String(e)}`;
+                });
+            }
+            throw e;
         }
-        this.setToken(payload.token);
-        await this.refresh();
     }
+
 
     async refresh(){
         if (!this.token) return;
