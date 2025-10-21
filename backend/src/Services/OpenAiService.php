@@ -61,17 +61,7 @@ class OpenAiService
     public function respond(array $input, array $options = []): string
     {
 
-        if (array_key_exists('response_format', $options)) {
-            $responseFormat = $options['response_format'];
-            unset($options['response_format']);
-
-            if (!isset($options['text'])) {
-                $textOptions = $this->convertResponseFormatToText($responseFormat);
-                if ($textOptions !== null) {
-                    $options['text'] = $textOptions;
-                }
-            }
-        }
+        $options = $this->normalizeResponseOptions($options);
         $payload = array_merge([
             'model' => $this->model,
             'input' => $input,
@@ -139,6 +129,65 @@ class OpenAiService
         }
 
         return $textOptions;
+    }
+
+    /**
+     * @param array<string, mixed> $options
+     * @return array<string, mixed>
+     */
+    private function normalizeResponseOptions(array $options): array
+    {
+        if (array_key_exists('response_format', $options)) {
+            $responseFormat = $options['response_format'];
+            unset($options['response_format']);
+
+            if (!isset($options['text'])) {
+                $textOptions = $this->convertResponseFormatToText($responseFormat);
+                if ($textOptions !== null) {
+                    $options['text'] = $textOptions;
+                }
+            }
+        }
+
+        $responseBlock = [];
+        if (isset($options['response']) && is_array($options['response'])) {
+            $responseBlock = $options['response'];
+            unset($options['response']);
+        }
+
+        $textOptions = $options['text'] ?? null;
+        unset($options['text']);
+
+        if ($textOptions !== null) {
+            if (!is_array($textOptions)) {
+                $textOptions = ['format' => $textOptions];
+            }
+
+            if (!isset($responseBlock['modalities'])) {
+                $responseBlock['modalities'] = ['text'];
+            } elseif (is_string($responseBlock['modalities'])) {
+                $responseBlock['modalities'] = [$responseBlock['modalities']];
+            } elseif (!is_array($responseBlock['modalities'])) {
+                $responseBlock['modalities'] = ['text'];
+            }
+
+            if (!in_array('text', $responseBlock['modalities'], true)) {
+                $responseBlock['modalities'][] = 'text';
+            }
+
+            $existingText = [];
+            if (isset($responseBlock['text']) && is_array($responseBlock['text'])) {
+                $existingText = $responseBlock['text'];
+            }
+
+            $responseBlock['text'] = array_merge($existingText, $textOptions);
+        }
+
+        if (!empty($responseBlock)) {
+            $options['response'] = $responseBlock;
+        }
+
+        return $options;
     }
 
     /**
