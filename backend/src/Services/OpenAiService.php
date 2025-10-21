@@ -60,6 +60,24 @@ class OpenAiService
      */
     public function respond(array $input, array $options = []): string
     {
+
+        if (isset($options['response_format'])) {
+            $responseFormat = $options['response_format'];
+            unset($options['response_format']);
+
+            if (!isset($options['text']) && is_array($responseFormat)) {
+                $formatType = $responseFormat['type'] ?? null;
+                if ($formatType === 'json_schema') {
+                    $jsonSchema = $responseFormat['json_schema'] ?? null;
+                    if ($jsonSchema !== null) {
+                        $options['text'] = [
+                            'format' => 'json_schema',
+                            'json_schema' => $jsonSchema,
+                        ];
+                    }
+                }
+            }
+        }
         $payload = array_merge([
             'model' => $this->model,
             'input' => $input,

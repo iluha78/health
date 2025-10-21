@@ -78,8 +78,8 @@ class AnalysisController
                     ],
                 ],
             ], [
-                'response_format' => [
-                    'type' => 'json_schema',
+                'text' => [
+                    'format' => 'json_schema',
                     'json_schema' => $schema,
                 ],
                 'max_output_tokens' => 900,
