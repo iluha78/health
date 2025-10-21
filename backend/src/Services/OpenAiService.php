@@ -68,6 +68,8 @@ class OpenAiService
             'max_output_tokens' => 800,
         ], $options);
 
+        unset($payload['response_format']);
+
         $data = $this->post('/v1/responses', $payload);
 
         if (isset($data['output']) && is_array($data['output'])) {
@@ -128,7 +130,78 @@ class OpenAiService
             $textOptions['json_schema'] = $responseFormat['schema'];
         }
 
-        return $textOptions;
+        return $this->normalizeTextOptions($textOptions);
+    }
+
+    /**
+     * @param array<string, mixed>|string|null $text
+     * @return array<string, mixed>|null
+     */
+    private function normalizeTextOptions($text): ?array
+    {
+        if ($text === null) {
+            return null;
+        }
+
+        if (is_string($text)) {
+            $text = trim($text);
+            if ($text === '') {
+                return null;
+            }
+
+            return ['format' => $text];
+        }
+
+        if (!is_array($text)) {
+            return null;
+        }
+
+        $normalized = $text;
+
+        if (isset($normalized['response_format']) && !isset($normalized['format'])) {
+            $normalized['format'] = $normalized['response_format'];
+        }
+
+        if (isset($normalized['type']) && !isset($normalized['format'])) {
+            $normalized['format'] = $normalized['type'];
+        }
+
+        if (isset($normalized['schema']) && !isset($normalized['json_schema'])) {
+            $normalized['json_schema'] = $normalized['schema'];
+        }
+
+        if (isset($normalized['json_schema']) && $normalized['json_schema'] === null) {
+            unset($normalized['json_schema']);
+        }
+
+        if (isset($normalized['format'])) {
+            $normalized['format'] = trim((string) $normalized['format']);
+            if ($normalized['format'] === '') {
+                unset($normalized['format']);
+            }
+        }
+
+        unset($normalized['schema'], $normalized['response_format'], $normalized['type']);
+
+        return $normalized ?: null;
+    }
+
+    /**
+     * @param array<string, mixed>|null $base
+     * @param array<string, mixed>|null $override
+     * @return array<string, mixed>|null
+     */
+    private function mergeTextOptions(?array $base, ?array $override): ?array
+    {
+        if (empty($override)) {
+            return $base ?: null;
+        }
+
+        if (empty($base)) {
+            return $override;
+        }
+
+        return array_merge($base, $override);
     }
 
     /**
@@ -137,50 +210,63 @@ class OpenAiService
      */
     private function normalizeResponseOptions(array $options): array
     {
-        if (array_key_exists('response_format', $options)) {
-            $responseFormat = $options['response_format'];
-            unset($options['response_format']);
-
-            if (!isset($options['text'])) {
-                $textOptions = $this->convertResponseFormatToText($responseFormat);
-                if ($textOptions !== null) {
-                    $options['text'] = $textOptions;
-                }
-            }
-        }
-
         $responseBlock = [];
         if (isset($options['response']) && is_array($options['response'])) {
             $responseBlock = $options['response'];
             unset($options['response']);
         }
 
-        $textOptions = $options['text'] ?? null;
-        unset($options['text']);
+        $textOptions = null;
 
-        if ($textOptions !== null) {
-            if (!is_array($textOptions)) {
-                $textOptions = ['format' => $textOptions];
+        if (array_key_exists('response_format', $options)) {
+            $converted = $this->convertResponseFormatToText($options['response_format']);
+            unset($options['response_format']);
+            $textOptions = $this->mergeTextOptions($textOptions, $converted);
+        }
+
+        if (array_key_exists('text', $options)) {
+            $textOptions = $this->mergeTextOptions($textOptions, $this->normalizeTextOptions($options['text']));
+            unset($options['text']);
+        }
+
+        if (isset($responseBlock['response_format'])) {
+            $textOptions = $this->mergeTextOptions(
+                $this->convertResponseFormatToText($responseBlock['response_format']),
+                $textOptions
+            );
+            unset($responseBlock['response_format']);
+        }
+
+        if (isset($responseBlock['text'])) {
+            $textOptions = $this->mergeTextOptions($this->normalizeTextOptions($responseBlock['text']), $textOptions);
+        }
+
+        if (isset($responseBlock['format']) && !isset($responseBlock['text'])) {
+            $candidate = $this->normalizeTextOptions([
+                'format' => $responseBlock['format'],
+                'json_schema' => $responseBlock['json_schema'] ?? ($responseBlock['schema'] ?? null),
+            ]);
+
+            $textOptions = $this->mergeTextOptions($candidate, $textOptions);
+        }
+
+        unset($responseBlock['format'], $responseBlock['json_schema'], $responseBlock['schema'], $responseBlock['text']);
+
+        if (!empty($textOptions)) {
+            $responseBlock['text'] = $textOptions;
+
+            $modalities = $responseBlock['modalities'] ?? null;
+            if (is_string($modalities)) {
+                $modalities = [$modalities];
+            } elseif (!is_array($modalities) || !$modalities) {
+                $modalities = [];
             }
 
-            if (!isset($responseBlock['modalities'])) {
-                $responseBlock['modalities'] = ['text'];
-            } elseif (is_string($responseBlock['modalities'])) {
-                $responseBlock['modalities'] = [$responseBlock['modalities']];
-            } elseif (!is_array($responseBlock['modalities'])) {
-                $responseBlock['modalities'] = ['text'];
+            if (!in_array('text', $modalities, true)) {
+                $modalities[] = 'text';
             }
 
-            if (!in_array('text', $responseBlock['modalities'], true)) {
-                $responseBlock['modalities'][] = 'text';
-            }
-
-            $existingText = [];
-            if (isset($responseBlock['text']) && is_array($responseBlock['text'])) {
-                $existingText = $responseBlock['text'];
-            }
-
-            $responseBlock['text'] = array_merge($existingText, $textOptions);
+            $responseBlock['modalities'] = array_values(array_unique($modalities));
         }
 
         if (!empty($responseBlock)) {
@@ -230,7 +316,7 @@ class OpenAiService
             CURLOPT_HTTPHEADER => [
                 'Content-Type: application/json',
                 'Authorization: Bearer ' . $this->apiKey,
-                'OpenAI-Beta: assistants=v2',
+                'OpenAI-Beta: responses=v1',
             ],
             CURLOPT_POSTFIELDS => $payloadJson,
             CURLOPT_TIMEOUT => 30,
@@ -266,7 +352,7 @@ class OpenAiService
         $headers = [
             'Content-Type: application/json',
             'Authorization: Bearer ' . $this->apiKey,
-            'OpenAI-Beta: assistants=v2',
+            'OpenAI-Beta: responses=v1',
         ];
 
         $context = stream_context_create([
