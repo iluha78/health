@@ -61,20 +61,14 @@ class OpenAiService
     public function respond(array $input, array $options = []): string
     {
 
-        if (isset($options['response_format'])) {
+        if (array_key_exists('response_format', $options)) {
             $responseFormat = $options['response_format'];
             unset($options['response_format']);
 
-            if (!isset($options['text']) && is_array($responseFormat)) {
-                $formatType = $responseFormat['type'] ?? null;
-                if ($formatType === 'json_schema') {
-                    $jsonSchema = $responseFormat['json_schema'] ?? null;
-                    if ($jsonSchema !== null) {
-                        $options['text'] = [
-                            'format' => 'json_schema',
-                            'json_schema' => $jsonSchema,
-                        ];
-                    }
+            if (!isset($options['text'])) {
+                $textOptions = $this->convertResponseFormatToText($responseFormat);
+                if ($textOptions !== null) {
+                    $options['text'] = $textOptions;
                 }
             }
         }
@@ -113,6 +107,38 @@ class OpenAiService
         }
 
         throw new \RuntimeException('Пустой ответ от модели OpenAI');
+    }
+
+    /**
+     * @param mixed $responseFormat
+     * @return array<string, mixed>|null
+     */
+    private function convertResponseFormatToText($responseFormat): ?array
+    {
+        if (is_string($responseFormat)) {
+            return ['format' => $responseFormat];
+        }
+
+        if (!is_array($responseFormat)) {
+            return null;
+        }
+
+        $format = $responseFormat['type'] ?? $responseFormat['format'] ?? null;
+        if (!is_string($format) || $format === '') {
+            return null;
+        }
+
+        $textOptions = ['format' => $format];
+
+        if (isset($responseFormat['json_schema'])) {
+            $textOptions['json_schema'] = $responseFormat['json_schema'];
+        }
+
+        if (isset($responseFormat['schema']) && !isset($textOptions['json_schema'])) {
+            $textOptions['json_schema'] = $responseFormat['schema'];
+        }
+
+        return $textOptions;
     }
 
     /**
