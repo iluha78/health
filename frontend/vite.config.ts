@@ -6,8 +6,8 @@ export default defineConfig({
   server: {
     port: 5173,
     proxy: {
-      // проксируем нужные API-пути на backend:8180
-      '^/(auth|me|foods|lipids|targets|advice|assistant|uploads)': {
+      // проксируем нужные API-пути на backend:8180 (включая анализ фото)
+      '^/(auth|me|foods|lipids|targets|advice|assistant|analysis|uploads)': {
         target: 'http://localhost:8180',
         changeOrigin: true,
       },
