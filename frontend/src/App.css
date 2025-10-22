@@ -298,13 +298,13 @@ label {
 input,
 select,
 textarea {
-  padding: 0.65rem 1rem;
+
   border-radius: 0.7rem;
   border: 1px solid #cbd5f5;
   background: #fff;
   font: inherit;
   color: #1f2933;
-  width: 100%;
+  padding: 0px 15px;
   min-height: 44px;
   transition: border-color 0.2s ease, box-shadow 0.2s ease;
 }

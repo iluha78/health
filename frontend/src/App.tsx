@@ -1358,9 +1358,9 @@ const App = observer(() => {
             <span className="topbar-profile-label">Аккаунт</span>
             <span className="topbar-profile-email">{userStore.me?.email ?? email}</span>
           </div>
-          <a className="button ghost" href="/settings" onClick={openSettings}>
+          <button className="button ghost" href="/settings" onClick={openSettings}>
             Настройки
-          </a>
+          </button>
           <button className="ghost" type="button" onClick={() => userStore.logout()}>
             Выйти
           </button>
