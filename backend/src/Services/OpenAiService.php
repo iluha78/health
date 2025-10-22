@@ -8,6 +8,10 @@ class OpenAiService
     private ?string $apiKey;
     private string $baseUrl;
     private string $model;
+    /**
+     * @var array<int, array<string, mixed>>
+     */
+    private array $logBuffer = [];
 
     public function __construct(?string $apiKey = null, ?string $baseUrl = null, ?string $model = null)
     {
@@ -28,6 +32,17 @@ class OpenAiService
             $resolvedModel = 'gpt-4o-mini';
         }
         $this->model = $resolvedModel;
+    }
+
+    /**
+     * @return array<int, array<string, mixed>>
+     */
+    public function releaseLogs(): array
+    {
+        $logs = $this->logBuffer;
+        $this->logBuffer = [];
+
+        return $logs;
     }
 
     public function isConfigured(): bool
@@ -60,29 +75,33 @@ class OpenAiService
      */
     public function respond(array $input, array $options = []): string
     {
+        $originalOptions = $options;
 
-        if (isset($options['response_format'])) {
-            $responseFormat = $options['response_format'];
-            unset($options['response_format']);
-
-            if (!isset($options['text']) && is_array($responseFormat)) {
-                $formatType = $responseFormat['type'] ?? null;
-                if ($formatType === 'json_schema') {
-                    $jsonSchema = $responseFormat['json_schema'] ?? null;
-                    if ($jsonSchema !== null) {
-                        $options['text'] = [
-                            'format' => 'json_schema',
-                            'json_schema' => $jsonSchema,
-                        ];
-                    }
-                }
-            }
-        }
+        $options = $this->normalizeResponseOptions($options);
+        $this->log('debug', 'Normalized options for Responses API call', [
+            'original_keys' => array_keys($originalOptions),
+            'normalized_keys' => array_keys($options),
+            'has_text_block' => array_key_exists('text', $options),
+            'has_response_block' => array_key_exists('response', $options),
+        ]);
         $payload = array_merge([
             'model' => $this->model,
             'input' => $input,
             'max_output_tokens' => 800,
         ], $options);
+
+        $hadResponseFormat = array_key_exists('response_format', $payload);
+        if ($hadResponseFormat) {
+            $this->log('warning', 'Legacy response_format detected in payload, removing before request', [
+                'response_format' => $payload['response_format'],
+            ]);
+            unset($payload['response_format']);
+        }
+
+        $this->log('info', 'Dispatching Responses API request', [
+            'payload' => $this->sanitizePayloadForLogging($payload),
+            'had_response_format' => $hadResponseFormat,
+        ]);
 
         $data = $this->post('/v1/responses', $payload);
 
@@ -116,6 +135,128 @@ class OpenAiService
     }
 
     /**
+     * @param array<string, mixed> $options
+     * @return array<string, mixed>
+     */
+    private function normalizeResponseOptions(array $options): array
+    {
+        $responseBlock = null;
+
+        if (isset($options['response']) && is_array($options['response'])) {
+            $responseBlock = $options['response'];
+            unset($options['response']);
+        }
+
+        $textOptions = null;
+
+        if ($responseBlock !== null) {
+            if (array_key_exists('response_format', $responseBlock)) {
+                $textOptions = $this->mergeTextBlocks($textOptions, $this->normalizeTextBlock($responseBlock['response_format']));
+                unset($responseBlock['response_format']);
+            }
+
+            if (array_key_exists('text', $responseBlock)) {
+                $textOptions = $this->mergeTextBlocks($textOptions, $this->normalizeTextBlock($responseBlock['text']));
+                unset($responseBlock['text']);
+            }
+
+            if ($textOptions === null) {
+                $candidate = $this->normalizeTextBlock($responseBlock);
+                if ($candidate !== null) {
+                    $textOptions = $this->mergeTextBlocks($textOptions, $candidate);
+                    unset(
+                        $responseBlock['format'],
+                        $responseBlock['json_schema'],
+                        $responseBlock['schema'],
+                        $responseBlock['type']
+                    );
+                }
+            }
+        }
+
+        if (array_key_exists('response_format', $options)) {
+            $textOptions = $this->mergeTextBlocks($textOptions, $this->normalizeTextBlock($options['response_format']));
+            unset($options['response_format']);
+        }
+
+        if (array_key_exists('text', $options)) {
+            $textOptions = $this->mergeTextBlocks($textOptions, $this->normalizeTextBlock($options['text']));
+            unset($options['text']);
+        }
+
+        if ($textOptions !== null) {
+            $options['text'] = $textOptions;
+        }
+
+        if ($responseBlock !== null && !empty($responseBlock)) {
+            $options['response'] = $responseBlock;
+        }
+
+        return $options;
+    }
+
+    /**
+     * @param array<string, mixed>|null $base
+     * @param array<string, mixed>|null $override
+     * @return array<string, mixed>|null
+     */
+    private function mergeTextBlocks(?array $base, ?array $override): ?array
+    {
+        if ($override === null) {
+            return $base;
+        }
+
+        if ($base === null) {
+            return $override;
+        }
+
+        return array_merge($base, $override);
+    }
+
+    /**
+     * @param array<string, mixed>|string|null $value
+     * @return array<string, mixed>|null
+     */
+    private function normalizeTextBlock($value): ?array
+    {
+        if ($value === null) {
+            return null;
+        }
+
+        if (is_string($value)) {
+            $value = ['format' => $value];
+        } elseif (!is_array($value)) {
+            return null;
+        }
+
+        if (isset($value['response_format']) && !isset($value['format'])) {
+            $value['format'] = $value['response_format'];
+        }
+
+        if (isset($value['type']) && !isset($value['format'])) {
+            $value['format'] = $value['type'];
+        }
+
+        if (isset($value['schema']) && !isset($value['json_schema'])) {
+            $value['json_schema'] = $value['schema'];
+        }
+
+        $format = isset($value['format']) ? trim((string) $value['format']) : '';
+
+        $normalized = [];
+
+        if ($format !== '') {
+            $normalized['format'] = $format;
+        }
+
+        if (array_key_exists('json_schema', $value) && $value['json_schema'] !== null) {
+            $normalized['json_schema'] = $value['json_schema'];
+        }
+
+        return $normalized ?: null;
+    }
+
+    /**
      * @param array<string, mixed> $payload
      * @return array<string, mixed>
      */
@@ -125,8 +266,14 @@ class OpenAiService
             throw new \RuntimeException('OpenAI API-ключ не настроен');
         }
 
+        $this->log('debug', 'Preparing POST request to OpenAI', [
+            'url' => $this->baseUrl . $path,
+            'payload' => $this->sanitizePayloadForLogging($payload),
+        ]);
+
         $payloadJson = json_encode($payload, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
         if ($payloadJson === false) {
+            $this->log('error', 'Failed to encode payload for OpenAI request');
             throw new \RuntimeException('Не удалось подготовить запрос к OpenAI');
         }
 
@@ -155,7 +302,7 @@ class OpenAiService
             CURLOPT_HTTPHEADER => [
                 'Content-Type: application/json',
                 'Authorization: Bearer ' . $this->apiKey,
-                'OpenAI-Beta: assistants=v2',
+                'OpenAI-Beta: responses=v1',
             ],
             CURLOPT_POSTFIELDS => $payloadJson,
             CURLOPT_TIMEOUT => 30,
@@ -167,16 +314,26 @@ class OpenAiService
         curl_close($ch);
 
         if ($raw === false) {
+            $this->log('error', 'cURL request to OpenAI failed', [
+                'error' => $error,
+            ]);
             throw new \RuntimeException('Ошибка запроса к OpenAI: ' . $error);
         }
 
         $decoded = json_decode($raw, true);
         if (!is_array($decoded)) {
+            $this->log('error', 'Unable to decode OpenAI response via cURL', [
+                'raw' => $raw,
+            ]);
             throw new \RuntimeException('Не удалось декодировать ответ OpenAI');
         }
 
         if ($status >= 400) {
             $message = $decoded['error']['message'] ?? ('HTTP ' . $status);
+            $this->log('error', 'OpenAI returned error status via cURL', [
+                'status' => $status,
+                'response' => $decoded,
+            ]);
             throw new \RuntimeException('OpenAI вернул ошибку: ' . $message);
         }
 
@@ -191,7 +348,7 @@ class OpenAiService
         $headers = [
             'Content-Type: application/json',
             'Authorization: Bearer ' . $this->apiKey,
-            'OpenAI-Beta: assistants=v2',
+            'OpenAI-Beta: responses=v1',
         ];
 
         $context = stream_context_create([
@@ -208,6 +365,9 @@ class OpenAiService
         if ($stream === false) {
             $error = error_get_last();
             $message = $error['message'] ?? 'Не удалось открыть поток HTTP';
+            $this->log('error', 'Stream context request to OpenAI failed to open', [
+                'message' => $message,
+            ]);
             throw new \RuntimeException('Ошибка запроса к OpenAI: ' . $message);
         }
 
@@ -216,6 +376,7 @@ class OpenAiService
         fclose($stream);
 
         if ($raw === false) {
+            $this->log('error', 'Failed to read OpenAI response via stream');
             throw new \RuntimeException('Не удалось прочитать ответ OpenAI');
         }
 
@@ -230,14 +391,87 @@ class OpenAiService
 
         $decoded = json_decode($raw, true);
         if (!is_array($decoded)) {
+            $this->log('error', 'Unable to decode OpenAI response via stream', [
+                'raw' => $raw,
+            ]);
             throw new \RuntimeException('Не удалось декодировать ответ OpenAI');
         }
 
         if ($status >= 400) {
             $message = $decoded['error']['message'] ?? ('HTTP ' . $status);
+            $this->log('error', 'OpenAI returned error status via stream', [
+                'status' => $status,
+                'response' => $decoded,
+            ]);
             throw new \RuntimeException('OpenAI вернул ошибку: ' . $message);
         }
 
         return $decoded;
+    }
+
+    /**
+     * @param array<string, mixed> $payload
+     * @return array<string, mixed>
+     */
+    private function sanitizePayloadForLogging(array $payload): array
+    {
+        $sanitized = $payload;
+
+        if (array_key_exists('input', $sanitized)) {
+            if (is_array($sanitized['input'])) {
+                $sanitized['input'] = '[array:' . count($sanitized['input']) . ']';
+            } elseif (is_string($sanitized['input'])) {
+                $length = function_exists('mb_strlen')
+                    ? mb_strlen($sanitized['input'])
+                    : strlen($sanitized['input']);
+                $sanitized['input'] = '[string:' . $length . ']';
+            } else {
+                $sanitized['input'] = '[hidden]';
+            }
+        }
+
+        if (array_key_exists('messages', $sanitized)) {
+            if (is_array($sanitized['messages'])) {
+                $sanitized['messages'] = '[array:' . count($sanitized['messages']) . ']';
+            } else {
+                $sanitized['messages'] = '[hidden]';
+            }
+        }
+
+        return $sanitized;
+    }
+
+    /**
+     * @param array<string, mixed> $context
+     */
+    private function log(string $level, string $message, array $context = []): void
+    {
+        $entry = [
+            'level' => strtolower($level),
+            'message' => $message,
+        ];
+
+        if ($context !== []) {
+            $entry['context'] = $context;
+        }
+
+        $this->logBuffer[] = $entry;
+        if (count($this->logBuffer) > 50) {
+            $this->logBuffer = array_slice($this->logBuffer, -50);
+        }
+
+        $prefix = '[OpenAiService][' . strtoupper($level) . '] ' . $message;
+        if ($context === []) {
+            error_log($prefix);
+            return;
+        }
+
+        $encoded = json_encode($context, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
+        if ($encoded === false) {
+            error_log($prefix . ' ' . var_export($context, true));
+            return;
+        }
+
+        error_log($prefix . ' ' . $encoded);
     }
 }

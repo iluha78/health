@@ -38,7 +38,6 @@ const TAB_ITEMS: { key: TabKey; label: string; icon: string }[] = [
   { key: "lipids", label: "Липиды", icon: "🩸" },
   { key: "diary", label: "Дневник", icon: "📘" },
   { key: "advice", label: "Советы", icon: "🥗" },
-  { key: "analysis", label: "Фото", icon: "📸" }
 ];
 
 const App = observer(() => {
@@ -446,44 +445,6 @@ const App = observer(() => {
     setPhotoError(null);
   }
 
-  async function analyzePhoto(e: FormEvent) {
-    e.preventDefault();
-    if (!userStore.token || !authHeaders || !photoFile) {
-      setPhotoError("Загрузите фото блюда");
-      return;
-    }
-    setPhotoLoading(true);
-    setPhotoError(null);
-    try {
-      const formData = new FormData();
-      formData.append("photo", photoFile);
-      const r = await fetch(apiUrl("/analysis/photo"), {
-        method: "POST",
-        headers: authHeaders,
-        body: formData
-      });
-      const data = await r.json();
-      if (!r.ok) {
-        setPhotoError(typeof data.error === "string" ? data.error : "Не удалось проанализировать фото");
-        setPhotoResult(null);
-      } else {
-        const parsed = normalizePhotoAnalysis(data);
-        if (!parsed) {
-          setPhotoError("Модель вернула неожиданный ответ");
-          setPhotoResult(null);
-        } else {
-          setPhotoResult(parsed);
-          mergePhotoHistoryItems(normalizePhotoAnalysisHistory((data as { history?: unknown }).history));
-        }
-      }
-    } catch (err) {
-      console.error(err);
-      setPhotoError("Сервис анализа временно недоступен");
-      setPhotoResult(null);
-    } finally {
-      setPhotoLoading(false);
-    }
-  }
 
   async function sendAssistantMessage(e: FormEvent) {
     e.preventDefault();
@@ -776,73 +737,7 @@ const App = observer(() => {
     );
   }
 
-  function renderAnalysisTab() {
-    return (
-      <div className="tab-panel tab-stack">
-        <h2>Анализ блюда по фото</h2>
-        <form className="card photo-card" onSubmit={analyzePhoto}>
-          <label className="photo-upload">
-            Загрузите фото блюда
-            <input type="file" accept="image/*" onChange={handlePhotoChange} />
-          </label>
-          {photoPreview && <img className="photo-preview" src={photoPreview} alt="Предпросмотр блюда" />}
-          <div className="form-actions">
-            <button type="submit" disabled={photoLoading || !photoFile}>{photoLoading ? "Анализируем..." : "Проанализировать"}</button>
-            {photoError && <p className="error">{photoError}</p>}
-          </div>
-        </form>
-        {photoResult && (
-          <div className="card photo-result">
-            <div className="photo-result-header">
-              <h3>{photoResult.title}</h3>
-              <span className={`badge ${photoResult.healthiness}`}>{healthinessLabel(photoResult.healthiness)}</span>
-            </div>
-            {photoResult.description && <p>{photoResult.description}</p>}
-            {photoResult.estimated_calories !== null && (
-              <p className="muted">Примерная калорийность порции: {photoResult.estimated_calories} ккал</p>
-            )}
-            {photoResult.reasoning && <p>{photoResult.reasoning}</p>}
-            {photoResult.tips.length > 0 && (
-              <ul>
-                {photoResult.tips.map((tip, index) => (
-                  <li key={index}>{tip}</li>
-                ))}
-              </ul>
-            )}
-          </div>
-        )}
-        {photoHistory.length > 0 && (
-          <details className="card history-card">
-            <summary>История анализов</summary>
-            <ul className="history-list">
-              {photoHistory.map(item => (
-                <li key={item.id} className="photo-history-item">
-                  <div className="history-meta">
-                    <span className="muted">{formatDateTime(item.created_at)}</span>
-                    {item.original_filename && <span className="history-tag">{item.original_filename}</span>}
-                    <span className={`badge ${item.healthiness}`}>{healthinessLabel(item.healthiness)}</span>
-                  </div>
-                  <h4>{item.title}</h4>
-                  {item.description && <p>{item.description}</p>}
-                  {item.estimated_calories !== null && (
-                    <p className="muted">Примерно {item.estimated_calories} ккал</p>
-                  )}
-                  {item.reasoning && <p>{item.reasoning}</p>}
-                  {item.tips.length > 0 && (
-                    <ul>
-                      {item.tips.map((tip, tipIndex) => (
-                        <li key={tipIndex}>{tip}</li>
-                      ))}
-                    </ul>
-                  )}
-                </li>
-              ))}
-            </ul>
-          </details>
-        )}
-      </div>
-    );
-  }
+
 
   function renderAssistantTab() {
     return (
@@ -904,8 +799,6 @@ const App = observer(() => {
         return renderDiaryTab();
       case "advice":
         return renderAdviceTab();
-      case "analysis":
-        return renderAnalysisTab();
       default:
         return renderAssistantTab();
     }
@@ -923,8 +816,7 @@ const App = observer(() => {
           <p>Ваш персональный помощник по здоровью сердца</p>
         </div>
         <div className="topbar-profile">
-          <button
-            type="button"
+          <div
             className={`topbar-profile-info${activeTab === "profile" ? " active" : ""}`}
             onClick={() => setActiveTab("profile")}
             aria-label="Открыть профиль"
@@ -936,7 +828,7 @@ const App = observer(() => {
               <span className="topbar-profile-label">Аккаунт</span>
               <span className="topbar-profile-email">{userStore.me?.email ?? "—"}</span>
             </div>
-          </button>
+          </div>
           <button type="button" onClick={() => userStore.logout()}>
             Выйти
           </button>

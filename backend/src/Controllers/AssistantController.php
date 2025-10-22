@@ -66,9 +66,16 @@ class AssistantController
                 'max_tokens' => 700,
             ]);
         } catch (\Throwable $e) {
-            return ResponseHelper::json($response, [
+            $payload = [
                 'error' => 'Ассистент недоступен: ' . $e->getMessage(),
-            ], 500);
+            ];
+
+            $logs = $service->releaseLogs();
+            if ($logs !== []) {
+                $payload['logs'] = $logs;
+            }
+
+            return ResponseHelper::json($response, $payload, 500);
         }
 
         $record = AssistantInteraction::create([
