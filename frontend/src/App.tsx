@@ -136,13 +136,7 @@ const App = observer(() => {
 
   useEffect(() => {
     if (typeof window === "undefined") return;
-    if (!userId) {
-      setBpHistory([]);
-      setMetabolicHistory([]);
-      setNutritionHistory([]);
-      return;
-    }
-
+    const archiveUserId = userId ?? null;
     const loadArray = <T,>(key: string, setter: (items: T[]) => void) => {
       const saved = window.localStorage.getItem(key);
       if (!saved) {
@@ -162,24 +156,27 @@ const App = observer(() => {
       }
     };
 
-    loadArray<BloodPressureRecord>(storageKey("bp", userId), setBpHistory);
-    loadArray<MetabolicRecord>(storageKey("metabolic", userId), setMetabolicHistory);
-    loadArray<NutritionRecord>(storageKey("nutrition", userId), setNutritionHistory);
+    loadArray<BloodPressureRecord>(storageKey("bp", archiveUserId), setBpHistory);
+    loadArray<MetabolicRecord>(storageKey("metabolic", archiveUserId), setMetabolicHistory);
+    loadArray<NutritionRecord>(storageKey("nutrition", archiveUserId), setNutritionHistory);
   }, [userId]);
 
   useEffect(() => {
-    if (typeof window === "undefined" || !userId) return;
-    window.localStorage.setItem(storageKey("bp", userId), JSON.stringify(bpHistory));
+    if (typeof window === "undefined") return;
+    const archiveUserId = userId ?? null;
+    window.localStorage.setItem(storageKey("bp", archiveUserId), JSON.stringify(bpHistory));
   }, [bpHistory, userId]);
 
   useEffect(() => {
-    if (typeof window === "undefined" || !userId) return;
-    window.localStorage.setItem(storageKey("metabolic", userId), JSON.stringify(metabolicHistory));
+    if (typeof window === "undefined") return;
+    const archiveUserId = userId ?? null;
+    window.localStorage.setItem(storageKey("metabolic", archiveUserId), JSON.stringify(metabolicHistory));
   }, [metabolicHistory, userId]);
 
   useEffect(() => {
-    if (typeof window === "undefined" || !userId) return;
-    window.localStorage.setItem(storageKey("nutrition", userId), JSON.stringify(nutritionHistory));
+    if (typeof window === "undefined") return;
+    const archiveUserId = userId ?? null;
+    window.localStorage.setItem(storageKey("nutrition", archiveUserId), JSON.stringify(nutritionHistory));
   }, [nutritionHistory, userId]);
 
   function resetState() {
@@ -274,6 +271,26 @@ const App = observer(() => {
     }
   }
 
+  function saveBloodPressureToArchive() {
+    const hasMetrics = bpForm.systolic || bpForm.diastolic || bpForm.pulse;
+    if (!hasMetrics) {
+      setBpError("Укажите хотя бы одно значение, чтобы сохранить его в архиве");
+      return;
+    }
+    setBpError(null);
+    const record: BloodPressureRecord = {
+      id: createRecordId(),
+      createdAt: new Date().toISOString(),
+      systolic: bpForm.systolic,
+      diastolic: bpForm.diastolic,
+      pulse: bpForm.pulse,
+      goal: bpForm.goal,
+      question: bpForm.question.trim(),
+      advice: ""
+    };
+    setBpHistory(prev => [record, ...prev]);
+  }
+
   async function handleMetabolicSubmit(e: FormEvent) {
     e.preventDefault();
     setMetabolicLoading(true);
@@ -318,6 +335,26 @@ const App = observer(() => {
     } finally {
       setMetabolicLoading(false);
     }
+  }
+
+  function saveMetabolicToArchive() {
+    const hasMetrics = metabolicForm.cholesterol || metabolicForm.sugar;
+    if (!hasMetrics) {
+      setMetabolicError("Укажите хотя бы один показатель, чтобы сохранить запись");
+      return;
+    }
+    setMetabolicError(null);
+    const record: MetabolicRecord = {
+      id: createRecordId(),
+      createdAt: new Date().toISOString(),
+      cholesterol: metabolicForm.cholesterol,
+      sugar: metabolicForm.sugar,
+      cholGoal: metabolicForm.cholGoal,
+      sugarGoal: metabolicForm.sugarGoal,
+      question: metabolicForm.question.trim(),
+      advice: ""
+    };
+    setMetabolicHistory(prev => [record, ...prev]);
   }
 
   async function handleNutritionSubmit(e: FormEvent) {
@@ -501,6 +538,9 @@ const App = observer(() => {
             />
           </label>
           <div className="form-actions">
+            <button type="button" className="ghost" onClick={saveBloodPressureToArchive} disabled={bpLoading}>
+              Сохранить показатели
+            </button>
             <button type="submit" disabled={bpLoading}>
               {bpLoading ? "Запрашиваем рекомендации..." : "Получить советы"}
             </button>
@@ -631,6 +671,9 @@ const App = observer(() => {
             />
           </label>
           <div className="form-actions">
+            <button type="button" className="ghost" onClick={saveMetabolicToArchive} disabled={metabolicLoading}>
+              Сохранить показатели
+            </button>
             <button type="submit" disabled={metabolicLoading}>
               {metabolicLoading ? "Запрашиваем рекомендации..." : "Получить советы"}
             </button>
