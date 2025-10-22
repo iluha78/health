@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import type { FormEvent } from "react";
+import type { FormEvent, MouseEvent as ReactMouseEvent } from "react";
 import { observer } from "mobx-react-lite";
 import { userStore } from "./stores/user";
 import type { AssistantMessage } from "./types/api";
@@ -42,6 +42,17 @@ type NutritionRecord = {
   question: string;
   comment: string;
   advice: string;
+};
+
+type SettingsFormState = {
+  sex: string;
+  age: string;
+  height: string;
+  weight: string;
+  activity: string;
+  kcalGoal: string;
+  sfaLimit: string;
+  fiberGoal: string;
 };
 
 const TAB_ITEMS: { key: TabKey; label: string }[] = [
@@ -147,6 +158,17 @@ const formatDateTime = (value: string) => {
 
 const storageKey = (scope: string, userId: number | null) => `cholestofit_${scope}_archive_${userId ?? "guest"}`;
 
+const createEmptySettingsForm = (): SettingsFormState => ({
+  sex: "",
+  age: "",
+  height: "",
+  weight: "",
+  activity: "",
+  kcalGoal: "",
+  sfaLimit: "",
+  fiberGoal: ""
+});
+
 const App = observer(() => {
   const [mode, setMode] = useState<"login" | "register">("login");
   const [email, setEmail] = useState("");
@@ -201,6 +223,12 @@ const App = observer(() => {
   const [assistantLoading, setAssistantLoading] = useState(false);
   const [assistantError, setAssistantError] = useState<string | null>(null);
 
+  const [settingsOpen, setSettingsOpen] = useState(false);
+  const [settingsForm, setSettingsForm] = useState<SettingsFormState>(createEmptySettingsForm);
+  const [settingsSaving, setSettingsSaving] = useState(false);
+  const [settingsError, setSettingsError] = useState<string | null>(null);
+  const [settingsSuccess, setSettingsSuccess] = useState(false);
+
   const jsonHeaders = useMemo(() => {
     if (!userStore.token) return undefined;
     return {
@@ -212,6 +240,8 @@ const App = observer(() => {
   const userId = userStore.me?.id ?? null;
   const targetsWeight = userStore.targets?.weight_kg ?? null;
   const targetsHeight = userStore.targets?.height_cm ?? null;
+  const targetsCalories = userStore.targets?.kcal_goal ?? null;
+  const targetsActivity = userStore.targets?.activity ?? null;
 
   useEffect(() => {
     if (userStore.token) {
@@ -353,18 +383,99 @@ const App = observer(() => {
   }, [nutritionHistory, userId]);
 
   useEffect(() => {
-    if (targetsWeight == null && targetsHeight == null) {
+    if (targetsWeight == null && targetsHeight == null && targetsCalories == null && targetsActivity == null) {
       return;
     }
     setNutritionForm(prev => {
       const nextWeight = prev.weight || (targetsWeight != null ? String(targetsWeight) : "");
       const nextHeight = prev.height || (targetsHeight != null ? String(targetsHeight) : "");
-      if (nextWeight === prev.weight && nextHeight === prev.height) {
+      const nextCalories = prev.calories || (targetsCalories != null ? String(targetsCalories) : "");
+      const nextActivity = prev.activity || (targetsActivity ?? "");
+      if (
+        nextWeight === prev.weight &&
+        nextHeight === prev.height &&
+        nextCalories === prev.calories &&
+        nextActivity === prev.activity
+      ) {
         return prev;
       }
-      return { ...prev, weight: nextWeight, height: nextHeight };
+      return {
+        ...prev,
+        weight: nextWeight,
+        height: nextHeight,
+        calories: nextCalories,
+        activity: nextActivity
+      };
     });
-  }, [targetsWeight, targetsHeight]);
+  }, [targetsWeight, targetsHeight, targetsCalories, targetsActivity]);
+
+  useEffect(() => {
+    const targets = userStore.targets;
+    if (!targets) {
+      setSettingsForm(prev => {
+        const empty = createEmptySettingsForm();
+        const differs = (Object.keys(empty) as (keyof SettingsFormState)[]).some(key => prev[key] !== empty[key]);
+        return differs ? empty : prev;
+      });
+      return;
+    }
+    const nextState: SettingsFormState = {
+      sex: targets.sex ?? "",
+      age: targets.age != null ? String(targets.age) : "",
+      height: targets.height_cm != null ? String(targets.height_cm) : "",
+      weight: targets.weight_kg != null ? String(targets.weight_kg) : "",
+      activity: targets.activity ?? "",
+      kcalGoal: targets.kcal_goal != null ? String(targets.kcal_goal) : "",
+      sfaLimit: targets.sfa_limit_g != null ? String(targets.sfa_limit_g) : "",
+      fiberGoal: targets.fiber_goal_g != null ? String(targets.fiber_goal_g) : ""
+    };
+    setSettingsForm(prev => {
+      const differs = (Object.keys(nextState) as (keyof SettingsFormState)[]).some(key => prev[key] !== nextState[key]);
+      return differs ? nextState : prev;
+    });
+  }, [userStore.targets]);
+
+  useEffect(() => {
+    if (typeof window === "undefined") {
+      return;
+    }
+    if (window.location.hash === "#settings") {
+      setSettingsOpen(true);
+    }
+    const handleHashChange = () => {
+      setSettingsOpen(window.location.hash === "#settings");
+    };
+    window.addEventListener("hashchange", handleHashChange);
+    return () => {
+      window.removeEventListener("hashchange", handleHashChange);
+    };
+  }, []);
+
+  useEffect(() => {
+    if (!settingsOpen) {
+      return;
+    }
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") {
+        event.preventDefault();
+        closeSettings();
+      }
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => {
+      window.removeEventListener("keydown", handleKeyDown);
+    };
+  }, [settingsOpen]);
+
+  useEffect(() => {
+    if (!settingsSuccess || typeof window === "undefined") {
+      return;
+    }
+    const timeout = window.setTimeout(() => {
+      setSettingsSuccess(false);
+    }, 4000);
+    return () => window.clearTimeout(timeout);
+  }, [settingsSuccess]);
 
   function resetState() {
     setActiveTab("bp");
@@ -393,6 +504,11 @@ const App = observer(() => {
     setAssistantInput("");
     setAssistantError(null);
     setAssistantLoading(false);
+    setSettingsOpen(false);
+    setSettingsForm(createEmptySettingsForm());
+    setSettingsSaving(false);
+    setSettingsError(null);
+    setSettingsSuccess(false);
   }
 
   async function handleAuthSubmit(e: FormEvent) {
@@ -646,6 +762,69 @@ const App = observer(() => {
     setAssistantError(null);
   }
 
+  function openSettings(event?: ReactMouseEvent<HTMLAnchorElement | HTMLButtonElement>) {
+    event?.preventDefault();
+    setSettingsError(null);
+    setSettingsSuccess(false);
+    setSettingsOpen(true);
+    if (typeof window !== "undefined" && window.location.hash !== "#settings") {
+      const { pathname, search } = window.location;
+      window.history.replaceState(null, "", `${pathname}${search}#settings`);
+    }
+  }
+
+  function closeSettings() {
+    setSettingsOpen(false);
+    if (typeof window !== "undefined" && window.location.hash === "#settings") {
+      const { pathname, search } = window.location;
+      window.history.replaceState(null, "", `${pathname}${search}`);
+    }
+  }
+
+  function handleSettingsFieldChange<TKey extends keyof SettingsFormState>(key: TKey, value: string) {
+    setSettingsForm(prev => ({ ...prev, [key]: value }));
+  }
+
+  async function handleSettingsSubmit(e: FormEvent) {
+    e.preventDefault();
+    if (!userStore.token || !jsonHeaders) {
+      setSettingsError("Необходимо войти в систему");
+      return;
+    }
+    setSettingsSaving(true);
+    setSettingsError(null);
+    setSettingsSuccess(false);
+    const payload = {
+      sex: settingsForm.sex || null,
+      age: settingsForm.age ? Number(settingsForm.age) : null,
+      height_cm: settingsForm.height ? Number(settingsForm.height) : null,
+      weight_kg: settingsForm.weight ? Number(settingsForm.weight) : null,
+      activity: settingsForm.activity || null,
+      kcal_goal: settingsForm.kcalGoal ? Number(settingsForm.kcalGoal) : null,
+      sfa_limit_g: settingsForm.sfaLimit ? Number(settingsForm.sfaLimit) : null,
+      fiber_goal_g: settingsForm.fiberGoal ? Number(settingsForm.fiberGoal) : null
+    };
+    try {
+      const response = await fetch(apiUrl("/profile"), {
+        method: "PUT",
+        headers: { ...jsonHeaders, Accept: "application/json" },
+        body: JSON.stringify(payload)
+      });
+      const data = await response.json().catch(() => null);
+      if (!response.ok) {
+        const message = data && typeof data.error === "string" ? data.error : "Не удалось сохранить профиль";
+        throw new Error(message);
+      }
+      setSettingsSuccess(true);
+      await userStore.refresh();
+    } catch (err) {
+      console.error(err);
+      setSettingsError(err instanceof Error ? err.message : "Не удалось сохранить профиль");
+    } finally {
+      setSettingsSaving(false);
+    }
+  }
+
   function renderAuth() {
     return (
       <div className="auth">
@@ -676,6 +855,116 @@ const App = observer(() => {
         <button className="ghost" type="button" onClick={() => setMode(prev => (prev === "login" ? "register" : "login"))}>
           {mode === "login" ? "Создать аккаунт" : "У меня уже есть аккаунт"}
         </button>
+      </div>
+    );
+  }
+
+  function renderSettingsDialog() {
+    if (!settingsOpen) return null;
+    return (
+      <div className="settings-overlay" role="dialog" aria-modal="true">
+        <div className="card settings-card">
+          <div className="settings-header">
+            <div className="settings-heading">
+              <h2>Цели и профиль</h2>
+              <p>CholestoFit — ваш персональный помощник по здоровью сердца</p>
+            </div>
+            <button type="button" className="ghost" onClick={closeSettings}>
+              Закрыть
+            </button>
+          </div>
+          <form className="settings-form" onSubmit={handleSettingsSubmit}>
+            <div className="settings-grid">
+              <label>
+                Пол
+                <select value={settingsForm.sex} onChange={e => handleSettingsFieldChange("sex", e.target.value)}>
+                  <option value="">Не указан</option>
+                  <option value="male">Мужской</option>
+                  <option value="female">Женский</option>
+                </select>
+              </label>
+              <label>
+                Возраст
+                <input
+                  type="number"
+                  min="0"
+                  inputMode="numeric"
+                  value={settingsForm.age}
+                  onChange={e => handleSettingsFieldChange("age", e.target.value)}
+                />
+              </label>
+              <label>
+                Рост (см)
+                <input
+                  type="number"
+                  min="0"
+                  inputMode="numeric"
+                  value={settingsForm.height}
+                  onChange={e => handleSettingsFieldChange("height", e.target.value)}
+                />
+              </label>
+              <label>
+                Вес (кг)
+                <input
+                  type="number"
+                  min="0"
+                  step="0.1"
+                  inputMode="decimal"
+                  value={settingsForm.weight}
+                  onChange={e => handleSettingsFieldChange("weight", e.target.value)}
+                />
+              </label>
+              <label>
+                Активность
+                <select value={settingsForm.activity} onChange={e => handleSettingsFieldChange("activity", e.target.value)}>
+                  <option value="">Не выбрано</option>
+                  <option value="Сидячая">Сидячая</option>
+                  <option value="Лёгкая">Лёгкая</option>
+                  <option value="Умеренная">Умеренная</option>
+                  <option value="Высокая">Высокая</option>
+                  <option value="Спортивная">Спортивная</option>
+                </select>
+              </label>
+              <label>
+                Цель по калориям (ккал)
+                <input
+                  type="number"
+                  min="0"
+                  inputMode="numeric"
+                  value={settingsForm.kcalGoal}
+                  onChange={e => handleSettingsFieldChange("kcalGoal", e.target.value)}
+                />
+              </label>
+              <label>
+                Лимит насыщенных жиров (г)
+                <input
+                  type="number"
+                  min="0"
+                  inputMode="numeric"
+                  value={settingsForm.sfaLimit}
+                  onChange={e => handleSettingsFieldChange("sfaLimit", e.target.value)}
+                />
+              </label>
+              <label>
+                Цель по клетчатке (г)
+                <input
+                  type="number"
+                  min="0"
+                  inputMode="numeric"
+                  value={settingsForm.fiberGoal}
+                  onChange={e => handleSettingsFieldChange("fiberGoal", e.target.value)}
+                />
+              </label>
+            </div>
+            <div className="settings-actions">
+              <button type="submit" disabled={settingsSaving}>
+                {settingsSaving ? "Сохраняем..." : "Сохранить профиль"}
+              </button>
+              {settingsSuccess && <span className="settings-success">Профиль обновлён</span>}
+              {settingsError && <span className="error">{settingsError}</span>}
+            </div>
+          </form>
+        </div>
       </div>
     );
   }
@@ -1069,7 +1358,7 @@ const App = observer(() => {
             <span className="topbar-profile-label">Аккаунт</span>
             <span className="topbar-profile-email">{userStore.me?.email ?? email}</span>
           </div>
-          <a className="button ghost" href="/settings">
+          <a className="button ghost" href="/settings" onClick={openSettings}>
             Настройки
           </a>
           <button className="ghost" type="button" onClick={() => userStore.logout()}>
@@ -1085,6 +1374,7 @@ const App = observer(() => {
           {activeTab === "assistant" && renderAssistantTab()}
         </div>
       </main>
+      {renderSettingsDialog()}
       <nav className="tabbar">
         {TAB_ITEMS.map(item => (
           <button

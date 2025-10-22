@@ -775,3 +775,82 @@ details summary {
   gap: 0.75rem;
   align-items: center;
 }
+
+.settings-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(30, 41, 59, 0.35);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 2rem 1.5rem;
+  z-index: 100;
+}
+
+.settings-card {
+  width: min(640px, 100%);
+  background: #fff;
+  gap: 1.5rem;
+}
+
+.settings-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 1rem;
+}
+
+.settings-heading h2 {
+  margin: 0;
+  font-size: 1.6rem;
+}
+
+.settings-heading p {
+  margin: 0.35rem 0 0;
+  color: #5a6b91;
+  font-weight: 500;
+}
+
+.settings-form {
+  display: flex;
+  flex-direction: column;
+  gap: 1.4rem;
+}
+
+.settings-grid {
+  display: grid;
+  gap: 1rem;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+}
+
+.settings-actions {
+  display: flex;
+  gap: 1rem;
+  flex-wrap: wrap;
+  align-items: center;
+}
+
+.settings-success {
+  color: #1b8a4b;
+  font-weight: 600;
+}
+
+@media (max-width: 600px) {
+  .settings-overlay {
+    padding: 1.5rem 1rem;
+  }
+
+  .settings-card {
+    max-height: 100%;
+    overflow-y: auto;
+  }
+
+  .settings-header {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .settings-heading h2 {
+    font-size: 1.4rem;
+  }
+}
