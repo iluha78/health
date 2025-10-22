@@ -60,15 +60,33 @@ class OpenAiService
      */
     public function respond(array $input, array $options = []): string
     {
+        $originalOptions = $options;
 
         $options = $this->normalizeResponseOptions($options);
+        $this->log('debug', 'Normalized options for Responses API call', [
+            'original_keys' => array_keys($originalOptions),
+            'normalized_keys' => array_keys($options),
+            'has_text_block' => array_key_exists('text', $options),
+            'has_response_block' => array_key_exists('response', $options),
+        ]);
         $payload = array_merge([
             'model' => $this->model,
             'input' => $input,
             'max_output_tokens' => 800,
         ], $options);
 
-        unset($payload['response_format']);
+        $hadResponseFormat = array_key_exists('response_format', $payload);
+        if ($hadResponseFormat) {
+            $this->log('warning', 'Legacy response_format detected in payload, removing before request', [
+                'response_format' => $payload['response_format'],
+            ]);
+            unset($payload['response_format']);
+        }
+
+        $this->log('info', 'Dispatching Responses API request', [
+            'payload' => $this->sanitizePayloadForLogging($payload),
+            'had_response_format' => $hadResponseFormat,
+        ]);
 
         $data = $this->post('/v1/responses', $payload);
 
@@ -233,8 +251,14 @@ class OpenAiService
             throw new \RuntimeException('OpenAI API-ключ не настроен');
         }
 
+        $this->log('debug', 'Preparing POST request to OpenAI', [
+            'url' => $this->baseUrl . $path,
+            'payload' => $this->sanitizePayloadForLogging($payload),
+        ]);
+
         $payloadJson = json_encode($payload, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
         if ($payloadJson === false) {
+            $this->log('error', 'Failed to encode payload for OpenAI request');
             throw new \RuntimeException('Не удалось подготовить запрос к OpenAI');
         }
 
@@ -275,16 +299,26 @@ class OpenAiService
         curl_close($ch);
 
         if ($raw === false) {
+            $this->log('error', 'cURL request to OpenAI failed', [
+                'error' => $error,
+            ]);
             throw new \RuntimeException('Ошибка запроса к OpenAI: ' . $error);
         }
 
         $decoded = json_decode($raw, true);
         if (!is_array($decoded)) {
+            $this->log('error', 'Unable to decode OpenAI response via cURL', [
+                'raw' => $raw,
+            ]);
             throw new \RuntimeException('Не удалось декодировать ответ OpenAI');
         }
 
         if ($status >= 400) {
             $message = $decoded['error']['message'] ?? ('HTTP ' . $status);
+            $this->log('error', 'OpenAI returned error status via cURL', [
+                'status' => $status,
+                'response' => $decoded,
+            ]);
             throw new \RuntimeException('OpenAI вернул ошибку: ' . $message);
         }
 
@@ -316,6 +350,9 @@ class OpenAiService
         if ($stream === false) {
             $error = error_get_last();
             $message = $error['message'] ?? 'Не удалось открыть поток HTTP';
+            $this->log('error', 'Stream context request to OpenAI failed to open', [
+                'message' => $message,
+            ]);
             throw new \RuntimeException('Ошибка запроса к OpenAI: ' . $message);
         }
 
@@ -324,6 +361,7 @@ class OpenAiService
         fclose($stream);
 
         if ($raw === false) {
+            $this->log('error', 'Failed to read OpenAI response via stream');
             throw new \RuntimeException('Не удалось прочитать ответ OpenAI');
         }
 
@@ -338,14 +376,73 @@ class OpenAiService
 
         $decoded = json_decode($raw, true);
         if (!is_array($decoded)) {
+            $this->log('error', 'Unable to decode OpenAI response via stream', [
+                'raw' => $raw,
+            ]);
             throw new \RuntimeException('Не удалось декодировать ответ OpenAI');
         }
 
         if ($status >= 400) {
             $message = $decoded['error']['message'] ?? ('HTTP ' . $status);
+            $this->log('error', 'OpenAI returned error status via stream', [
+                'status' => $status,
+                'response' => $decoded,
+            ]);
             throw new \RuntimeException('OpenAI вернул ошибку: ' . $message);
         }
 
         return $decoded;
+    }
+
+    /**
+     * @param array<string, mixed> $payload
+     * @return array<string, mixed>
+     */
+    private function sanitizePayloadForLogging(array $payload): array
+    {
+        $sanitized = $payload;
+
+        if (array_key_exists('input', $sanitized)) {
+            if (is_array($sanitized['input'])) {
+                $sanitized['input'] = '[array:' . count($sanitized['input']) . ']';
+            } elseif (is_string($sanitized['input'])) {
+                $length = function_exists('mb_strlen')
+                    ? mb_strlen($sanitized['input'])
+                    : strlen($sanitized['input']);
+                $sanitized['input'] = '[string:' . $length . ']';
+            } else {
+                $sanitized['input'] = '[hidden]';
+            }
+        }
+
+        if (array_key_exists('messages', $sanitized)) {
+            if (is_array($sanitized['messages'])) {
+                $sanitized['messages'] = '[array:' . count($sanitized['messages']) . ']';
+            } else {
+                $sanitized['messages'] = '[hidden]';
+            }
+        }
+
+        return $sanitized;
+    }
+
+    /**
+     * @param array<string, mixed> $context
+     */
+    private function log(string $level, string $message, array $context = []): void
+    {
+        $prefix = '[OpenAiService][' . strtoupper($level) . '] ' . $message;
+        if ($context === []) {
+            error_log($prefix);
+            return;
+        }
+
+        $encoded = json_encode($context, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
+        if ($encoded === false) {
+            error_log($prefix . ' ' . var_export($context, true));
+            return;
+        }
+
+        error_log($prefix . ' ' . $encoded);
     }
 }
