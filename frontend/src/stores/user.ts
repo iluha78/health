@@ -7,7 +7,7 @@ const TOKEN_STORAGE_KEY = "cholestofit_token";
 const isAuthSuccess = (payload: unknown): payload is AuthSuccess =>
     typeof payload === "object" && payload !== null && typeof (payload as AuthSuccess).token === "string";
 
-class UserStore {
+export class UserStore {
     token: string | null = null;
     me: UserSummary | null = null;
     targets: ProfileTargets | null = null;
