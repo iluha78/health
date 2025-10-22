@@ -6,7 +6,7 @@ import type { AssistantMessage } from "./types/api";
 import { apiUrl } from "./lib/api";
 import "./App.css";
 
-type TabKey = "bp" | "metabolic" | "nutrition" | "assistant";
+type TabKey = "bp" | "lipid" | "nutrition" | "assistant";
 type AdjustmentGoal = "lower" | "raise";
 
 type BloodPressureRecord = {
@@ -17,17 +17,21 @@ type BloodPressureRecord = {
   pulse: string;
   goal: AdjustmentGoal;
   question: string;
+  comment: string;
   advice: string;
 };
 
-type MetabolicRecord = {
+type LipidRecord = {
   id: string;
   createdAt: string;
+  date: string;
   cholesterol: string;
-  sugar: string;
-  cholGoal: AdjustmentGoal;
-  sugarGoal: AdjustmentGoal;
+  hdl: string;
+  ldl: string;
+  triglycerides: string;
+  goal: AdjustmentGoal;
   question: string;
+  comment: string;
   advice: string;
 };
 
@@ -39,12 +43,13 @@ type NutritionRecord = {
   calories: string;
   activity: string;
   question: string;
+  comment: string;
   advice: string;
 };
 
 const TAB_ITEMS: { key: TabKey; label: string; icon: string }[] = [
   { key: "bp", label: "Давление и пульс", icon: "🩺" },
-  { key: "metabolic", label: "Холестерин и сахар", icon: "🩸" },
+  { key: "lipid", label: "Липидный профиль", icon: "🩸" },
   { key: "nutrition", label: "Нутрициолог", icon: "🥗" },
   { key: "assistant", label: "AI ассистент", icon: "🤖" }
 ];
@@ -75,36 +80,41 @@ const App = observer(() => {
     diastolic: "",
     pulse: "",
     goal: "lower" as AdjustmentGoal,
-    question: ""
+    question: "",
+    comment: ""
   });
   const [bpAdvice, setBpAdvice] = useState("");
   const [bpLoading, setBpLoading] = useState(false);
   const [bpError, setBpError] = useState<string | null>(null);
 
-  const [metabolicForm, setMetabolicForm] = useState({
+  const [lipidForm, setLipidForm] = useState({
+    date: "",
     cholesterol: "",
-    sugar: "",
-    cholGoal: "lower" as AdjustmentGoal,
-    sugarGoal: "lower" as AdjustmentGoal,
-    question: ""
+    hdl: "",
+    ldl: "",
+    triglycerides: "",
+    goal: "lower" as AdjustmentGoal,
+    question: "",
+    comment: ""
   });
-  const [metabolicAdvice, setMetabolicAdvice] = useState("");
-  const [metabolicLoading, setMetabolicLoading] = useState(false);
-  const [metabolicError, setMetabolicError] = useState<string | null>(null);
+  const [lipidAdvice, setLipidAdvice] = useState("");
+  const [lipidLoading, setLipidLoading] = useState(false);
+  const [lipidError, setLipidError] = useState<string | null>(null);
 
   const [nutritionForm, setNutritionForm] = useState({
     weight: "",
     height: "",
     calories: "",
     activity: "",
-    question: ""
+    question: "",
+    comment: ""
   });
   const [nutritionAdvice, setNutritionAdvice] = useState("");
   const [nutritionLoading, setNutritionLoading] = useState(false);
   const [nutritionError, setNutritionError] = useState<string | null>(null);
 
   const [bpHistory, setBpHistory] = useState<BloodPressureRecord[]>([]);
-  const [metabolicHistory, setMetabolicHistory] = useState<MetabolicRecord[]>([]);
+  const [lipidHistory, setLipidHistory] = useState<LipidRecord[]>([]);
   const [nutritionHistory, setNutritionHistory] = useState<NutritionRecord[]>([]);
 
   const [assistantMessages, setAssistantMessages] = useState<AssistantMessage[]>([]);
@@ -137,28 +147,110 @@ const App = observer(() => {
   useEffect(() => {
     if (typeof window === "undefined") return;
     const archiveUserId = userId ?? null;
-    const loadArray = <T,>(key: string, setter: (items: T[]) => void) => {
+    const readArray = (key: string) => {
       const saved = window.localStorage.getItem(key);
-      if (!saved) {
-        setter([] as T[]);
-        return;
-      }
+      if (!saved) return null;
       try {
         const parsed = JSON.parse(saved);
-        if (Array.isArray(parsed)) {
-          setter(parsed as T[]);
-        } else {
-          setter([] as T[]);
-        }
+        return Array.isArray(parsed) ? (parsed as unknown[]) : null;
       } catch (err) {
         console.warn(`Не удалось прочитать архив ${key}`, err);
-        setter([] as T[]);
+        return null;
       }
     };
 
-    loadArray<BloodPressureRecord>(storageKey("bp", archiveUserId), setBpHistory);
-    loadArray<MetabolicRecord>(storageKey("metabolic", archiveUserId), setMetabolicHistory);
-    loadArray<NutritionRecord>(storageKey("nutrition", archiveUserId), setNutritionHistory);
+    const bpKey = storageKey("bp", archiveUserId);
+    const lipidKey = storageKey("lipid", archiveUserId);
+    const nutritionKey = storageKey("nutrition", archiveUserId);
+
+    const bpData = readArray(bpKey) as Partial<BloodPressureRecord>[] | null;
+    if (bpData && bpData.length > 0) {
+      setBpHistory(
+        bpData.map(item => ({
+          id: item.id ?? createRecordId(),
+          createdAt: item.createdAt ?? new Date().toISOString(),
+          systolic: item.systolic ?? "",
+          diastolic: item.diastolic ?? "",
+          pulse: item.pulse ?? "",
+          goal: item.goal ?? "lower",
+          question: item.question ?? "",
+          comment: item.comment ?? "",
+          advice: item.advice ?? ""
+        }))
+      );
+    } else {
+      setBpHistory([]);
+    }
+
+    const lipidData = readArray(lipidKey) as Partial<LipidRecord>[] | null;
+    if (lipidData && lipidData.length > 0) {
+      setLipidHistory(
+        lipidData.map(item => ({
+          id: item.id ?? createRecordId(),
+          createdAt: item.createdAt ?? new Date().toISOString(),
+          date: item.date ?? "",
+          cholesterol: item.cholesterol ?? "",
+          hdl: item.hdl ?? "",
+          ldl: item.ldl ?? "",
+          triglycerides: item.triglycerides ?? "",
+          goal: item.goal ?? "lower",
+          question: item.question ?? "",
+          comment: item.comment ?? "",
+          advice: item.advice ?? ""
+        }))
+      );
+    } else {
+      const legacyKey = storageKey("metabolic", archiveUserId);
+      const legacy = readArray(legacyKey) as
+        | {
+            id?: string;
+            createdAt?: string;
+            cholesterol?: string;
+            sugar?: string;
+            cholGoal?: AdjustmentGoal;
+            sugarGoal?: AdjustmentGoal;
+            question?: string;
+            advice?: string;
+          }[]
+        | null;
+      if (legacy && legacy.length > 0) {
+        const converted: LipidRecord[] = legacy.map(item => ({
+          id: item.id ?? createRecordId(),
+          createdAt: item.createdAt ?? new Date().toISOString(),
+          date: "",
+          cholesterol: item.cholesterol ?? "",
+          hdl: "",
+          ldl: "",
+          triglycerides: "",
+          goal: item.cholGoal ?? "lower",
+          question: item.question ?? "",
+          comment: item.sugar ? `Уровень сахара: ${item.sugar}` : "",
+          advice: item.advice ?? ""
+        }));
+        setLipidHistory(converted);
+      } else {
+        setLipidHistory([]);
+      }
+    }
+
+    const nutritionData = readArray(nutritionKey) as Partial<NutritionRecord>[] | null;
+    if (nutritionData && nutritionData.length > 0) {
+      setNutritionHistory(
+        nutritionData.map(item => ({
+          id: item.id ?? createRecordId(),
+          createdAt: item.createdAt ?? new Date().toISOString(),
+          weight: item.weight ?? "",
+          height: item.height ?? "",
+          calories: item.calories ?? "",
+          activity: item.activity ?? "",
+          question: item.question ?? "",
+          comment: item.comment ?? "",
+          advice: item.advice ?? ""
+        }))
+      );
+    } else {
+      setNutritionHistory([]);
+    }
   }, [userId]);
 
   useEffect(() => {
@@ -170,8 +262,8 @@ const App = observer(() => {
   useEffect(() => {
     if (typeof window === "undefined") return;
     const archiveUserId = userId ?? null;
-    window.localStorage.setItem(storageKey("metabolic", archiveUserId), JSON.stringify(metabolicHistory));
-  }, [metabolicHistory, userId]);
+    window.localStorage.setItem(storageKey("lipid", archiveUserId), JSON.stringify(lipidHistory));
+  }, [lipidHistory, userId]);
 
   useEffect(() => {
     if (typeof window === "undefined") return;
@@ -181,17 +273,26 @@ const App = observer(() => {
 
   function resetState() {
     setActiveTab("bp");
-    setBpForm({ systolic: "", diastolic: "", pulse: "", goal: "lower", question: "" });
+    setBpForm({ systolic: "", diastolic: "", pulse: "", goal: "lower", question: "", comment: "" });
     setBpAdvice("");
     setBpError(null);
-    setMetabolicForm({ cholesterol: "", sugar: "", cholGoal: "lower", sugarGoal: "lower", question: "" });
-    setMetabolicAdvice("");
-    setMetabolicError(null);
-    setNutritionForm({ weight: "", height: "", calories: "", activity: "", question: "" });
+    setLipidForm({
+      date: "",
+      cholesterol: "",
+      hdl: "",
+      ldl: "",
+      triglycerides: "",
+      goal: "lower",
+      question: "",
+      comment: ""
+    });
+    setLipidAdvice("");
+    setLipidError(null);
+    setNutritionForm({ weight: "", height: "", calories: "", activity: "", question: "", comment: "" });
     setNutritionAdvice("");
     setNutritionError(null);
     setBpHistory([]);
-    setMetabolicHistory([]);
+    setLipidHistory([]);
     setNutritionHistory([]);
     setAssistantMessages([]);
     setAssistantInput("");
@@ -238,6 +339,7 @@ const App = observer(() => {
       if (bpForm.systolic) metrics.push(`систолическое давление ${bpForm.systolic} мм рт. ст.`);
       if (bpForm.diastolic) metrics.push(`диастолическое давление ${bpForm.diastolic} мм рт. ст.`);
       if (bpForm.pulse) metrics.push(`пульс ${bpForm.pulse} уд/мин`);
+      if (bpForm.comment) metrics.push(`комментарий: ${bpForm.comment}`);
       const metricSummary = metrics.length > 0 ? metrics.join(", ") : "показатели не указаны";
       const goalText = bpForm.goal === "lower" ? "снизить" : "повысить";
       const prompt = [
@@ -260,6 +362,7 @@ const App = observer(() => {
         pulse: bpForm.pulse,
         goal: bpForm.goal,
         question: bpForm.question.trim(),
+        comment: bpForm.comment.trim(),
         advice: trimmedReply
       };
       setBpHistory(prev => [record, ...prev]);
@@ -286,75 +389,82 @@ const App = observer(() => {
       pulse: bpForm.pulse,
       goal: bpForm.goal,
       question: bpForm.question.trim(),
+      comment: bpForm.comment.trim(),
       advice: ""
     };
     setBpHistory(prev => [record, ...prev]);
   }
 
-  async function handleMetabolicSubmit(e: FormEvent) {
+  async function handleLipidSubmit(e: FormEvent) {
     e.preventDefault();
-    setMetabolicLoading(true);
-    setMetabolicError(null);
+    setLipidLoading(true);
+    setLipidError(null);
     try {
       const metrics: string[] = [];
-      if (metabolicForm.cholesterol) metrics.push(`общий холестерин ${metabolicForm.cholesterol} ммоль/л`);
-      if (metabolicForm.sugar) metrics.push(`уровень сахара натощак ${metabolicForm.sugar} ммоль/л`);
-      const goalParts: string[] = [];
-      if (metabolicForm.cholesterol) {
-        goalParts.push(`Нужно ${metabolicForm.cholGoal === "lower" ? "снизить" : "повысить"} холестерин.`);
-      }
-      if (metabolicForm.sugar) {
-        goalParts.push(`Нужно ${metabolicForm.sugarGoal === "lower" ? "снизить" : "повысить"} уровень сахара.`);
-      }
+      if (lipidForm.date) metrics.push(`дата анализа ${lipidForm.date}`);
+      if (lipidForm.cholesterol) metrics.push(`общий холестерин ${lipidForm.cholesterol} ммоль/л`);
+      if (lipidForm.hdl) metrics.push(`ЛПВП ${lipidForm.hdl} ммоль/л`);
+      if (lipidForm.ldl) metrics.push(`ЛПНП ${lipidForm.ldl} ммоль/л`);
+      if (lipidForm.triglycerides) metrics.push(`триглицериды ${lipidForm.triglycerides} ммоль/л`);
+      if (lipidForm.comment) metrics.push(`комментарий: ${lipidForm.comment}`);
       const prompt = [
         "Ты — врач профилактической медицины и эндокринолог.",
         metrics.length > 0 ? `Актуальные показатели пациента: ${metrics.join(", ")}.` : "Пациент не указал текущие показатели.",
-        goalParts.join(" "),
+        lipidForm.goal === "lower"
+          ? "Помоги безопасно снизить показатели риска сердечно-сосудистых заболеваний."
+          : "Подскажи, как безопасно повысить значения, если они слишком низкие.",
         "Составь план из нескольких пунктов: питание, активность, контроль образа жизни и когда нужно обратиться к врачу.",
-        metabolicForm.question ? `Дополнительный вопрос пациента: ${metabolicForm.question}.` : ""
+        lipidForm.question ? `Дополнительный вопрос пациента: ${lipidForm.question}.` : ""
       ]
         .filter(Boolean)
         .join(" ");
       const reply = await askAssistant(prompt);
       const trimmedReply = reply.trim();
-      setMetabolicAdvice(trimmedReply);
-      const record: MetabolicRecord = {
+      setLipidAdvice(trimmedReply);
+      const record: LipidRecord = {
         id: createRecordId(),
         createdAt: new Date().toISOString(),
-        cholesterol: metabolicForm.cholesterol,
-        sugar: metabolicForm.sugar,
-        cholGoal: metabolicForm.cholGoal,
-        sugarGoal: metabolicForm.sugarGoal,
-        question: metabolicForm.question.trim(),
+        date: lipidForm.date,
+        cholesterol: lipidForm.cholesterol,
+        hdl: lipidForm.hdl,
+        ldl: lipidForm.ldl,
+        triglycerides: lipidForm.triglycerides,
+        goal: lipidForm.goal,
+        question: lipidForm.question.trim(),
+        comment: lipidForm.comment.trim(),
         advice: trimmedReply
       };
-      setMetabolicHistory(prev => [record, ...prev]);
+      setLipidHistory(prev => [record, ...prev]);
     } catch (err) {
-      setMetabolicError(err instanceof Error ? err.message : "Не удалось получить рекомендации");
-      setMetabolicAdvice("");
+      setLipidError(err instanceof Error ? err.message : "Не удалось получить рекомендации");
+      setLipidAdvice("");
     } finally {
-      setMetabolicLoading(false);
+      setLipidLoading(false);
     }
   }
 
-  function saveMetabolicToArchive() {
-    const hasMetrics = metabolicForm.cholesterol || metabolicForm.sugar;
+  function saveLipidToArchive() {
+    const hasMetrics =
+      lipidForm.date || lipidForm.cholesterol || lipidForm.hdl || lipidForm.ldl || lipidForm.triglycerides;
     if (!hasMetrics) {
-      setMetabolicError("Укажите хотя бы один показатель, чтобы сохранить запись");
+      setLipidError("Укажите хотя бы один показатель, чтобы сохранить запись");
       return;
     }
-    setMetabolicError(null);
-    const record: MetabolicRecord = {
+    setLipidError(null);
+    const record: LipidRecord = {
       id: createRecordId(),
       createdAt: new Date().toISOString(),
-      cholesterol: metabolicForm.cholesterol,
-      sugar: metabolicForm.sugar,
-      cholGoal: metabolicForm.cholGoal,
-      sugarGoal: metabolicForm.sugarGoal,
-      question: metabolicForm.question.trim(),
+      date: lipidForm.date,
+      cholesterol: lipidForm.cholesterol,
+      hdl: lipidForm.hdl,
+      ldl: lipidForm.ldl,
+      triglycerides: lipidForm.triglycerides,
+      goal: lipidForm.goal,
+      question: lipidForm.question.trim(),
+      comment: lipidForm.comment.trim(),
       advice: ""
     };
-    setMetabolicHistory(prev => [record, ...prev]);
+    setLipidHistory(prev => [record, ...prev]);
   }
 
   async function handleNutritionSubmit(e: FormEvent) {
@@ -367,6 +477,7 @@ const App = observer(() => {
       if (nutritionForm.height) facts.push(`рост ${nutritionForm.height} см`);
       if (nutritionForm.calories) facts.push(`суточная калорийность ${nutritionForm.calories} ккал`);
       if (nutritionForm.activity) facts.push(`уровень активности: ${nutritionForm.activity}`);
+      if (nutritionForm.comment) facts.push(`комментарий: ${nutritionForm.comment}`);
       const prompt = [
         "Ты — нутрициолог. На основе данных клиента составь рекомендации по питанию и режиму на ближайшие 1-2 недели.",
         facts.length > 0 ? `Исходные данные: ${facts.join(", ")}.` : "Клиент не указал исходные данные.",
@@ -386,6 +497,7 @@ const App = observer(() => {
         calories: nutritionForm.calories,
         activity: nutritionForm.activity,
         question: nutritionForm.question.trim(),
+        comment: nutritionForm.comment.trim(),
         advice: trimmedReply
       };
       setNutritionHistory(prev => [record, ...prev]);
@@ -475,7 +587,7 @@ const App = observer(() => {
   function renderBloodPressureTab() {
     return (
       <div className="tab-panel tab-stack">
-        <h2>Контроль давления и пульса</h2>
+        <h2>Давление и пульс</h2>
         <form className="card" onSubmit={handleBloodPressureSubmit}>
           <div className="metrics-grid">
             <label>
@@ -537,6 +649,14 @@ const App = observer(() => {
               onChange={e => setBpForm({ ...bpForm, question: e.target.value })}
             />
           </label>
+          <label>
+            Комментарий к измерению
+            <textarea
+              placeholder="Например: измерял утром после пробуждения"
+              value={bpForm.comment}
+              onChange={e => setBpForm({ ...bpForm, comment: e.target.value })}
+            />
+          </label>
           <div className="form-actions">
             <button type="button" className="ghost" onClick={saveBloodPressureToArchive} disabled={bpLoading}>
               Сохранить показатели
@@ -577,6 +697,11 @@ const App = observer(() => {
                       <strong>Вопрос:</strong> {entry.question}
                     </p>
                   )}
+                  {entry.comment && (
+                    <p className="history-comment">
+                      <strong>Комментарий:</strong> {entry.comment}
+                    </p>
+                  )}
                   {entry.advice && <pre className="history-advice">{entry.advice}</pre>}
                 </li>
               ))}
@@ -587,78 +712,79 @@ const App = observer(() => {
     );
   }
 
-  function renderMetabolicTab() {
+  function renderLipidTab() {
     return (
       <div className="tab-panel tab-stack">
-        <h2>Холестерин и сахар</h2>
-        <form className="card" onSubmit={handleMetabolicSubmit}>
+        <h2>Липидный профиль</h2>
+        <form className="card" onSubmit={handleLipidSubmit}>
           <div className="metrics-grid">
+            <label>
+              Дата анализа
+              <input type="date" value={lipidForm.date} onChange={e => setLipidForm({ ...lipidForm, date: e.target.value })} />
+            </label>
             <label>
               Общий холестерин, ммоль/л
               <input
                 type="number"
                 step="0.1"
                 min="0"
-                value={metabolicForm.cholesterol}
-                onChange={e => setMetabolicForm({ ...metabolicForm, cholesterol: e.target.value })}
+                value={lipidForm.cholesterol}
+                onChange={e => setLipidForm({ ...lipidForm, cholesterol: e.target.value })}
               />
             </label>
             <label>
-              Глюкоза натощак, ммоль/л
+              Холестерин ЛПВП (HDL), ммоль/л
               <input
                 type="number"
                 step="0.1"
                 min="0"
-                value={metabolicForm.sugar}
-                onChange={e => setMetabolicForm({ ...metabolicForm, sugar: e.target.value })}
+                value={lipidForm.hdl}
+                onChange={e => setLipidForm({ ...lipidForm, hdl: e.target.value })}
+              />
+            </label>
+            <label>
+              Холестерин ЛПНП (LDL), ммоль/л
+              <input
+                type="number"
+                step="0.1"
+                min="0"
+                value={lipidForm.ldl}
+                onChange={e => setLipidForm({ ...lipidForm, ldl: e.target.value })}
+              />
+            </label>
+            <label>
+              Триглицериды, ммоль/л
+              <input
+                type="number"
+                step="0.1"
+                min="0"
+                value={lipidForm.triglycerides}
+                onChange={e => setLipidForm({ ...lipidForm, triglycerides: e.target.value })}
               />
             </label>
           </div>
           <div className="goal-columns">
             <div className="goal-group">
-              <span className="goal-label">Цель по холестерину:</span>
+              <span className="goal-label">Цель:</span>
               <label className="goal-option">
                 <input
                   type="radio"
-                  name="chol-goal"
+                  name="lipid-goal"
                   value="lower"
-                  checked={metabolicForm.cholGoal === "lower"}
-                  onChange={() => setMetabolicForm({ ...metabolicForm, cholGoal: "lower" })}
+                  checked={lipidForm.goal === "lower"}
+                  onChange={() => setLipidForm({ ...lipidForm, goal: "lower" })}
                 />
-                Снизить
+                Снизить риски
               </label>
               <label className="goal-option">
                 <input
                   type="radio"
-                  name="chol-goal"
+                  name="lipid-goal"
                   value="raise"
-                  checked={metabolicForm.cholGoal === "raise"}
-                  onChange={() => setMetabolicForm({ ...metabolicForm, cholGoal: "raise" })}
+                  checked={lipidForm.goal === "raise"}
+                  onChange={() => setLipidForm({ ...lipidForm, goal: "raise" })}
                 />
-                Повысить
-              </label>
-            </div>
-            <div className="goal-group">
-              <span className="goal-label">Цель по сахару:</span>
-              <label className="goal-option">
-                <input
-                  type="radio"
-                  name="sugar-goal"
-                  value="lower"
-                  checked={metabolicForm.sugarGoal === "lower"}
-                  onChange={() => setMetabolicForm({ ...metabolicForm, sugarGoal: "lower" })}
-                />
-                Снизить
-              </label>
-              <label className="goal-option">
-                <input
-                  type="radio"
-                  name="sugar-goal"
-                  value="raise"
-                  checked={metabolicForm.sugarGoal === "raise"}
-                  onChange={() => setMetabolicForm({ ...metabolicForm, sugarGoal: "raise" })}
-                />
-                Повысить
+                Повысить значения
               </label>
             </div>
           </div>
@@ -666,52 +792,61 @@ const App = observer(() => {
             Что ещё важно уточнить?
             <textarea
               placeholder="Например: принимаю статины и хочу понять, что добавить в рацион"
-              value={metabolicForm.question}
-              onChange={e => setMetabolicForm({ ...metabolicForm, question: e.target.value })}
+              value={lipidForm.question}
+              onChange={e => setLipidForm({ ...lipidForm, question: e.target.value })}
+            />
+          </label>
+          <label>
+            Комментарий к анализу
+            <textarea
+              placeholder="Например: сдавал анализ после курса терапии"
+              value={lipidForm.comment}
+              onChange={e => setLipidForm({ ...lipidForm, comment: e.target.value })}
             />
           </label>
           <div className="form-actions">
-            <button type="button" className="ghost" onClick={saveMetabolicToArchive} disabled={metabolicLoading}>
+            <button type="button" className="ghost" onClick={saveLipidToArchive} disabled={lipidLoading}>
               Сохранить показатели
             </button>
-            <button type="submit" disabled={metabolicLoading}>
-              {metabolicLoading ? "Запрашиваем рекомендации..." : "Получить советы"}
+            <button type="submit" disabled={lipidLoading}>
+              {lipidLoading ? "Запрашиваем рекомендации..." : "Получить советы"}
             </button>
-            {metabolicError && <p className="error">{metabolicError}</p>}
+            {lipidError && <p className="error">{lipidError}</p>}
           </div>
         </form>
-        {metabolicAdvice && (
+        {lipidAdvice && (
           <article className="card advice-result">
             <h3>Рекомендации</h3>
-            <pre className="advice-text">{metabolicAdvice}</pre>
+            <pre className="advice-text">{lipidAdvice}</pre>
           </article>
         )}
-        {metabolicHistory.length > 0 && (
+        {lipidHistory.length > 0 && (
           <details className="card history-card" open>
-            <summary>Архив биохимии</summary>
+            <summary>Архив липидов</summary>
             <ul className="history-list">
-              {metabolicHistory.map(entry => (
+              {lipidHistory.map(entry => (
                 <li key={entry.id} className="history-item">
                   <div className="history-meta">
                     <span className="history-tag">{formatDateTime(entry.createdAt)}</span>
                     <div className="metric-tags">
-                      {entry.cholesterol && <span className="metric-tag">Холестерин: {entry.cholesterol}</span>}
-                      {entry.sugar && <span className="metric-tag">Сахар: {entry.sugar}</span>}
-                      <span
-                        className={`metric-tag goal ${entry.cholGoal === "lower" ? "goal-lower" : "goal-raise"}`}
-                      >
-                        Цель по холестерину: {entry.cholGoal === "lower" ? "Снизить" : "Повысить"}
-                      </span>
-                      <span
-                        className={`metric-tag goal ${entry.sugarGoal === "lower" ? "goal-lower" : "goal-raise"}`}
-                      >
-                        Цель по сахару: {entry.sugarGoal === "lower" ? "Снизить" : "Повысить"}
+                      {entry.date && <span className="metric-tag">Дата анализа: {entry.date}</span>}
+                      {entry.cholesterol && <span className="metric-tag">Общий холестерин: {entry.cholesterol}</span>}
+                      {entry.hdl && <span className="metric-tag">ЛПВП: {entry.hdl}</span>}
+                      {entry.ldl && <span className="metric-tag">ЛПНП: {entry.ldl}</span>}
+                      {entry.triglycerides && <span className="metric-tag">Триглицериды: {entry.triglycerides}</span>}
+                      <span className={`metric-tag goal ${entry.goal === "lower" ? "goal-lower" : "goal-raise"}`}>
+                        Цель: {entry.goal === "lower" ? "Снизить риски" : "Повысить значения"}
                       </span>
                     </div>
                   </div>
                   {entry.question && (
                     <p className="history-question">
                       <strong>Вопрос:</strong> {entry.question}
+                    </p>
+                  )}
+                  {entry.comment && (
+                    <p className="history-comment">
+                      <strong>Комментарий:</strong> {entry.comment}
                     </p>
                   )}
                   {entry.advice && <pre className="history-advice">{entry.advice}</pre>}
@@ -775,6 +910,14 @@ const App = observer(() => {
               onChange={e => setNutritionForm({ ...nutritionForm, question: e.target.value })}
             />
           </label>
+          <label>
+            Комментарий к измерениям
+            <textarea
+              placeholder="Дополнительные примечания: как чувствовали себя, что ели"
+              value={nutritionForm.comment}
+              onChange={e => setNutritionForm({ ...nutritionForm, comment: e.target.value })}
+            />
+          </label>
           <div className="form-actions">
             <button type="submit" disabled={nutritionLoading}>
               {nutritionLoading ? "Запрашиваем рекомендации..." : "Получить советы"}
@@ -806,6 +949,11 @@ const App = observer(() => {
                   {entry.question && (
                     <p className="history-question">
                       <strong>Запрос:</strong> {entry.question}
+                    </p>
+                  )}
+                  {entry.comment && (
+                    <p className="history-comment">
+                      <strong>Комментарий:</strong> {entry.comment}
                     </p>
                   )}
                   {entry.advice && <pre className="history-advice">{entry.advice}</pre>}
@@ -878,7 +1026,7 @@ const App = observer(() => {
       <main className="content">
         <div className="tab-container">
           {activeTab === "bp" && renderBloodPressureTab()}
-          {activeTab === "metabolic" && renderMetabolicTab()}
+          {activeTab === "lipid" && renderLipidTab()}
           {activeTab === "nutrition" && renderNutritionTab()}
           {activeTab === "assistant" && renderAssistantTab()}
         </div>

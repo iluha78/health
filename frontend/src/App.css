@@ -566,6 +566,16 @@ section h2 {
   color: #2f46af;
 }
 
+.history-comment {
+  margin: 0.25rem 0 0;
+  color: #4f566b;
+  line-height: 1.5;
+}
+
+.history-comment strong {
+  color: #334155;
+}
+
 .history-advice {
   margin: 0;
   padding: 0.85rem 1rem;
