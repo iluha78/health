@@ -500,6 +500,16 @@ section h2 {
   gap: 1.5rem;
 }
 
+.history-item {
+  background: #f6f8ff;
+  border: 1px solid #dbe3ff;
+  border-radius: 1rem;
+  padding: 1rem 1.1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.8rem;
+}
+
 .history-meta {
   display: flex;
   flex-wrap: wrap;
@@ -515,6 +525,57 @@ section h2 {
   color: #1c2753;
   font-size: 0.85rem;
   font-weight: 600;
+}
+
+.metric-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+}
+
+.metric-tag {
+  padding: 0.25rem 0.7rem;
+  border-radius: 999px;
+  background: #e8ecff;
+  color: #1c2753;
+  font-weight: 600;
+  font-size: 0.85rem;
+}
+
+.metric-tag.goal {
+  background: #e4ebff;
+}
+
+.metric-tag.goal-lower {
+  background: #e0f2fe;
+  color: #0c4a6e;
+}
+
+.metric-tag.goal-raise {
+  background: #fee2e2;
+  color: #991b1b;
+}
+
+.history-question {
+  margin: 0;
+  color: #4d5c8f;
+  line-height: 1.5;
+}
+
+.history-question strong {
+  color: #2f46af;
+}
+
+.history-advice {
+  margin: 0;
+  padding: 0.85rem 1rem;
+  border-radius: 0.9rem;
+  border: 1px solid #dbe3ff;
+  background: #fff;
+  white-space: pre-wrap;
+  line-height: 1.55;
+  font-family: inherit;
+  font-size: 0.95rem;
 }
 
 .photo-history-item h4 {

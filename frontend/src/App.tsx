@@ -9,12 +9,58 @@ import "./App.css";
 type TabKey = "bp" | "metabolic" | "nutrition" | "assistant";
 type AdjustmentGoal = "lower" | "raise";
 
+type BloodPressureRecord = {
+  id: string;
+  createdAt: string;
+  systolic: string;
+  diastolic: string;
+  pulse: string;
+  goal: AdjustmentGoal;
+  question: string;
+  advice: string;
+};
+
+type MetabolicRecord = {
+  id: string;
+  createdAt: string;
+  cholesterol: string;
+  sugar: string;
+  cholGoal: AdjustmentGoal;
+  sugarGoal: AdjustmentGoal;
+  question: string;
+  advice: string;
+};
+
+type NutritionRecord = {
+  id: string;
+  createdAt: string;
+  weight: string;
+  height: string;
+  calories: string;
+  activity: string;
+  question: string;
+  advice: string;
+};
+
 const TAB_ITEMS: { key: TabKey; label: string; icon: string }[] = [
   { key: "bp", label: "Давление и пульс", icon: "🩺" },
   { key: "metabolic", label: "Холестерин и сахар", icon: "🩸" },
   { key: "nutrition", label: "Нутрициолог", icon: "🥗" },
   { key: "assistant", label: "AI ассистент", icon: "🤖" }
 ];
+
+const createRecordId = () => `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`;
+
+const formatDateTime = (value: string) => {
+  try {
+    return new Intl.DateTimeFormat("ru-RU", { dateStyle: "medium", timeStyle: "short" }).format(new Date(value));
+  } catch (err) {
+    console.warn("Не удалось отформатировать дату", err);
+    return value;
+  }
+};
+
+const storageKey = (scope: string, userId: number | null) => `cholestofit_${scope}_archive_${userId ?? "guest"}`;
 
 const App = observer(() => {
   const [mode, setMode] = useState<"login" | "register">("login");
@@ -57,6 +103,10 @@ const App = observer(() => {
   const [nutritionLoading, setNutritionLoading] = useState(false);
   const [nutritionError, setNutritionError] = useState<string | null>(null);
 
+  const [bpHistory, setBpHistory] = useState<BloodPressureRecord[]>([]);
+  const [metabolicHistory, setMetabolicHistory] = useState<MetabolicRecord[]>([]);
+  const [nutritionHistory, setNutritionHistory] = useState<NutritionRecord[]>([]);
+
   const [assistantMessages, setAssistantMessages] = useState<AssistantMessage[]>([]);
   const [assistantInput, setAssistantInput] = useState("");
   const [assistantLoading, setAssistantLoading] = useState(false);
@@ -70,6 +120,8 @@ const App = observer(() => {
     } as Record<string, string>;
   }, [userStore.token]);
 
+  const userId = userStore.me?.id ?? null;
+
   useEffect(() => {
     if (userStore.token) {
       setActiveTab("bp");
@@ -82,6 +134,54 @@ const App = observer(() => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [userStore.token]);
 
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    if (!userId) {
+      setBpHistory([]);
+      setMetabolicHistory([]);
+      setNutritionHistory([]);
+      return;
+    }
+
+    const loadArray = <T,>(key: string, setter: (items: T[]) => void) => {
+      const saved = window.localStorage.getItem(key);
+      if (!saved) {
+        setter([] as T[]);
+        return;
+      }
+      try {
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed)) {
+          setter(parsed as T[]);
+        } else {
+          setter([] as T[]);
+        }
+      } catch (err) {
+        console.warn(`Не удалось прочитать архив ${key}`, err);
+        setter([] as T[]);
+      }
+    };
+
+    loadArray<BloodPressureRecord>(storageKey("bp", userId), setBpHistory);
+    loadArray<MetabolicRecord>(storageKey("metabolic", userId), setMetabolicHistory);
+    loadArray<NutritionRecord>(storageKey("nutrition", userId), setNutritionHistory);
+  }, [userId]);
+
+  useEffect(() => {
+    if (typeof window === "undefined" || !userId) return;
+    window.localStorage.setItem(storageKey("bp", userId), JSON.stringify(bpHistory));
+  }, [bpHistory, userId]);
+
+  useEffect(() => {
+    if (typeof window === "undefined" || !userId) return;
+    window.localStorage.setItem(storageKey("metabolic", userId), JSON.stringify(metabolicHistory));
+  }, [metabolicHistory, userId]);
+
+  useEffect(() => {
+    if (typeof window === "undefined" || !userId) return;
+    window.localStorage.setItem(storageKey("nutrition", userId), JSON.stringify(nutritionHistory));
+  }, [nutritionHistory, userId]);
+
   function resetState() {
     setActiveTab("bp");
     setBpForm({ systolic: "", diastolic: "", pulse: "", goal: "lower", question: "" });
@@ -93,6 +193,9 @@ const App = observer(() => {
     setNutritionForm({ weight: "", height: "", calories: "", activity: "", question: "" });
     setNutritionAdvice("");
     setNutritionError(null);
+    setBpHistory([]);
+    setMetabolicHistory([]);
+    setNutritionHistory([]);
     setAssistantMessages([]);
     setAssistantInput("");
     setAssistantError(null);
@@ -150,7 +253,19 @@ const App = observer(() => {
         .filter(Boolean)
         .join(" ");
       const reply = await askAssistant(prompt);
-      setBpAdvice(reply);
+      const trimmedReply = reply.trim();
+      setBpAdvice(trimmedReply);
+      const record: BloodPressureRecord = {
+        id: createRecordId(),
+        createdAt: new Date().toISOString(),
+        systolic: bpForm.systolic,
+        diastolic: bpForm.diastolic,
+        pulse: bpForm.pulse,
+        goal: bpForm.goal,
+        question: bpForm.question.trim(),
+        advice: trimmedReply
+      };
+      setBpHistory(prev => [record, ...prev]);
     } catch (err) {
       setBpError(err instanceof Error ? err.message : "Не удалось получить рекомендации");
       setBpAdvice("");
@@ -184,7 +299,19 @@ const App = observer(() => {
         .filter(Boolean)
         .join(" ");
       const reply = await askAssistant(prompt);
-      setMetabolicAdvice(reply);
+      const trimmedReply = reply.trim();
+      setMetabolicAdvice(trimmedReply);
+      const record: MetabolicRecord = {
+        id: createRecordId(),
+        createdAt: new Date().toISOString(),
+        cholesterol: metabolicForm.cholesterol,
+        sugar: metabolicForm.sugar,
+        cholGoal: metabolicForm.cholGoal,
+        sugarGoal: metabolicForm.sugarGoal,
+        question: metabolicForm.question.trim(),
+        advice: trimmedReply
+      };
+      setMetabolicHistory(prev => [record, ...prev]);
     } catch (err) {
       setMetabolicError(err instanceof Error ? err.message : "Не удалось получить рекомендации");
       setMetabolicAdvice("");
@@ -212,7 +339,19 @@ const App = observer(() => {
         "Напомни о необходимости консультации врача при хронических заболеваниях."
       ].join(" ");
       const reply = await askAssistant(prompt);
-      setNutritionAdvice(reply);
+      const trimmedReply = reply.trim();
+      setNutritionAdvice(trimmedReply);
+      const record: NutritionRecord = {
+        id: createRecordId(),
+        createdAt: new Date().toISOString(),
+        weight: nutritionForm.weight,
+        height: nutritionForm.height,
+        calories: nutritionForm.calories,
+        activity: nutritionForm.activity,
+        question: nutritionForm.question.trim(),
+        advice: trimmedReply
+      };
+      setNutritionHistory(prev => [record, ...prev]);
     } catch (err) {
       setNutritionError(err instanceof Error ? err.message : "Не удалось получить рекомендации");
       setNutritionAdvice("");
@@ -374,6 +513,36 @@ const App = observer(() => {
             <pre className="advice-text">{bpAdvice}</pre>
           </article>
         )}
+        {bpHistory.length > 0 && (
+          <details className="card history-card" open>
+            <summary>Архив запросов</summary>
+            <ul className="history-list">
+              {bpHistory.map(entry => (
+                <li key={entry.id} className="history-item">
+                  <div className="history-meta">
+                    <span className="history-tag">{formatDateTime(entry.createdAt)}</span>
+                    <div className="metric-tags">
+                      {entry.systolic && <span className="metric-tag">Систолическое: {entry.systolic}</span>}
+                      {entry.diastolic && <span className="metric-tag">Диастолическое: {entry.diastolic}</span>}
+                      {entry.pulse && <span className="metric-tag">Пульс: {entry.pulse}</span>}
+                      <span
+                        className={`metric-tag goal ${entry.goal === "lower" ? "goal-lower" : "goal-raise"}`}
+                      >
+                        Цель: {entry.goal === "lower" ? "Снизить" : "Повысить"}
+                      </span>
+                    </div>
+                  </div>
+                  {entry.question && (
+                    <p className="history-question">
+                      <strong>Вопрос:</strong> {entry.question}
+                    </p>
+                  )}
+                  {entry.advice && <pre className="history-advice">{entry.advice}</pre>}
+                </li>
+              ))}
+            </ul>
+          </details>
+        )}
       </div>
     );
   }
@@ -474,6 +643,40 @@ const App = observer(() => {
             <pre className="advice-text">{metabolicAdvice}</pre>
           </article>
         )}
+        {metabolicHistory.length > 0 && (
+          <details className="card history-card" open>
+            <summary>Архив биохимии</summary>
+            <ul className="history-list">
+              {metabolicHistory.map(entry => (
+                <li key={entry.id} className="history-item">
+                  <div className="history-meta">
+                    <span className="history-tag">{formatDateTime(entry.createdAt)}</span>
+                    <div className="metric-tags">
+                      {entry.cholesterol && <span className="metric-tag">Холестерин: {entry.cholesterol}</span>}
+                      {entry.sugar && <span className="metric-tag">Сахар: {entry.sugar}</span>}
+                      <span
+                        className={`metric-tag goal ${entry.cholGoal === "lower" ? "goal-lower" : "goal-raise"}`}
+                      >
+                        Цель по холестерину: {entry.cholGoal === "lower" ? "Снизить" : "Повысить"}
+                      </span>
+                      <span
+                        className={`metric-tag goal ${entry.sugarGoal === "lower" ? "goal-lower" : "goal-raise"}`}
+                      >
+                        Цель по сахару: {entry.sugarGoal === "lower" ? "Снизить" : "Повысить"}
+                      </span>
+                    </div>
+                  </div>
+                  {entry.question && (
+                    <p className="history-question">
+                      <strong>Вопрос:</strong> {entry.question}
+                    </p>
+                  )}
+                  {entry.advice && <pre className="history-advice">{entry.advice}</pre>}
+                </li>
+              ))}
+            </ul>
+          </details>
+        )}
       </div>
     );
   }
@@ -541,6 +744,32 @@ const App = observer(() => {
             <h3>Рекомендации</h3>
             <pre className="advice-text">{nutritionAdvice}</pre>
           </article>
+        )}
+        {nutritionHistory.length > 0 && (
+          <details className="card history-card" open>
+            <summary>Архив нутрициолога</summary>
+            <ul className="history-list">
+              {nutritionHistory.map(entry => (
+                <li key={entry.id} className="history-item">
+                  <div className="history-meta">
+                    <span className="history-tag">{formatDateTime(entry.createdAt)}</span>
+                    <div className="metric-tags">
+                      {entry.weight && <span className="metric-tag">Вес: {entry.weight} кг</span>}
+                      {entry.height && <span className="metric-tag">Рост: {entry.height} см</span>}
+                      {entry.calories && <span className="metric-tag">Калории: {entry.calories}</span>}
+                      {entry.activity && <span className="metric-tag">Активность: {entry.activity}</span>}
+                    </div>
+                  </div>
+                  {entry.question && (
+                    <p className="history-question">
+                      <strong>Запрос:</strong> {entry.question}
+                    </p>
+                  )}
+                  {entry.advice && <pre className="history-advice">{entry.advice}</pre>}
+                </li>
+              ))}
+            </ul>
+          </details>
         )}
       </div>
     );
