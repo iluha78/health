@@ -7,15 +7,12 @@ import { apiUrl } from "./lib/api";
 import "./App.css";
 
 type TabKey = "bp" | "lipid" | "nutrition" | "assistant";
-type AdjustmentGoal = "lower" | "raise";
-
 type BloodPressureRecord = {
   id: string;
   createdAt: string;
   systolic: string;
   diastolic: string;
   pulse: string;
-  goal: AdjustmentGoal;
   question: string;
   comment: string;
   advice: string;
@@ -30,7 +27,6 @@ type LipidRecord = {
   ldl: string;
   triglycerides: string;
   glucose: string;
-  goal: AdjustmentGoal;
   question: string;
   comment: string;
   advice: string;
@@ -48,12 +44,95 @@ type NutritionRecord = {
   advice: string;
 };
 
-const TAB_ITEMS: { key: TabKey; label: string; icon: string }[] = [
-  { key: "bp", label: "Давление и пульс", icon: "🩺" },
-  { key: "lipid", label: "Липидный профиль и сахар", icon: "🩸" },
-  { key: "nutrition", label: "Нутрициолог", icon: "🥗" },
-  { key: "assistant", label: "AI ассистент", icon: "🤖" }
+const TAB_ITEMS: { key: TabKey; label: string }[] = [
+  { key: "bp", label: "Давление и пульс" },
+  { key: "lipid", label: "Липидный профиль и сахар" },
+  { key: "nutrition", label: "Нутрициолог" },
+  { key: "assistant", label: "AI ассистент" }
 ];
+
+const TabIconGlyph = ({ tab }: { tab: TabKey }) => {
+  switch (tab) {
+    case "bp":
+      return (
+        <svg className="tab-icon" viewBox="0 0 24 24" aria-hidden focusable="false">
+          <path
+            d="M12 20.5s-6.5-4.3-6.5-9.2A3.5 3.5 0 0 1 9 7a3.5 3.5 0 0 1 3 1.7A3.5 3.5 0 0 1 15 7a3.5 3.5 0 0 1 3.5 4.3c0 4.9-6.5 9.2-6.5 9.2Z"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="1.6"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          />
+          <polyline
+            points="7 12.5 9.5 12.5 11 9.5 13 15 15 11.5 17.5 11.5"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="1.6"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          />
+        </svg>
+      );
+    case "lipid":
+      return (
+        <svg className="tab-icon" viewBox="0 0 24 24" aria-hidden focusable="false">
+          <path
+            d="M12 3.5 17 10.4a5 5 0 1 1-10 0Z"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="1.6"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          />
+          <path
+            d="M9.6 13.2c1 .8 2.2 1.3 3.4 1.3s2.4-.5 3.4-1.3"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="1.6"
+            strokeLinecap="round"
+          />
+        </svg>
+      );
+    case "nutrition":
+      return (
+        <svg className="tab-icon" viewBox="0 0 24 24" aria-hidden focusable="false">
+          <path
+            d="M5 13.5c0-4.6 4-7.5 8.2-7.5H19v1.6c0 6-4.4 10.4-10 11l4.4-5.4"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="1.6"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          />
+          <path
+            d="M8.5 19.2c0-2.7 1.4-5.7 4.3-7.4"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="1.6"
+            strokeLinecap="round"
+          />
+        </svg>
+      );
+    case "assistant":
+    default:
+      return (
+        <svg className="tab-icon" viewBox="0 0 24 24" aria-hidden focusable="false">
+          <path
+            d="M4.5 6.5h15a1.5 1.5 0 0 1 1.5 1.5v7a1.5 1.5 0 0 1-1.5 1.5H13l-4 3v-3H4.5A1.5 1.5 0 0 1 3 15V8a1.5 1.5 0 0 1 1.5-1.5Z"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="1.6"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          />
+          <circle cx="9" cy="11.5" r="0.8" fill="currentColor" />
+          <circle cx="12" cy="11.5" r="0.8" fill="currentColor" />
+          <circle cx="15" cy="11.5" r="0.8" fill="currentColor" />
+        </svg>
+      );
+  }
+};
 
 const createRecordId = () => `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`;
 
@@ -80,7 +159,6 @@ const App = observer(() => {
     systolic: "",
     diastolic: "",
     pulse: "",
-    goal: "lower" as AdjustmentGoal,
     question: "",
     comment: ""
   });
@@ -95,7 +173,6 @@ const App = observer(() => {
     ldl: "",
     triglycerides: "",
     glucose: "",
-    goal: "lower" as AdjustmentGoal,
     question: "",
     comment: ""
   });
@@ -133,6 +210,8 @@ const App = observer(() => {
   }, [userStore.token]);
 
   const userId = userStore.me?.id ?? null;
+  const targetsWeight = userStore.targets?.weight_kg ?? null;
+  const targetsHeight = userStore.targets?.height_cm ?? null;
 
   useEffect(() => {
     if (userStore.token) {
@@ -174,7 +253,6 @@ const App = observer(() => {
           systolic: item.systolic ?? "",
           diastolic: item.diastolic ?? "",
           pulse: item.pulse ?? "",
-          goal: item.goal ?? "lower",
           question: item.question ?? "",
           comment: item.comment ?? "",
           advice: item.advice ?? ""
@@ -196,7 +274,6 @@ const App = observer(() => {
           ldl: item.ldl ?? "",
           triglycerides: item.triglycerides ?? "",
           glucose: item.glucose ?? "",
-          goal: item.goal ?? "lower",
           question: item.question ?? "",
           comment: item.comment ?? "",
           advice: item.advice ?? ""
@@ -210,8 +287,8 @@ const App = observer(() => {
             createdAt?: string;
             cholesterol?: string;
             sugar?: string;
-            cholGoal?: AdjustmentGoal;
-            sugarGoal?: AdjustmentGoal;
+            cholGoal?: string;
+            sugarGoal?: string;
             question?: string;
             comment?: string;
             advice?: string;
@@ -227,7 +304,6 @@ const App = observer(() => {
           ldl: "",
           triglycerides: "",
           glucose: item.sugar ?? "",
-          goal: item.cholGoal ?? "lower",
           question: item.question ?? "",
           comment: item.comment ?? "",
           advice: item.advice ?? ""
@@ -276,9 +352,23 @@ const App = observer(() => {
     window.localStorage.setItem(storageKey("nutrition", archiveUserId), JSON.stringify(nutritionHistory));
   }, [nutritionHistory, userId]);
 
+  useEffect(() => {
+    if (targetsWeight == null && targetsHeight == null) {
+      return;
+    }
+    setNutritionForm(prev => {
+      const nextWeight = prev.weight || (targetsWeight != null ? String(targetsWeight) : "");
+      const nextHeight = prev.height || (targetsHeight != null ? String(targetsHeight) : "");
+      if (nextWeight === prev.weight && nextHeight === prev.height) {
+        return prev;
+      }
+      return { ...prev, weight: nextWeight, height: nextHeight };
+    });
+  }, [targetsWeight, targetsHeight]);
+
   function resetState() {
     setActiveTab("bp");
-    setBpForm({ systolic: "", diastolic: "", pulse: "", goal: "lower", question: "", comment: "" });
+    setBpForm({ systolic: "", diastolic: "", pulse: "", question: "", comment: "" });
     setBpAdvice("");
     setBpError(null);
     setLipidForm({
@@ -288,7 +378,6 @@ const App = observer(() => {
       ldl: "",
       triglycerides: "",
       glucose: "",
-      goal: "lower",
       question: "",
       comment: ""
     });
@@ -347,11 +436,10 @@ const App = observer(() => {
       if (bpForm.pulse) metrics.push(`пульс ${bpForm.pulse} уд/мин`);
       if (bpForm.comment) metrics.push(`комментарий: ${bpForm.comment}`);
       const metricSummary = metrics.length > 0 ? metrics.join(", ") : "показатели не указаны";
-      const goalText = bpForm.goal === "lower" ? "снизить" : "повысить";
       const prompt = [
         "Ты — кардиолог, который объясняет понятным языком.",
         `Пациент сообщает: ${metricSummary}.`,
-        `Помоги ${goalText} давление и/или пульс безопасными методами.`,
+        "Дай советы, как стабилизировать давление и пульс безопасными методами.",
         "Добавь практические советы по образу жизни и упомяни тревожные симптомы, при которых нужно немедленно обратиться к врачу.",
         bpForm.question ? `Дополнительный контекст от пациента: ${bpForm.question}.` : ""
       ]
@@ -366,7 +454,6 @@ const App = observer(() => {
         systolic: bpForm.systolic,
         diastolic: bpForm.diastolic,
         pulse: bpForm.pulse,
-        goal: bpForm.goal,
         question: bpForm.question.trim(),
         comment: bpForm.comment.trim(),
         advice: trimmedReply
@@ -393,7 +480,6 @@ const App = observer(() => {
       systolic: bpForm.systolic,
       diastolic: bpForm.diastolic,
       pulse: bpForm.pulse,
-      goal: bpForm.goal,
       question: bpForm.question.trim(),
       comment: bpForm.comment.trim(),
       advice: ""
@@ -417,9 +503,7 @@ const App = observer(() => {
       const prompt = [
         "Ты — врач профилактической медицины и эндокринолог.",
         metrics.length > 0 ? `Актуальные показатели пациента: ${metrics.join(", ")}.` : "Пациент не указал текущие показатели.",
-        lipidForm.goal === "lower"
-          ? "Помоги безопасно снизить показатели риска сердечно-сосудистых заболеваний."
-          : "Подскажи, как безопасно повысить значения, если они слишком низкие.",
+        "Дай рекомендации, как поддерживать липидный профиль и уровень сахара в безопасных пределах.",
         "Составь план из нескольких пунктов: питание, активность, контроль образа жизни и когда нужно обратиться к врачу.",
         lipidForm.question ? `Дополнительный вопрос пациента: ${lipidForm.question}.` : ""
       ]
@@ -437,7 +521,6 @@ const App = observer(() => {
         ldl: lipidForm.ldl,
         triglycerides: lipidForm.triglycerides,
         glucose: lipidForm.glucose,
-        goal: lipidForm.goal,
         question: lipidForm.question.trim(),
         comment: lipidForm.comment.trim(),
         advice: trimmedReply
@@ -473,7 +556,6 @@ const App = observer(() => {
       ldl: lipidForm.ldl,
       triglycerides: lipidForm.triglycerides,
       glucose: lipidForm.glucose,
-      goal: lipidForm.goal,
       question: lipidForm.question.trim(),
       comment: lipidForm.comment.trim(),
       advice: ""
@@ -632,29 +714,6 @@ const App = observer(() => {
               />
             </label>
           </div>
-          <div className="goal-group">
-            <span className="goal-label">Цель:</span>
-            <label className="goal-option">
-              <input
-                type="radio"
-                name="bp-goal"
-                value="lower"
-                checked={bpForm.goal === "lower"}
-                onChange={() => setBpForm({ ...bpForm, goal: "lower" })}
-              />
-              Снизить
-            </label>
-            <label className="goal-option">
-              <input
-                type="radio"
-                name="bp-goal"
-                value="raise"
-                checked={bpForm.goal === "raise"}
-                onChange={() => setBpForm({ ...bpForm, goal: "raise" })}
-              />
-              Повысить
-            </label>
-          </div>
           <label>
             Дополнительный вопрос или симптомы
             <textarea
@@ -699,11 +758,6 @@ const App = observer(() => {
                       {entry.systolic && <span className="metric-tag">Систолическое: {entry.systolic}</span>}
                       {entry.diastolic && <span className="metric-tag">Диастолическое: {entry.diastolic}</span>}
                       {entry.pulse && <span className="metric-tag">Пульс: {entry.pulse}</span>}
-                      <span
-                        className={`metric-tag goal ${entry.goal === "lower" ? "goal-lower" : "goal-raise"}`}
-                      >
-                        Цель: {entry.goal === "lower" ? "Снизить" : "Повысить"}
-                      </span>
                     </div>
                   </div>
                   {entry.question && (
@@ -787,31 +841,6 @@ const App = observer(() => {
               />
             </label>
           </div>
-          <div className="goal-columns">
-            <div className="goal-group">
-              <span className="goal-label">Цель:</span>
-              <label className="goal-option">
-                <input
-                  type="radio"
-                  name="lipid-goal"
-                  value="lower"
-                  checked={lipidForm.goal === "lower"}
-                  onChange={() => setLipidForm({ ...lipidForm, goal: "lower" })}
-                />
-                Снизить риски
-              </label>
-              <label className="goal-option">
-                <input
-                  type="radio"
-                  name="lipid-goal"
-                  value="raise"
-                  checked={lipidForm.goal === "raise"}
-                  onChange={() => setLipidForm({ ...lipidForm, goal: "raise" })}
-                />
-                Повысить значения
-              </label>
-            </div>
-          </div>
           <label>
             Что ещё важно уточнить?
             <textarea
@@ -859,9 +888,6 @@ const App = observer(() => {
                       {entry.ldl && <span className="metric-tag">ЛПНП: {entry.ldl}</span>}
                       {entry.triglycerides && <span className="metric-tag">Триглицериды: {entry.triglycerides}</span>}
                       {entry.glucose && <span className="metric-tag">Глюкоза: {entry.glucose}</span>}
-                      <span className={`metric-tag goal ${entry.goal === "lower" ? "goal-lower" : "goal-raise"}`}>
-                        Цель: {entry.goal === "lower" ? "Снизить риски" : "Повысить значения"}
-                      </span>
                     </div>
                   </div>
                   {entry.question && (
@@ -1043,6 +1069,9 @@ const App = observer(() => {
             <span className="topbar-profile-label">Аккаунт</span>
             <span className="topbar-profile-email">{userStore.me?.email ?? email}</span>
           </div>
+          <a className="button ghost" href="/settings">
+            Настройки
+          </a>
           <button className="ghost" type="button" onClick={() => userStore.logout()}>
             Выйти
           </button>
@@ -1064,7 +1093,7 @@ const App = observer(() => {
             className={`tab-button${activeTab === item.key ? " active" : ""}`}
             onClick={() => setActiveTab(item.key)}
           >
-            <span className="tab-icon" aria-hidden>{item.icon}</span>
+            <TabIconGlyph tab={item.key} />
             <span className="tab-label">{item.label}</span>
           </button>
         ))}

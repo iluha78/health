@@ -168,8 +168,9 @@ body {
 }
 
 .tab-icon {
-  font-size: 1.4rem;
-  line-height: 1;
+  width: 1.6rem;
+  height: 1.6rem;
+  display: block;
 }
 
 .tab-label {
@@ -282,6 +283,7 @@ textarea {
   background: #fff;
   font: inherit;
   color: #1f2933;
+  width: 100%;
 }
 
 input::placeholder,
@@ -294,7 +296,8 @@ textarea {
   resize: vertical;
 }
 
-button {
+button,
+.button {
   cursor: pointer;
   border: none;
   background: #3a57f1;
@@ -303,9 +306,15 @@ button {
   border-radius: 0.8rem;
   font-weight: 600;
   transition: background 0.2s ease;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.35rem;
+  text-decoration: none;
 }
 
-button:hover {
+button:hover,
+.button:hover {
   background: #2b44c8;
 }
 
@@ -542,20 +551,6 @@ section h2 {
   font-size: 0.85rem;
 }
 
-.metric-tag.goal {
-  background: #e4ebff;
-}
-
-.metric-tag.goal-lower {
-  background: #e0f2fe;
-  color: #0c4a6e;
-}
-
-.metric-tag.goal-raise {
-  background: #fee2e2;
-  color: #991b1b;
-}
-
 .history-question {
   margin: 0;
   color: #4d5c8f;
@@ -721,31 +716,6 @@ details summary {
   display: grid;
   gap: 1rem;
   grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-}
-
-.goal-columns {
-  display: grid;
-  gap: 1rem;
-  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
-}
-
-.goal-group {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.75rem;
-  align-items: center;
-}
-
-.goal-label {
-  font-weight: 600;
-  color: #2f3a4c;
-}
-
-.goal-option {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.4rem;
-  font-weight: 500;
 }
 
 .assistant-card {
