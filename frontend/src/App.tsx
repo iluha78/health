@@ -1,112 +1,233 @@
 import { useEffect, useMemo, useState } from "react";
-import type { ChangeEvent, FormEvent } from "react";
+import type { FormEvent, MouseEvent as ReactMouseEvent } from "react";
 import { observer } from "mobx-react-lite";
 import { userStore } from "./stores/user";
-import type {
-  AdviceHistoryItem,
-  AssistantHistoryItem,
-  AssistantMessage,
-  DiaryDay,
-  Food,
-  Healthiness,
-  Lipid,
-  PhotoAnalysis,
-  PhotoAnalysisHistoryItem,
-} from "./types/api";
-import {
-  normalizeAdviceHistory,
-  normalizeAssistantHistory,
-  normalizeDiaryDay,
-  normalizeFoods,
-  normalizeLipids,
-  normalizePhotoAnalysis,
-  normalizePhotoAnalysisHistory,
-} from "./types/api";
-import "./App.css";
+import type { AssistantMessage } from "./types/api";
 import { apiUrl } from "./lib/api";
+import "./App.css";
 
-type TabKey = "assistant" | "profile" | "lipids" | "diary" | "advice" | "analysis";
-
-const PROFILE_TAB: { key: TabKey; label: string; icon: string } = {
-  key: "profile",
-  label: "Профиль",
-  icon: "👤"
+type TabKey = "bp" | "lipid" | "nutrition" | "assistant";
+type BloodPressureRecord = {
+  id: string;
+  createdAt: string;
+  systolic: string;
+  diastolic: string;
+  pulse: string;
+  question: string;
+  comment: string;
+  advice: string;
 };
 
-const TAB_ITEMS: { key: TabKey; label: string; icon: string }[] = [
-  { key: "assistant", label: "Ассистент", icon: "🤖" },
-  { key: "lipids", label: "Липиды", icon: "🩸" },
-  { key: "diary", label: "Дневник", icon: "📘" },
-  { key: "advice", label: "Советы", icon: "🥗" },
-  { key: "analysis", label: "Фото", icon: "📸" }
+type LipidRecord = {
+  id: string;
+  createdAt: string;
+  date: string;
+  cholesterol: string;
+  hdl: string;
+  ldl: string;
+  triglycerides: string;
+  glucose: string;
+  question: string;
+  comment: string;
+  advice: string;
+};
+
+type NutritionRecord = {
+  id: string;
+  createdAt: string;
+  weight: string;
+  height: string;
+  calories: string;
+  activity: string;
+  question: string;
+  comment: string;
+  advice: string;
+};
+
+type SettingsFormState = {
+  sex: string;
+  age: string;
+  height: string;
+  weight: string;
+  activity: string;
+  kcalGoal: string;
+  sfaLimit: string;
+  fiberGoal: string;
+};
+
+const TAB_ITEMS: { key: TabKey; label: string }[] = [
+  { key: "bp", label: "Давление и пульс" },
+  { key: "lipid", label: "Липидный профиль и сахар" },
+  { key: "nutrition", label: "Нутрициолог" },
+  { key: "assistant", label: "AI ассистент" }
 ];
+
+const TabIconGlyph = ({ tab }: { tab: TabKey }) => {
+  switch (tab) {
+    case "bp":
+      return (
+        <svg className="tab-icon" viewBox="0 0 24 24" aria-hidden focusable="false">
+          <path
+            d="M12 20.5s-6.5-4.3-6.5-9.2A3.5 3.5 0 0 1 9 7a3.5 3.5 0 0 1 3 1.7A3.5 3.5 0 0 1 15 7a3.5 3.5 0 0 1 3.5 4.3c0 4.9-6.5 9.2-6.5 9.2Z"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="1.6"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          />
+          <polyline
+            points="7 12.5 9.5 12.5 11 9.5 13 15 15 11.5 17.5 11.5"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="1.6"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          />
+        </svg>
+      );
+    case "lipid":
+      return (
+        <svg className="tab-icon" viewBox="0 0 24 24" aria-hidden focusable="false">
+          <path
+            d="M12 3.5 17 10.4a5 5 0 1 1-10 0Z"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="1.6"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          />
+          <path
+            d="M9.6 13.2c1 .8 2.2 1.3 3.4 1.3s2.4-.5 3.4-1.3"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="1.6"
+            strokeLinecap="round"
+          />
+        </svg>
+      );
+    case "nutrition":
+      return (
+        <svg className="tab-icon" viewBox="0 0 24 24" aria-hidden focusable="false">
+          <path
+            d="M5 13.5c0-4.6 4-7.5 8.2-7.5H19v1.6c0 6-4.4 10.4-10 11l4.4-5.4"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="1.6"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          />
+          <path
+            d="M8.5 19.2c0-2.7 1.4-5.7 4.3-7.4"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="1.6"
+            strokeLinecap="round"
+          />
+        </svg>
+      );
+    case "assistant":
+    default:
+      return (
+        <svg className="tab-icon" viewBox="0 0 24 24" aria-hidden focusable="false">
+          <path
+            d="M4.5 6.5h15a1.5 1.5 0 0 1 1.5 1.5v7a1.5 1.5 0 0 1-1.5 1.5H13l-4 3v-3H4.5A1.5 1.5 0 0 1 3 15V8a1.5 1.5 0 0 1 1.5-1.5Z"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="1.6"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          />
+          <circle cx="9" cy="11.5" r="0.8" fill="currentColor" />
+          <circle cx="12" cy="11.5" r="0.8" fill="currentColor" />
+          <circle cx="15" cy="11.5" r="0.8" fill="currentColor" />
+        </svg>
+      );
+  }
+};
+
+const createRecordId = () => `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`;
+
+const formatDateTime = (value: string) => {
+  try {
+    return new Intl.DateTimeFormat("ru-RU", { dateStyle: "medium", timeStyle: "short" }).format(new Date(value));
+  } catch (err) {
+    console.warn("Не удалось отформатировать дату", err);
+    return value;
+  }
+};
+
+const storageKey = (scope: string, userId: number | null) => `cholestofit_${scope}_archive_${userId ?? "guest"}`;
+
+const createEmptySettingsForm = (): SettingsFormState => ({
+  sex: "",
+  age: "",
+  height: "",
+  weight: "",
+  activity: "",
+  kcalGoal: "",
+  sfaLimit: "",
+  fiberGoal: ""
+});
 
 const App = observer(() => {
   const [mode, setMode] = useState<"login" | "register">("login");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-
   const [showPassword, setShowPassword] = useState(false);
 
-  const [lipids, setLipids] = useState<Lipid[]>([]);
-  const [lipidForm, setLipidForm] = useState({ dt: "", chol: "", hdl: "", ldl: "", trig: "", note: "" });
+  const [activeTab, setActiveTab] = useState<TabKey>("bp");
 
-  const [profileForm, setProfileForm] = useState({
-    sex: "",
-    age: "",
-    height_cm: "",
-    weight_kg: "",
-    activity: "",
-    kcal_goal: "",
-    sfa_limit_g: "",
-    fiber_goal_g: ""
+  const [bpForm, setBpForm] = useState({
+    systolic: "",
+    diastolic: "",
+    pulse: "",
+    question: "",
+    comment: ""
   });
+  const [bpAdvice, setBpAdvice] = useState("");
+  const [bpLoading, setBpLoading] = useState(false);
+  const [bpError, setBpError] = useState<string | null>(null);
 
-  const [diaryDate, setDiaryDate] = useState(() => new Date().toISOString().slice(0, 10));
-  const [diary, setDiary] = useState<DiaryDay | null>(null);
-  const [foodQuery, setFoodQuery] = useState("");
-  const [foods, setFoods] = useState<Food[]>([]);
-  const [diaryForm, setDiaryForm] = useState({ foodId: "", grams: "", note: "" });
+  const [lipidForm, setLipidForm] = useState({
+    date: "",
+    cholesterol: "",
+    hdl: "",
+    ldl: "",
+    triglycerides: "",
+    glucose: "",
+    question: "",
+    comment: ""
+  });
+  const [lipidAdvice, setLipidAdvice] = useState("");
+  const [lipidLoading, setLipidLoading] = useState(false);
+  const [lipidError, setLipidError] = useState<string | null>(null);
 
-  const [adviceFocus, setAdviceFocus] = useState("");
-  const [adviceText, setAdviceText] = useState("");
-  const [adviceLoading, setAdviceLoading] = useState(false);
-  const [adviceError, setAdviceError] = useState<string | null>(null);
-  const [adviceHistory, setAdviceHistory] = useState<AdviceHistoryItem[]>([]);
+  const [nutritionForm, setNutritionForm] = useState({
+    weight: "",
+    height: "",
+    calories: "",
+    activity: "",
+    question: "",
+    comment: ""
+  });
+  const [nutritionAdvice, setNutritionAdvice] = useState("");
+  const [nutritionLoading, setNutritionLoading] = useState(false);
+  const [nutritionError, setNutritionError] = useState<string | null>(null);
 
-  const [photoFile, setPhotoFile] = useState<File | null>(null);
-  const [photoPreview, setPhotoPreview] = useState<string | null>(null);
-  const [photoResult, setPhotoResult] = useState<PhotoAnalysis | null>(null);
-  const [photoLoading, setPhotoLoading] = useState(false);
-  const [photoError, setPhotoError] = useState<string | null>(null);
-  const [photoHistory, setPhotoHistory] = useState<PhotoAnalysisHistoryItem[]>([]);
+  const [bpHistory, setBpHistory] = useState<BloodPressureRecord[]>([]);
+  const [lipidHistory, setLipidHistory] = useState<LipidRecord[]>([]);
+  const [nutritionHistory, setNutritionHistory] = useState<NutritionRecord[]>([]);
 
   const [assistantMessages, setAssistantMessages] = useState<AssistantMessage[]>([]);
   const [assistantInput, setAssistantInput] = useState("");
   const [assistantLoading, setAssistantLoading] = useState(false);
   const [assistantError, setAssistantError] = useState<string | null>(null);
-  const [assistantHistory, setAssistantHistory] = useState<AssistantHistoryItem[]>([]);
-  const [activeTab, setActiveTab] = useState<TabKey>("assistant");
 
-  useEffect(() => {
-    if (userStore.targets) {
-      setProfileForm({
-        sex: userStore.targets.sex ?? "",
-        age: userStore.targets.age == null ? "" : String(userStore.targets.age),
-        height_cm: userStore.targets.height_cm == null ? "" : String(userStore.targets.height_cm),
-        weight_kg: userStore.targets.weight_kg == null ? "" : String(userStore.targets.weight_kg),
-        activity: userStore.targets.activity ?? "",
-        kcal_goal: userStore.targets.kcal_goal == null ? "" : String(userStore.targets.kcal_goal),
-        sfa_limit_g: userStore.targets.sfa_limit_g == null ? "" : String(userStore.targets.sfa_limit_g),
-        fiber_goal_g: userStore.targets.fiber_goal_g == null ? "" : String(userStore.targets.fiber_goal_g)
-      });
-    }
-  }, [userStore.targets]);
-
-  const authHeaders = useMemo(() => {
-    if (!userStore.token) return undefined;
-    return { Authorization: `Bearer ${userStore.token}` } as Record<string, string>;
-  }, [userStore.token]);
+  const [settingsOpen, setSettingsOpen] = useState(false);
+  const [settingsForm, setSettingsForm] = useState<SettingsFormState>(createEmptySettingsForm);
+  const [settingsSaving, setSettingsSaving] = useState(false);
+  const [settingsError, setSettingsError] = useState<string | null>(null);
+  const [settingsSuccess, setSettingsSuccess] = useState(false);
 
   const jsonHeaders = useMemo(() => {
     if (!userStore.token) return undefined;
@@ -116,114 +237,279 @@ const App = observer(() => {
     } as Record<string, string>;
   }, [userStore.token]);
 
-  const timestampValue = (value: string | null) => {
-    if (!value) return 0;
-    const parsed = Date.parse(value);
-    return Number.isFinite(parsed) ? parsed : 0;
-  };
-
-  function mergeAdviceHistoryItems(items: AdviceHistoryItem[]) {
-    if (items.length === 0) return;
-    setAdviceHistory(prev => {
-      const map = new Map<number, AdviceHistoryItem>();
-      [...items, ...prev].forEach(item => {
-        map.set(item.id, item);
-      });
-      return Array.from(map.values()).sort((a, b) => {
-        const diff = timestampValue(b.created_at) - timestampValue(a.created_at);
-        return diff !== 0 ? diff : b.id - a.id;
-      });
-    });
-  }
-
-  function mergePhotoHistoryItems(items: PhotoAnalysisHistoryItem[]) {
-    if (items.length === 0) return;
-    setPhotoHistory(prev => {
-      const map = new Map<number, PhotoAnalysisHistoryItem>();
-      [...items, ...prev].forEach(item => {
-        map.set(item.id, item);
-      });
-      return Array.from(map.values()).sort((a, b) => {
-        const diff = timestampValue(b.created_at) - timestampValue(a.created_at);
-        return diff !== 0 ? diff : b.id - a.id;
-      });
-    });
-  }
-
-  function mergeAssistantHistoryItems(items: AssistantHistoryItem[]) {
-    if (items.length === 0) return;
-    setAssistantHistory(prev => {
-      const map = new Map<number, AssistantHistoryItem>();
-      [...items, ...prev].forEach(item => {
-        map.set(item.id, item);
-      });
-      const merged = Array.from(map.values()).sort((a, b) => {
-        const diff = timestampValue(b.created_at) - timestampValue(a.created_at);
-        return diff !== 0 ? diff : b.id - a.id;
-      });
-      const chronological = [...merged].sort((a, b) => {
-        const diff = timestampValue(a.created_at) - timestampValue(b.created_at);
-        return diff !== 0 ? diff : a.id - b.id;
-      });
-      const reconstructed: AssistantMessage[] = [];
-      chronological.forEach(entry => {
-        reconstructed.push({ role: "user", content: entry.user_message });
-        reconstructed.push({ role: "assistant", content: entry.assistant_reply });
-      });
-      setAssistantMessages(reconstructed);
-      return merged;
-    });
-  }
-
-  function formatDateTime(value: string | null): string {
-    if (!value) return "Без даты";
-    const date = new Date(value);
-    if (Number.isNaN(date.getTime())) {
-      return value;
-    }
-    return date.toLocaleString();
-  }
+  const userId = userStore.me?.id ?? null;
+  const targetsWeight = userStore.targets?.weight_kg ?? null;
+  const targetsHeight = userStore.targets?.height_cm ?? null;
+  const targetsCalories = userStore.targets?.kcal_goal ?? null;
+  const targetsActivity = userStore.targets?.activity ?? null;
 
   useEffect(() => {
     if (userStore.token) {
-      setActiveTab("assistant");
-      void loadLipids();
-      void loadDiary(diaryDate);
-      void searchFoods();
-      void loadAdviceHistory();
-      void loadPhotoHistory();
-      void loadAssistantHistory();
+      setActiveTab("bp");
       if (!userStore.me) {
         void userStore.refresh();
       }
     } else {
-      setActiveTab("assistant");
-      setShowPassword(false);
-      setLipids([]);
-      setDiary(null);
-      setFoods([]);
-      setAdviceText("");
-      setAdviceHistory([]);
-      setPhotoFile(null);
-      if (photoPreview) {
-        URL.revokeObjectURL(photoPreview);
-      }
-      setPhotoPreview(null);
-      setPhotoResult(null);
-      setPhotoHistory([]);
-      setAssistantMessages([]);
-      setAssistantHistory([]);
+      resetState();
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [userStore.token]);
 
   useEffect(() => {
-    return () => {
-      if (photoPreview) {
-        URL.revokeObjectURL(photoPreview);
+    if (typeof window === "undefined") return;
+    const archiveUserId = userId ?? null;
+    const readArray = (key: string) => {
+      const saved = window.localStorage.getItem(key);
+      if (!saved) return null;
+      try {
+        const parsed = JSON.parse(saved);
+        return Array.isArray(parsed) ? (parsed as unknown[]) : null;
+      } catch (err) {
+        console.warn(`Не удалось прочитать архив ${key}`, err);
+        return null;
       }
     };
-  }, [photoPreview]);
+
+    const bpKey = storageKey("bp", archiveUserId);
+    const lipidKey = storageKey("lipid", archiveUserId);
+    const nutritionKey = storageKey("nutrition", archiveUserId);
+
+    const bpData = readArray(bpKey) as Partial<BloodPressureRecord>[] | null;
+    if (bpData && bpData.length > 0) {
+      setBpHistory(
+        bpData.map(item => ({
+          id: item.id ?? createRecordId(),
+          createdAt: item.createdAt ?? new Date().toISOString(),
+          systolic: item.systolic ?? "",
+          diastolic: item.diastolic ?? "",
+          pulse: item.pulse ?? "",
+          question: item.question ?? "",
+          comment: item.comment ?? "",
+          advice: item.advice ?? ""
+        }))
+      );
+    } else {
+      setBpHistory([]);
+    }
+
+    const lipidData = readArray(lipidKey) as Partial<LipidRecord>[] | null;
+    if (lipidData && lipidData.length > 0) {
+      setLipidHistory(
+        lipidData.map(item => ({
+          id: item.id ?? createRecordId(),
+          createdAt: item.createdAt ?? new Date().toISOString(),
+          date: item.date ?? "",
+          cholesterol: item.cholesterol ?? "",
+          hdl: item.hdl ?? "",
+          ldl: item.ldl ?? "",
+          triglycerides: item.triglycerides ?? "",
+          glucose: item.glucose ?? "",
+          question: item.question ?? "",
+          comment: item.comment ?? "",
+          advice: item.advice ?? ""
+        }))
+      );
+    } else {
+      const legacyKey = storageKey("metabolic", archiveUserId);
+      const legacy = readArray(legacyKey) as
+        | {
+            id?: string;
+            createdAt?: string;
+            cholesterol?: string;
+            sugar?: string;
+            cholGoal?: string;
+            sugarGoal?: string;
+            question?: string;
+            comment?: string;
+            advice?: string;
+          }[]
+        | null;
+      if (legacy && legacy.length > 0) {
+        const converted: LipidRecord[] = legacy.map(item => ({
+          id: item.id ?? createRecordId(),
+          createdAt: item.createdAt ?? new Date().toISOString(),
+          date: "",
+          cholesterol: item.cholesterol ?? "",
+          hdl: "",
+          ldl: "",
+          triglycerides: "",
+          glucose: item.sugar ?? "",
+          question: item.question ?? "",
+          comment: item.comment ?? "",
+          advice: item.advice ?? ""
+        }));
+        setLipidHistory(converted);
+      } else {
+        setLipidHistory([]);
+      }
+    }
+
+    const nutritionData = readArray(nutritionKey) as Partial<NutritionRecord>[] | null;
+    if (nutritionData && nutritionData.length > 0) {
+      setNutritionHistory(
+        nutritionData.map(item => ({
+          id: item.id ?? createRecordId(),
+          createdAt: item.createdAt ?? new Date().toISOString(),
+          weight: item.weight ?? "",
+          height: item.height ?? "",
+          calories: item.calories ?? "",
+          activity: item.activity ?? "",
+          question: item.question ?? "",
+          comment: item.comment ?? "",
+          advice: item.advice ?? ""
+        }))
+      );
+    } else {
+      setNutritionHistory([]);
+    }
+  }, [userId]);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const archiveUserId = userId ?? null;
+    window.localStorage.setItem(storageKey("bp", archiveUserId), JSON.stringify(bpHistory));
+  }, [bpHistory, userId]);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const archiveUserId = userId ?? null;
+    window.localStorage.setItem(storageKey("lipid", archiveUserId), JSON.stringify(lipidHistory));
+  }, [lipidHistory, userId]);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const archiveUserId = userId ?? null;
+    window.localStorage.setItem(storageKey("nutrition", archiveUserId), JSON.stringify(nutritionHistory));
+  }, [nutritionHistory, userId]);
+
+  useEffect(() => {
+    if (targetsWeight == null && targetsHeight == null && targetsCalories == null && targetsActivity == null) {
+      return;
+    }
+    setNutritionForm(prev => {
+      const nextWeight = prev.weight || (targetsWeight != null ? String(targetsWeight) : "");
+      const nextHeight = prev.height || (targetsHeight != null ? String(targetsHeight) : "");
+      const nextCalories = prev.calories || (targetsCalories != null ? String(targetsCalories) : "");
+      const nextActivity = prev.activity || (targetsActivity ?? "");
+      if (
+        nextWeight === prev.weight &&
+        nextHeight === prev.height &&
+        nextCalories === prev.calories &&
+        nextActivity === prev.activity
+      ) {
+        return prev;
+      }
+      return {
+        ...prev,
+        weight: nextWeight,
+        height: nextHeight,
+        calories: nextCalories,
+        activity: nextActivity
+      };
+    });
+  }, [targetsWeight, targetsHeight, targetsCalories, targetsActivity]);
+
+  useEffect(() => {
+    const targets = userStore.targets;
+    if (!targets) {
+      setSettingsForm(prev => {
+        const empty = createEmptySettingsForm();
+        const differs = (Object.keys(empty) as (keyof SettingsFormState)[]).some(key => prev[key] !== empty[key]);
+        return differs ? empty : prev;
+      });
+      return;
+    }
+    const nextState: SettingsFormState = {
+      sex: targets.sex ?? "",
+      age: targets.age != null ? String(targets.age) : "",
+      height: targets.height_cm != null ? String(targets.height_cm) : "",
+      weight: targets.weight_kg != null ? String(targets.weight_kg) : "",
+      activity: targets.activity ?? "",
+      kcalGoal: targets.kcal_goal != null ? String(targets.kcal_goal) : "",
+      sfaLimit: targets.sfa_limit_g != null ? String(targets.sfa_limit_g) : "",
+      fiberGoal: targets.fiber_goal_g != null ? String(targets.fiber_goal_g) : ""
+    };
+    setSettingsForm(prev => {
+      const differs = (Object.keys(nextState) as (keyof SettingsFormState)[]).some(key => prev[key] !== nextState[key]);
+      return differs ? nextState : prev;
+    });
+  }, [userStore.targets]);
+
+  useEffect(() => {
+    if (typeof window === "undefined") {
+      return;
+    }
+    if (window.location.hash === "#settings") {
+      setSettingsOpen(true);
+    }
+    const handleHashChange = () => {
+      setSettingsOpen(window.location.hash === "#settings");
+    };
+    window.addEventListener("hashchange", handleHashChange);
+    return () => {
+      window.removeEventListener("hashchange", handleHashChange);
+    };
+  }, []);
+
+  useEffect(() => {
+    if (!settingsOpen) {
+      return;
+    }
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") {
+        event.preventDefault();
+        closeSettings();
+      }
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => {
+      window.removeEventListener("keydown", handleKeyDown);
+    };
+  }, [settingsOpen]);
+
+  useEffect(() => {
+    if (!settingsSuccess || typeof window === "undefined") {
+      return;
+    }
+    const timeout = window.setTimeout(() => {
+      setSettingsSuccess(false);
+    }, 4000);
+    return () => window.clearTimeout(timeout);
+  }, [settingsSuccess]);
+
+  function resetState() {
+    setActiveTab("bp");
+    setBpForm({ systolic: "", diastolic: "", pulse: "", question: "", comment: "" });
+    setBpAdvice("");
+    setBpError(null);
+    setLipidForm({
+      date: "",
+      cholesterol: "",
+      hdl: "",
+      ldl: "",
+      triglycerides: "",
+      glucose: "",
+      question: "",
+      comment: ""
+    });
+    setLipidAdvice("");
+    setLipidError(null);
+    setNutritionForm({ weight: "", height: "", calories: "", activity: "", question: "", comment: "" });
+    setNutritionAdvice("");
+    setNutritionError(null);
+    setBpHistory([]);
+    setLipidHistory([]);
+    setNutritionHistory([]);
+    setAssistantMessages([]);
+    setAssistantInput("");
+    setAssistantError(null);
+    setAssistantLoading(false);
+    setSettingsOpen(false);
+    setSettingsForm(createEmptySettingsForm());
+    setSettingsSaving(false);
+    setSettingsError(null);
+    setSettingsSuccess(false);
+  }
 
   async function handleAuthSubmit(e: FormEvent) {
     e.preventDefault();
@@ -238,250 +524,200 @@ const App = observer(() => {
     }
   }
 
-  async function loadLipids() {
-    if (!userStore.token || !authHeaders) return;
-    try {
-      const r = await fetch(apiUrl("/lipids"), { headers: authHeaders });
-      const data = await r.json();
-      setLipids(normalizeLipids(data));
-    } catch (err) {
-      console.error(err);
+  async function askAssistant(prompt: string): Promise<string> {
+    if (!userStore.token || !jsonHeaders) {
+      throw new Error("Необходимо войти в систему");
     }
-  }
-
-  async function loadAdviceHistory() {
-    if (!userStore.token || !authHeaders) return;
-    try {
-      const r = await fetch(apiUrl("/advice/nutrition/history"), { headers: authHeaders });
-      const data = await r.json();
-      const normalized = normalizeAdviceHistory(data);
-      setAdviceHistory([...normalized].sort((a, b) => {
-        const diff = timestampValue(b.created_at) - timestampValue(a.created_at);
-        return diff !== 0 ? diff : b.id - a.id;
-      }));
-    } catch (err) {
-      console.error(err);
-    }
-  }
-
-  async function loadPhotoHistory() {
-    if (!userStore.token || !authHeaders) return;
-    try {
-      const r = await fetch(apiUrl("/analysis/photo/history"), { headers: authHeaders });
-      const data = await r.json();
-      const normalized = normalizePhotoAnalysisHistory(data);
-      setPhotoHistory([...normalized].sort((a, b) => {
-        const diff = timestampValue(b.created_at) - timestampValue(a.created_at);
-        return diff !== 0 ? diff : b.id - a.id;
-      }));
-    } catch (err) {
-      console.error(err);
-    }
-  }
-
-  async function loadAssistantHistory() {
-    if (!userStore.token || !authHeaders) return;
-    try {
-      const r = await fetch(apiUrl("/assistant/history"), { headers: authHeaders });
-      const data = await r.json();
-      mergeAssistantHistoryItems(normalizeAssistantHistory(data));
-    } catch (err) {
-      console.error(err);
-    }
-  }
-
-  async function saveLipid(e: FormEvent) {
-    e.preventDefault();
-    if (!userStore.token || !jsonHeaders) return;
-    const body = {
-      dt: lipidForm.dt,
-      chol: lipidForm.chol ? Number(lipidForm.chol) : undefined,
-      hdl: lipidForm.hdl ? Number(lipidForm.hdl) : undefined,
-      ldl: lipidForm.ldl ? Number(lipidForm.ldl) : undefined,
-      trig: lipidForm.trig ? Number(lipidForm.trig) : undefined,
-      note: lipidForm.note || undefined
-    };
-    const r = await fetch(apiUrl("/lipids"), {
+    const r = await fetch(apiUrl("/assistant/chat"), {
       method: "POST",
       headers: jsonHeaders,
-      body: JSON.stringify(body)
+      body: JSON.stringify({ message: prompt, history: [] })
     });
-    if (r.ok) {
-      setLipidForm({ dt: "", chol: "", hdl: "", ldl: "", trig: "", note: "" });
-      await loadLipids();
+    const data = await r.json();
+    if (!r.ok || typeof data.reply !== "string") {
+      const message = typeof data.error === "string" ? data.error : "Не удалось получить ответ ассистента";
+      throw new Error(message);
     }
+    return data.reply.trim();
   }
 
-  async function deleteLipid(id: number) {
-    if (!userStore.token || !authHeaders) return;
-    await fetch(apiUrl(`/lipids/${id}`), { method: "DELETE", headers: authHeaders });
-    await loadLipids();
-  }
-
-  async function saveProfile(e: FormEvent) {
+  async function handleBloodPressureSubmit(e: FormEvent) {
     e.preventDefault();
-    if (!userStore.token || !jsonHeaders) return;
-    const r = await fetch(apiUrl("/profile"), {
-      method: "PUT",
-      headers: jsonHeaders,
-      body: JSON.stringify(profileForm)
-    });
-    if (r.ok) {
-      await userStore.refresh();
-    }
-  }
-
-  async function loadDiary(date: string) {
-    if (!userStore.token || !authHeaders) return;
+    setBpLoading(true);
+    setBpError(null);
     try {
-      const r = await fetch(apiUrl(`/diary/${date}`), { headers: authHeaders });
-      const data = await r.json();
-      setDiary(normalizeDiaryDay(data));
+      const metrics: string[] = [];
+      if (bpForm.systolic) metrics.push(`систолическое давление ${bpForm.systolic} мм рт. ст.`);
+      if (bpForm.diastolic) metrics.push(`диастолическое давление ${bpForm.diastolic} мм рт. ст.`);
+      if (bpForm.pulse) metrics.push(`пульс ${bpForm.pulse} уд/мин`);
+      if (bpForm.comment) metrics.push(`комментарий: ${bpForm.comment}`);
+      const metricSummary = metrics.length > 0 ? metrics.join(", ") : "показатели не указаны";
+      const prompt = [
+        "Ты — кардиолог, который объясняет понятным языком.",
+        `Пациент сообщает: ${metricSummary}.`,
+        "Дай советы, как стабилизировать давление и пульс безопасными методами.",
+        "Добавь практические советы по образу жизни и упомяни тревожные симптомы, при которых нужно немедленно обратиться к врачу.",
+        bpForm.question ? `Дополнительный контекст от пациента: ${bpForm.question}.` : ""
+      ]
+        .filter(Boolean)
+        .join(" ");
+      const reply = await askAssistant(prompt);
+      const trimmedReply = reply.trim();
+      setBpAdvice(trimmedReply);
+      const record: BloodPressureRecord = {
+        id: createRecordId(),
+        createdAt: new Date().toISOString(),
+        systolic: bpForm.systolic,
+        diastolic: bpForm.diastolic,
+        pulse: bpForm.pulse,
+        question: bpForm.question.trim(),
+        comment: bpForm.comment.trim(),
+        advice: trimmedReply
+      };
+      setBpHistory(prev => [record, ...prev]);
     } catch (err) {
-      console.error(err);
-    }
-  }
-
-  async function addDiaryItem(e: FormEvent) {
-    e.preventDefault();
-    if (!userStore.token || !jsonHeaders || !diary) return;
-    const body = {
-      food_id: Number(diaryForm.foodId),
-      grams: diaryForm.grams ? Number(diaryForm.grams) : null,
-      note: diaryForm.note || undefined
-    };
-    const r = await fetch(apiUrl(`/diary/${diary.date}/items`), {
-      method: "POST",
-      headers: jsonHeaders,
-      body: JSON.stringify(body)
-    });
-    if (r.ok) {
-      setDiaryForm({ foodId: "", grams: "", note: "" });
-      await loadDiary(diary.date);
-    }
-  }
-
-  async function searchFoods(e?: FormEvent) {
-    e?.preventDefault();
-    if (!userStore.token || !authHeaders) return;
-    try {
-      const url = apiUrl("/foods", { q: foodQuery || undefined });
-      const r = await fetch(url, {
-        headers: authHeaders
-      });
-      const data = await r.json();
-      setFoods(normalizeFoods(data));
-    } catch (err) {
-      console.error(err);
-    }
-  }
-
-  async function createFood(e: FormEvent<HTMLFormElement>) {
-    e.preventDefault();
-    if (!userStore.token || !jsonHeaders) return;
-    const form = new FormData(e.currentTarget);
-    const numericFields = new Set(["kcal", "protein_g", "fat_g", "sfa_g", "carbs_g", "fiber_g", "soluble_fiber_g"]);
-    const body: Record<string, string | number> = {};
-    form.forEach((value, key) => {
-      if (value === "") {
-        return;
-      }
-      if (numericFields.has(key)) {
-        body[key] = Number(value);
-      } else {
-        body[key] = value.toString();
-      }
-    });
-    const r = await fetch(apiUrl("/foods"), {
-      method: "POST",
-      headers: jsonHeaders,
-      body: JSON.stringify(body)
-    });
-    if (r.ok) {
-      e.currentTarget.reset();
-      await searchFoods();
-    }
-  }
-
-  async function requestAdvice(e: FormEvent) {
-    e.preventDefault();
-    if (!userStore.token || !jsonHeaders) return;
-    setAdviceLoading(true);
-    setAdviceError(null);
-    try {
-      const r = await fetch(apiUrl("/advice/nutrition"), {
-        method: "POST",
-        headers: jsonHeaders,
-        body: JSON.stringify({ focus: adviceFocus })
-      });
-      const data = await r.json();
-      if (!r.ok) {
-        setAdviceError(data.error ?? "Не удалось получить рекомендации");
-        setAdviceText("");
-      } else {
-        setAdviceText(typeof data.advice === "string" ? data.advice.trim() : "");
-        mergeAdviceHistoryItems(normalizeAdviceHistory((data as { history?: unknown }).history));
-      }
-    } catch (err) {
-      console.error(err);
-      setAdviceError("Сервис рекомендаций временно недоступен");
+      setBpError(err instanceof Error ? err.message : "Не удалось получить рекомендации");
+      setBpAdvice("");
     } finally {
-      setAdviceLoading(false);
+      setBpLoading(false);
     }
   }
 
-  function handlePhotoChange(e: ChangeEvent<HTMLInputElement>) {
-    const file = e.target.files?.[0] ?? null;
-    if (photoPreview) {
-      URL.revokeObjectURL(photoPreview);
-    }
-    setPhotoFile(file);
-    if (file) {
-      const url = URL.createObjectURL(file);
-      setPhotoPreview(url);
-    } else {
-      setPhotoPreview(null);
-    }
-    setPhotoResult(null);
-    setPhotoError(null);
-  }
-
-  async function analyzePhoto(e: FormEvent) {
-    e.preventDefault();
-    if (!userStore.token || !authHeaders || !photoFile) {
-      setPhotoError("Загрузите фото блюда");
+  function saveBloodPressureToArchive() {
+    const hasMetrics = bpForm.systolic || bpForm.diastolic || bpForm.pulse;
+    if (!hasMetrics) {
+      setBpError("Укажите хотя бы одно значение, чтобы сохранить его в архиве");
       return;
     }
-    setPhotoLoading(true);
-    setPhotoError(null);
+    setBpError(null);
+    const record: BloodPressureRecord = {
+      id: createRecordId(),
+      createdAt: new Date().toISOString(),
+      systolic: bpForm.systolic,
+      diastolic: bpForm.diastolic,
+      pulse: bpForm.pulse,
+      question: bpForm.question.trim(),
+      comment: bpForm.comment.trim(),
+      advice: ""
+    };
+    setBpHistory(prev => [record, ...prev]);
+  }
+
+  async function handleLipidSubmit(e: FormEvent) {
+    e.preventDefault();
+    setLipidLoading(true);
+    setLipidError(null);
     try {
-      const formData = new FormData();
-      formData.append("photo", photoFile);
-      const r = await fetch(apiUrl("/analysis/photo"), {
-        method: "POST",
-        headers: authHeaders,
-        body: formData
-      });
-      const data = await r.json();
-      if (!r.ok) {
-        setPhotoError(typeof data.error === "string" ? data.error : "Не удалось проанализировать фото");
-        setPhotoResult(null);
-      } else {
-        const parsed = normalizePhotoAnalysis(data);
-        if (!parsed) {
-          setPhotoError("Модель вернула неожиданный ответ");
-          setPhotoResult(null);
-        } else {
-          setPhotoResult(parsed);
-          mergePhotoHistoryItems(normalizePhotoAnalysisHistory((data as { history?: unknown }).history));
-        }
-      }
+      const metrics: string[] = [];
+      if (lipidForm.date) metrics.push(`дата анализа ${lipidForm.date}`);
+      if (lipidForm.cholesterol) metrics.push(`общий холестерин ${lipidForm.cholesterol} ммоль/л`);
+      if (lipidForm.hdl) metrics.push(`ЛПВП ${lipidForm.hdl} ммоль/л`);
+      if (lipidForm.ldl) metrics.push(`ЛПНП ${lipidForm.ldl} ммоль/л`);
+      if (lipidForm.triglycerides) metrics.push(`триглицериды ${lipidForm.triglycerides} ммоль/л`);
+      if (lipidForm.glucose) metrics.push(`глюкоза крови ${lipidForm.glucose} ммоль/л`);
+      if (lipidForm.comment) metrics.push(`комментарий: ${lipidForm.comment}`);
+      const prompt = [
+        "Ты — врач профилактической медицины и эндокринолог.",
+        metrics.length > 0 ? `Актуальные показатели пациента: ${metrics.join(", ")}.` : "Пациент не указал текущие показатели.",
+        "Дай рекомендации, как поддерживать липидный профиль и уровень сахара в безопасных пределах.",
+        "Составь план из нескольких пунктов: питание, активность, контроль образа жизни и когда нужно обратиться к врачу.",
+        lipidForm.question ? `Дополнительный вопрос пациента: ${lipidForm.question}.` : ""
+      ]
+        .filter(Boolean)
+        .join(" ");
+      const reply = await askAssistant(prompt);
+      const trimmedReply = reply.trim();
+      setLipidAdvice(trimmedReply);
+      const record: LipidRecord = {
+        id: createRecordId(),
+        createdAt: new Date().toISOString(),
+        date: lipidForm.date,
+        cholesterol: lipidForm.cholesterol,
+        hdl: lipidForm.hdl,
+        ldl: lipidForm.ldl,
+        triglycerides: lipidForm.triglycerides,
+        glucose: lipidForm.glucose,
+        question: lipidForm.question.trim(),
+        comment: lipidForm.comment.trim(),
+        advice: trimmedReply
+      };
+      setLipidHistory(prev => [record, ...prev]);
     } catch (err) {
-      console.error(err);
-      setPhotoError("Сервис анализа временно недоступен");
-      setPhotoResult(null);
+      setLipidError(err instanceof Error ? err.message : "Не удалось получить рекомендации");
+      setLipidAdvice("");
     } finally {
-      setPhotoLoading(false);
+      setLipidLoading(false);
+    }
+  }
+
+  function saveLipidToArchive() {
+    const hasMetrics =
+      lipidForm.date ||
+      lipidForm.cholesterol ||
+      lipidForm.hdl ||
+      lipidForm.ldl ||
+      lipidForm.triglycerides ||
+      lipidForm.glucose;
+    if (!hasMetrics) {
+      setLipidError("Укажите хотя бы один показатель, чтобы сохранить запись");
+      return;
+    }
+    setLipidError(null);
+    const record: LipidRecord = {
+      id: createRecordId(),
+      createdAt: new Date().toISOString(),
+      date: lipidForm.date,
+      cholesterol: lipidForm.cholesterol,
+      hdl: lipidForm.hdl,
+      ldl: lipidForm.ldl,
+      triglycerides: lipidForm.triglycerides,
+      glucose: lipidForm.glucose,
+      question: lipidForm.question.trim(),
+      comment: lipidForm.comment.trim(),
+      advice: ""
+    };
+    setLipidHistory(prev => [record, ...prev]);
+  }
+
+  async function handleNutritionSubmit(e: FormEvent) {
+    e.preventDefault();
+    setNutritionLoading(true);
+    setNutritionError(null);
+    try {
+      const facts: string[] = [];
+      if (nutritionForm.weight) facts.push(`масса тела ${nutritionForm.weight} кг`);
+      if (nutritionForm.height) facts.push(`рост ${nutritionForm.height} см`);
+      if (nutritionForm.calories) facts.push(`суточная калорийность ${nutritionForm.calories} ккал`);
+      if (nutritionForm.activity) facts.push(`уровень активности: ${nutritionForm.activity}`);
+      if (nutritionForm.comment) facts.push(`комментарий: ${nutritionForm.comment}`);
+      const prompt = [
+        "Ты — нутрициолог. На основе данных клиента составь рекомендации по питанию и режиму на ближайшие 1-2 недели.",
+        facts.length > 0 ? `Исходные данные: ${facts.join(", ")}.` : "Клиент не указал исходные данные.",
+        nutritionForm.question
+          ? `Дополнительный запрос клиента: ${nutritionForm.question}.`
+          : "Сделай рекомендации универсальными и безопасными.",
+        "Напомни о необходимости консультации врача при хронических заболеваниях."
+      ].join(" ");
+      const reply = await askAssistant(prompt);
+      const trimmedReply = reply.trim();
+      setNutritionAdvice(trimmedReply);
+      const record: NutritionRecord = {
+        id: createRecordId(),
+        createdAt: new Date().toISOString(),
+        weight: nutritionForm.weight,
+        height: nutritionForm.height,
+        calories: nutritionForm.calories,
+        activity: nutritionForm.activity,
+        question: nutritionForm.question.trim(),
+        comment: nutritionForm.comment.trim(),
+        advice: trimmedReply
+      };
+      setNutritionHistory(prev => [record, ...prev]);
+    } catch (err) {
+      setNutritionError(err instanceof Error ? err.message : "Не удалось получить рекомендации");
+      setNutritionAdvice("");
+    } finally {
+      setNutritionLoading(false);
     }
   }
 
@@ -489,9 +725,14 @@ const App = observer(() => {
     e.preventDefault();
     const text = assistantInput.trim();
     if (!text) return;
-    if (!userStore.token || !jsonHeaders) return;
-
-    const historyPayload = assistantMessages.map(m => ({ role: m.role, content: m.content }));
+    if (!userStore.token || !jsonHeaders) {
+      setAssistantError("Необходимо войти, чтобы общаться с ассистентом");
+      return;
+    }
+    const historyPayload = assistantMessages.map(message => ({
+      role: message.role,
+      content: message.content
+    }));
     setAssistantMessages(prev => [...prev, { role: "user", content: text }]);
     setAssistantInput("");
     setAssistantLoading(true);
@@ -503,15 +744,13 @@ const App = observer(() => {
         body: JSON.stringify({ message: text, history: historyPayload })
       });
       const data = await r.json();
-      if (!r.ok) {
-        setAssistantError(data.error ?? "Ассистент недоступен");
-      } else if (data.reply) {
-        setAssistantMessages(prev => [...prev, { role: "assistant", content: String(data.reply).trim() }]);
+      if (!r.ok || typeof data.reply !== "string") {
+        const message = typeof data.error === "string" ? data.error : "Ассистент временно недоступен";
+        throw new Error(message);
       }
-      mergeAssistantHistoryItems(normalizeAssistantHistory((data as { history?: unknown }).history));
+      setAssistantMessages(prev => [...prev, { role: "assistant", content: data.reply.trim() }]);
     } catch (err) {
-      console.error(err);
-      setAssistantError("Ассистент недоступен, попробуйте позже");
+      setAssistantError(err instanceof Error ? err.message : "Ассистент временно недоступен");
     } finally {
       setAssistantLoading(false);
     }
@@ -519,18 +758,70 @@ const App = observer(() => {
 
   function resetAssistant() {
     setAssistantMessages([]);
-    setAssistantError(null);
     setAssistantInput("");
+    setAssistantError(null);
   }
 
-  function healthinessLabel(value: Healthiness): string {
-    switch (value) {
-      case "healthy":
-        return "Полезно";
-      case "caution":
-        return "С осторожностью";
-      default:
-        return "Умеренно";
+  function openSettings(event?: ReactMouseEvent<HTMLAnchorElement | HTMLButtonElement>) {
+    event?.preventDefault();
+    setSettingsError(null);
+    setSettingsSuccess(false);
+    setSettingsOpen(true);
+    if (typeof window !== "undefined" && window.location.hash !== "#settings") {
+      const { pathname, search } = window.location;
+      window.history.replaceState(null, "", `${pathname}${search}#settings`);
+    }
+  }
+
+  function closeSettings() {
+    setSettingsOpen(false);
+    if (typeof window !== "undefined" && window.location.hash === "#settings") {
+      const { pathname, search } = window.location;
+      window.history.replaceState(null, "", `${pathname}${search}`);
+    }
+  }
+
+  function handleSettingsFieldChange<TKey extends keyof SettingsFormState>(key: TKey, value: string) {
+    setSettingsForm(prev => ({ ...prev, [key]: value }));
+  }
+
+  async function handleSettingsSubmit(e: FormEvent) {
+    e.preventDefault();
+    if (!userStore.token || !jsonHeaders) {
+      setSettingsError("Необходимо войти в систему");
+      return;
+    }
+    setSettingsSaving(true);
+    setSettingsError(null);
+    setSettingsSuccess(false);
+    const payload = {
+      sex: settingsForm.sex || null,
+      age: settingsForm.age ? Number(settingsForm.age) : null,
+      height_cm: settingsForm.height ? Number(settingsForm.height) : null,
+      weight_kg: settingsForm.weight ? Number(settingsForm.weight) : null,
+      activity: settingsForm.activity || null,
+      kcal_goal: settingsForm.kcalGoal ? Number(settingsForm.kcalGoal) : null,
+      sfa_limit_g: settingsForm.sfaLimit ? Number(settingsForm.sfaLimit) : null,
+      fiber_goal_g: settingsForm.fiberGoal ? Number(settingsForm.fiberGoal) : null
+    };
+    try {
+      const response = await fetch(apiUrl("/profile"), {
+        method: "PUT",
+        headers: { ...jsonHeaders, Accept: "application/json" },
+        body: JSON.stringify(payload)
+      });
+      const data = await response.json().catch(() => null);
+      if (!response.ok) {
+        const message = data && typeof data.error === "string" ? data.error : "Не удалось сохранить профиль";
+        throw new Error(message);
+      }
+      setSettingsSuccess(true);
+      await userStore.refresh();
+    } catch (err) {
+      console.error(err);
+      setSettingsError(err instanceof Error ? err.message : "Не удалось сохранить профиль");
+    } finally {
+      setSettingsSaving(false);
     }
   }
 
@@ -538,235 +829,237 @@ const App = observer(() => {
     return (
       <div className="auth">
         <h1>CholestoFit</h1>
-        <p>Войдите или зарегистрируйтесь, чтобы начать отслеживать здоровье сердца.</p>
-        <div className="toggle">
-          <button
-            className={mode === "login" ? "active" : ""}
-            onClick={() => {
-              setMode("login");
-              setShowPassword(false);
-            }}
-          >Вход</button>
-          <button
-            className={mode === "register" ? "active" : ""}
-            onClick={() => {
-              setMode("register");
-              setShowPassword(false);
-            }}
-          >Регистрация</button>
-        </div>
-        <form onSubmit={handleAuthSubmit} className="card">
-          <label>Email
+        <p>Войдите, чтобы получить рекомендации ассистента</p>
+        <form className="card" onSubmit={handleAuthSubmit}>
+          <label>
+            Email
             <input type="email" value={email} onChange={e => setEmail(e.target.value)} required />
           </label>
-          <label>Пароль
-            <div className="password-input">
+          <label>
+            Пароль
+            <span className="password-input">
               <input
                 type={showPassword ? "text" : "password"}
-                autoComplete={mode === "login" ? "current-password" : "new-password"}
                 value={password}
                 onChange={e => setPassword(e.target.value)}
                 required
               />
-              <button
-                type="button"
-                className="ghost"
-                onClick={() => setShowPassword(prev => !prev)}
-                aria-label={showPassword ? "Скрыть пароль" : "Показать пароль"}
-              >
+              <button type="button" className="ghost" onClick={() => setShowPassword(prev => !prev)}>
                 {showPassword ? "Скрыть" : "Показать"}
               </button>
-            </div>
+            </span>
           </label>
-          <button type="submit">{mode === "login" ? "Войти" : "Создать аккаунт"}</button>
+          <button type="submit">{mode === "login" ? "Войти" : "Зарегистрироваться"}</button>
           {userStore.error && <p className="error">{userStore.error}</p>}
         </form>
+        <button className="ghost" type="button" onClick={() => setMode(prev => (prev === "login" ? "register" : "login"))}>
+          {mode === "login" ? "Создать аккаунт" : "У меня уже есть аккаунт"}
+        </button>
       </div>
     );
   }
 
-  function renderProfileTab() {
+  function renderSettingsDialog() {
+    if (!settingsOpen) return null;
     return (
-      <div className="tab-panel">
-        <h2>Цели и профиль</h2>
-        <form className="card" onSubmit={saveProfile}>
-          <div className="grid">
-            <label>Пол
-              <select value={profileForm.sex} onChange={e => setProfileForm({ ...profileForm, sex: e.target.value })}>
-                <option value="">-</option>
-                <option value="male">Мужской</option>
-                <option value="female">Женский</option>
-              </select>
-            </label>
-            <label>Возраст
-              <input type="number" value={profileForm.age} onChange={e => setProfileForm({ ...profileForm, age: e.target.value })} />
-            </label>
-            <label>Рост (см)
-              <input type="number" value={profileForm.height_cm} onChange={e => setProfileForm({ ...profileForm, height_cm: e.target.value })} />
-            </label>
-            <label>Вес (кг)
-              <input type="number" value={profileForm.weight_kg} onChange={e => setProfileForm({ ...profileForm, weight_kg: e.target.value })} />
-            </label>
-            <label>Активность
-              <select value={profileForm.activity} onChange={e => setProfileForm({ ...profileForm, activity: e.target.value })}>
-                <option value="">-</option>
-                <option value="sed">Минимальная</option>
-                <option value="light">Лёгкая</option>
-                <option value="mod">Средняя</option>
-                <option value="high">Высокая</option>
-                <option value="ath">Спортивная</option>
-              </select>
-            </label>
-            <label>Цель по калориям
-              <input type="number" value={profileForm.kcal_goal} onChange={e => setProfileForm({ ...profileForm, kcal_goal: e.target.value })} />
-            </label>
-            <label>Лимит насыщенных жиров (г)
-              <input type="number" value={profileForm.sfa_limit_g} onChange={e => setProfileForm({ ...profileForm, sfa_limit_g: e.target.value })} />
-            </label>
-            <label>Цель по клетчатке (г)
-              <input type="number" value={profileForm.fiber_goal_g} onChange={e => setProfileForm({ ...profileForm, fiber_goal_g: e.target.value })} />
-            </label>
+      <div className="settings-overlay" role="dialog" aria-modal="true">
+        <div className="card settings-card">
+          <div className="settings-header">
+            <div className="settings-heading">
+              <h2>Цели и профиль</h2>
+              <p>CholestoFit — ваш персональный помощник по здоровью сердца</p>
+            </div>
+            <button type="button" className="ghost" onClick={closeSettings}>
+              Закрыть
+            </button>
           </div>
-          <button type="submit">Сохранить профиль</button>
-        </form>
-      </div>
-    );
-  }
-
-  function renderLipidsTab() {
-    return (
-      <div className="tab-panel">
-        <h2>Липидный профиль</h2>
-        <form className="card" onSubmit={saveLipid}>
-          <div className="grid">
-            <label>Дата
-              <input type="date" value={lipidForm.dt} onChange={e => setLipidForm({ ...lipidForm, dt: e.target.value })} required />
-            </label>
-            <label>Общий холестерин (ммоль/л)
-              <input type="number" step="0.01" value={lipidForm.chol} onChange={e => setLipidForm({ ...lipidForm, chol: e.target.value })} />
-            </label>
-            <label>ЛПВП (HDL)
-              <input type="number" step="0.01" value={lipidForm.hdl} onChange={e => setLipidForm({ ...lipidForm, hdl: e.target.value })} />
-            </label>
-            <label>ЛПНП (LDL)
-              <input type="number" step="0.01" value={lipidForm.ldl} onChange={e => setLipidForm({ ...lipidForm, ldl: e.target.value })} />
-            </label>
-            <label>Триглицериды
-              <input type="number" step="0.01" value={lipidForm.trig} onChange={e => setLipidForm({ ...lipidForm, trig: e.target.value })} />
-            </label>
-            <label>Комментарий
-              <input value={lipidForm.note} onChange={e => setLipidForm({ ...lipidForm, note: e.target.value })} />
-            </label>
-          </div>
-          <button type="submit">Добавить запись</button>
-        </form>
-        <ul className="list">
-          {lipids.map(lipid => (
-            <li key={lipid.id}>
-              <strong>{lipid.dt}</strong> — холестерин: {lipid.chol ?? "-"} ммоль/л, HDL: {lipid.hdl ?? "-"}, LDL: {lipid.ldl ?? "-"}
-              <button onClick={() => deleteLipid(lipid.id)}>Удалить</button>
-              {lipid.note && <div className="note">{lipid.note}</div>}
-            </li>
-          ))}
-          {lipids.length === 0 && <li>Записей пока нет.</li>}
-        </ul>
-      </div>
-    );
-  }
-
-  function renderDiaryTab() {
-    return (
-      <div className="tab-panel tab-stack">
-        <h2>Пищевой дневник</h2>
-        <div className="card">
-          <label>Дата
-            <input type="date" value={diaryDate} onChange={async e => {
-              const value = e.target.value;
-              setDiaryDate(value);
-              await loadDiary(value);
-            }} />
-          </label>
-          <form className="diary-form" onSubmit={addDiaryItem}>
-            <select value={diaryForm.foodId} onChange={e => setDiaryForm({ ...diaryForm, foodId: e.target.value })} required>
-              <option value="">Выберите продукт</option>
-              {foods.map(food => (
-                <option key={food.id} value={food.id}>
-                  {food.name} · {food.kcal} ккал
-                </option>
-              ))}
-            </select>
-            <input type="number" placeholder="Масса, г" value={diaryForm.grams} onChange={e => setDiaryForm({ ...diaryForm, grams: e.target.value })} required />
-            <input placeholder="Комментарий" value={diaryForm.note} onChange={e => setDiaryForm({ ...diaryForm, note: e.target.value })} />
-            <button type="submit">Добавить</button>
+          <form className="settings-form" onSubmit={handleSettingsSubmit}>
+            <div className="settings-grid">
+              <label>
+                Пол
+                <select value={settingsForm.sex} onChange={e => handleSettingsFieldChange("sex", e.target.value)}>
+                  <option value="">Не указан</option>
+                  <option value="male">Мужской</option>
+                  <option value="female">Женский</option>
+                </select>
+              </label>
+              <label>
+                Возраст
+                <input
+                  type="number"
+                  min="0"
+                  inputMode="numeric"
+                  value={settingsForm.age}
+                  onChange={e => handleSettingsFieldChange("age", e.target.value)}
+                />
+              </label>
+              <label>
+                Рост (см)
+                <input
+                  type="number"
+                  min="0"
+                  inputMode="numeric"
+                  value={settingsForm.height}
+                  onChange={e => handleSettingsFieldChange("height", e.target.value)}
+                />
+              </label>
+              <label>
+                Вес (кг)
+                <input
+                  type="number"
+                  min="0"
+                  step="0.1"
+                  inputMode="decimal"
+                  value={settingsForm.weight}
+                  onChange={e => handleSettingsFieldChange("weight", e.target.value)}
+                />
+              </label>
+              <label>
+                Активность
+                <select value={settingsForm.activity} onChange={e => handleSettingsFieldChange("activity", e.target.value)}>
+                  <option value="">Не выбрано</option>
+                  <option value="Сидячая">Сидячая</option>
+                  <option value="Лёгкая">Лёгкая</option>
+                  <option value="Умеренная">Умеренная</option>
+                  <option value="Высокая">Высокая</option>
+                  <option value="Спортивная">Спортивная</option>
+                </select>
+              </label>
+              <label>
+                Цель по калориям (ккал)
+                <input
+                  type="number"
+                  min="0"
+                  inputMode="numeric"
+                  value={settingsForm.kcalGoal}
+                  onChange={e => handleSettingsFieldChange("kcalGoal", e.target.value)}
+                />
+              </label>
+              <label>
+                Лимит насыщенных жиров (г)
+                <input
+                  type="number"
+                  min="0"
+                  inputMode="numeric"
+                  value={settingsForm.sfaLimit}
+                  onChange={e => handleSettingsFieldChange("sfaLimit", e.target.value)}
+                />
+              </label>
+              <label>
+                Цель по клетчатке (г)
+                <input
+                  type="number"
+                  min="0"
+                  inputMode="numeric"
+                  value={settingsForm.fiberGoal}
+                  onChange={e => handleSettingsFieldChange("fiberGoal", e.target.value)}
+                />
+              </label>
+            </div>
+            <div className="settings-actions">
+              <button type="submit" disabled={settingsSaving}>
+                {settingsSaving ? "Сохраняем..." : "Сохранить профиль"}
+              </button>
+              {settingsSuccess && <span className="settings-success">Профиль обновлён</span>}
+              {settingsError && <span className="error">{settingsError}</span>}
+            </div>
           </form>
-          <form className="search" onSubmit={searchFoods}>
-            <input value={foodQuery} onChange={e => setFoodQuery(e.target.value)} placeholder="Поиск продукта" />
-            <button type="submit">Найти</button>
-          </form>
-          <div className="diary-items">
-            {diary?.items?.map(item => (
-              <div key={item.id} className="diary-item">
-                <strong>{item.food?.name ?? "Без продукта"}</strong>
-                <span>{item.grams} г</span>
-                {item.note && <span className="note">{item.note}</span>}
-              </div>
-            ))}
-            {!diary || diary.items.length === 0 ? <p>Добавьте продукты, чтобы увидеть рацион.</p> : null}
-          </div>
         </div>
-        <details className="card">
-          <summary>Добавить собственный продукт</summary>
-          <form className="food-form" onSubmit={createFood}>
-            <input name="name" placeholder="Название" required />
-            <input name="kcal" type="number" placeholder="ккал" required />
-            <input name="protein_g" type="number" step="0.1" placeholder="Белки, г" />
-            <input name="fat_g" type="number" step="0.1" placeholder="Жиры, г" />
-            <input name="sfa_g" type="number" step="0.1" placeholder="Насыщенные жиры, г" />
-            <input name="carbs_g" type="number" step="0.1" placeholder="Углеводы, г" />
-            <input name="fiber_g" type="number" step="0.1" placeholder="Клетчатка, г" />
-            <input name="soluble_fiber_g" type="number" step="0.1" placeholder="Растворимая клетчатка, г" />
-            <button type="submit">Создать продукт</button>
-          </form>
-        </details>
       </div>
     );
   }
 
-  function renderAdviceTab() {
+  function renderBloodPressureTab() {
     return (
       <div className="tab-panel tab-stack">
-        <h2>Персональные советы по питанию</h2>
-        <form className="card advice-form" onSubmit={requestAdvice}>
-          <label>Что вас беспокоит?
+        <h2>Давление и пульс</h2>
+        <form className="card form-card" onSubmit={handleBloodPressureSubmit}>
+          <div className="metrics-grid">
+            <label>
+              Систолическое давление, мм рт. ст.
+              <input
+                type="number"
+                min="0"
+                value={bpForm.systolic}
+                onChange={e => setBpForm({ ...bpForm, systolic: e.target.value })}
+              />
+            </label>
+            <label>
+              Диастолическое давление, мм рт. ст.
+              <input
+                type="number"
+                min="0"
+                value={bpForm.diastolic}
+                onChange={e => setBpForm({ ...bpForm, diastolic: e.target.value })}
+              />
+            </label>
+            <label>
+              Пульс, уд/мин
+              <input
+                type="number"
+                min="0"
+                value={bpForm.pulse}
+                onChange={e => setBpForm({ ...bpForm, pulse: e.target.value })}
+              />
+            </label>
+          </div>
+          <label>
+            Дополнительный вопрос или симптомы
             <textarea
-              placeholder="Например: хочу снизить холестерин, но люблю сыр и сладкое."
-              value={adviceFocus}
-              onChange={e => setAdviceFocus(e.target.value)}
-              rows={4}
+              placeholder="Например: какие упражнения безопасны?"
+              value={bpForm.question}
+              onChange={e => setBpForm({ ...bpForm, question: e.target.value })}
+            />
+          </label>
+          <label>
+            Комментарий к измерению
+            <textarea
+              placeholder="Например: измерял утром после пробуждения"
+              value={bpForm.comment}
+              onChange={e => setBpForm({ ...bpForm, comment: e.target.value })}
             />
           </label>
           <div className="form-actions">
-            <button type="submit" disabled={adviceLoading}>{adviceLoading ? "Формируем рекомендации..." : "Получить рекомендации"}</button>
-            {adviceError && <p className="error">{adviceError}</p>}
+            <button type="button" className="ghost" onClick={saveBloodPressureToArchive} disabled={bpLoading}>
+              Сохранить показатели
+            </button>
+            <button type="submit" disabled={bpLoading}>
+              {bpLoading ? "Запрашиваем рекомендации..." : "Получить советы"}
+            </button>
+            {bpError && <p className="error">{bpError}</p>}
           </div>
         </form>
-        {adviceText && (
-          <article className="card advice-result">
+        {bpAdvice && (
+          <article className="card advice-result form-card">
             <h3>Рекомендации</h3>
-            <pre className="advice-text">{adviceText}</pre>
+            <pre className="advice-text">{bpAdvice}</pre>
           </article>
         )}
-        {adviceHistory.length > 0 && (
-          <details className="card history-card">
-            <summary>История рекомендаций</summary>
+        {bpHistory.length > 0 && (
+          <details className="card history-card form-card" open>
+            <summary>Архив запросов</summary>
             <ul className="history-list">
-              {adviceHistory.map(item => (
-                <li key={item.id}>
+              {bpHistory.map(entry => (
+                <li key={entry.id} className="history-item">
                   <div className="history-meta">
-                    <span className="muted">{formatDateTime(item.created_at)}</span>
-                    {item.focus && <span className="history-tag">{item.focus}</span>}
+                    <span className="history-tag">{formatDateTime(entry.createdAt)}</span>
+                    <div className="metric-tags">
+                      {entry.systolic && <span className="metric-tag">Систолическое: {entry.systolic}</span>}
+                      {entry.diastolic && <span className="metric-tag">Диастолическое: {entry.diastolic}</span>}
+                      {entry.pulse && <span className="metric-tag">Пульс: {entry.pulse}</span>}
+                    </div>
                   </div>
-                  <pre className="advice-text">{item.advice}</pre>
+                  {entry.question && (
+                    <p className="history-question">
+                      <strong>Вопрос:</strong> {entry.question}
+                    </p>
+                  )}
+                  {entry.comment && (
+                    <p className="history-comment">
+                      <strong>Комментарий:</strong> {entry.comment}
+                    </p>
+                  )}
+                  {entry.advice && <pre className="history-advice">{entry.advice}</pre>}
                 </li>
               ))}
             </ul>
@@ -776,65 +1069,234 @@ const App = observer(() => {
     );
   }
 
-  function renderAnalysisTab() {
+  function renderLipidTab() {
     return (
       <div className="tab-panel tab-stack">
-        <h2>Анализ блюда по фото</h2>
-        <form className="card photo-card" onSubmit={analyzePhoto}>
-          <label className="photo-upload">
-            Загрузите фото блюда
-            <input type="file" accept="image/*" onChange={handlePhotoChange} />
+        <h2>Липидный профиль и сахар</h2>
+        <form className="card form-card" onSubmit={handleLipidSubmit}>
+          <div className="metrics-grid">
+            <label>
+              Дата анализа
+              <input type="date" value={lipidForm.date} onChange={e => setLipidForm({ ...lipidForm, date: e.target.value })} />
+            </label>
+            <label>
+              Общий холестерин, ммоль/л
+              <input
+                type="number"
+                step="0.1"
+                min="0"
+                value={lipidForm.cholesterol}
+                onChange={e => setLipidForm({ ...lipidForm, cholesterol: e.target.value })}
+              />
+            </label>
+            <label>
+              Холестерин ЛПВП (HDL), ммоль/л
+              <input
+                type="number"
+                step="0.1"
+                min="0"
+                value={lipidForm.hdl}
+                onChange={e => setLipidForm({ ...lipidForm, hdl: e.target.value })}
+              />
+            </label>
+            <label>
+              Холестерин ЛПНП (LDL), ммоль/л
+              <input
+                type="number"
+                step="0.1"
+                min="0"
+                value={lipidForm.ldl}
+                onChange={e => setLipidForm({ ...lipidForm, ldl: e.target.value })}
+              />
+            </label>
+            <label>
+              Триглицериды, ммоль/л
+              <input
+                type="number"
+                step="0.1"
+                min="0"
+                value={lipidForm.triglycerides}
+                onChange={e => setLipidForm({ ...lipidForm, triglycerides: e.target.value })}
+              />
+            </label>
+            <label>
+              Уровень сахара (глюкоза), ммоль/л
+              <input
+                type="number"
+                step="0.1"
+                min="0"
+                value={lipidForm.glucose}
+                onChange={e => setLipidForm({ ...lipidForm, glucose: e.target.value })}
+              />
+            </label>
+          </div>
+          <label>
+            Что ещё важно уточнить?
+            <textarea
+              placeholder="Например: принимаю статины и хочу понять, что добавить в рацион"
+              value={lipidForm.question}
+              onChange={e => setLipidForm({ ...lipidForm, question: e.target.value })}
+            />
           </label>
-          {photoPreview && <img className="photo-preview" src={photoPreview} alt="Предпросмотр блюда" />}
+          <label>
+            Комментарий к анализу
+            <textarea
+              placeholder="Например: сдавал анализ после курса терапии"
+              value={lipidForm.comment}
+              onChange={e => setLipidForm({ ...lipidForm, comment: e.target.value })}
+            />
+          </label>
           <div className="form-actions">
-            <button type="submit" disabled={photoLoading || !photoFile}>{photoLoading ? "Анализируем..." : "Проанализировать"}</button>
-            {photoError && <p className="error">{photoError}</p>}
+            <button type="button" className="ghost" onClick={saveLipidToArchive} disabled={lipidLoading}>
+              Сохранить показатели
+            </button>
+            <button type="submit" disabled={lipidLoading}>
+              {lipidLoading ? "Запрашиваем рекомендации..." : "Получить советы"}
+            </button>
+            {lipidError && <p className="error">{lipidError}</p>}
           </div>
         </form>
-        {photoResult && (
-          <div className="card photo-result">
-            <div className="photo-result-header">
-              <h3>{photoResult.title}</h3>
-              <span className={`badge ${photoResult.healthiness}`}>{healthinessLabel(photoResult.healthiness)}</span>
-            </div>
-            {photoResult.description && <p>{photoResult.description}</p>}
-            {photoResult.estimated_calories !== null && (
-              <p className="muted">Примерная калорийность порции: {photoResult.estimated_calories} ккал</p>
-            )}
-            {photoResult.reasoning && <p>{photoResult.reasoning}</p>}
-            {photoResult.tips.length > 0 && (
-              <ul>
-                {photoResult.tips.map((tip, index) => (
-                  <li key={index}>{tip}</li>
-                ))}
-              </ul>
-            )}
-          </div>
+        {lipidAdvice && (
+          <article className="card advice-result form-card">
+            <h3>Рекомендации</h3>
+            <pre className="advice-text">{lipidAdvice}</pre>
+          </article>
         )}
-        {photoHistory.length > 0 && (
-          <details className="card history-card">
-            <summary>История анализов</summary>
+        {lipidHistory.length > 0 && (
+          <details className="card history-card form-card" open>
+            <summary>Архив липидов и сахара</summary>
             <ul className="history-list">
-              {photoHistory.map(item => (
-                <li key={item.id} className="photo-history-item">
+              {lipidHistory.map(entry => (
+                <li key={entry.id} className="history-item">
                   <div className="history-meta">
-                    <span className="muted">{formatDateTime(item.created_at)}</span>
-                    {item.original_filename && <span className="history-tag">{item.original_filename}</span>}
-                    <span className={`badge ${item.healthiness}`}>{healthinessLabel(item.healthiness)}</span>
+                    <span className="history-tag">{formatDateTime(entry.createdAt)}</span>
+                    <div className="metric-tags">
+                      {entry.date && <span className="metric-tag">Дата анализа: {entry.date}</span>}
+                      {entry.cholesterol && <span className="metric-tag">Общий холестерин: {entry.cholesterol}</span>}
+                      {entry.hdl && <span className="metric-tag">ЛПВП: {entry.hdl}</span>}
+                      {entry.ldl && <span className="metric-tag">ЛПНП: {entry.ldl}</span>}
+                      {entry.triglycerides && <span className="metric-tag">Триглицериды: {entry.triglycerides}</span>}
+                      {entry.glucose && <span className="metric-tag">Глюкоза: {entry.glucose}</span>}
+                    </div>
                   </div>
-                  <h4>{item.title}</h4>
-                  {item.description && <p>{item.description}</p>}
-                  {item.estimated_calories !== null && (
-                    <p className="muted">Примерно {item.estimated_calories} ккал</p>
+                  {entry.question && (
+                    <p className="history-question">
+                      <strong>Вопрос:</strong> {entry.question}
+                    </p>
                   )}
-                  {item.reasoning && <p>{item.reasoning}</p>}
-                  {item.tips.length > 0 && (
-                    <ul>
-                      {item.tips.map((tip, tipIndex) => (
-                        <li key={tipIndex}>{tip}</li>
-                      ))}
-                    </ul>
+                  {entry.comment && (
+                    <p className="history-comment">
+                      <strong>Комментарий:</strong> {entry.comment}
+                    </p>
                   )}
+                  {entry.advice && <pre className="history-advice">{entry.advice}</pre>}
+                </li>
+              ))}
+            </ul>
+          </details>
+        )}
+      </div>
+    );
+  }
+
+  function renderNutritionTab() {
+    return (
+      <div className="tab-panel tab-stack">
+        <h2>Консультация нутрициолога</h2>
+        <form className="card form-card" onSubmit={handleNutritionSubmit}>
+          <div className="metrics-grid">
+            <label>
+              Вес, кг
+              <input
+                type="number"
+                min="0"
+                step="0.1"
+                value={nutritionForm.weight}
+                onChange={e => setNutritionForm({ ...nutritionForm, weight: e.target.value })}
+              />
+            </label>
+            <label>
+              Рост, см
+              <input
+                type="number"
+                min="0"
+                value={nutritionForm.height}
+                onChange={e => setNutritionForm({ ...nutritionForm, height: e.target.value })}
+              />
+            </label>
+            <label>
+              Калорийность рациона, ккал
+              <input
+                type="number"
+                min="0"
+                value={nutritionForm.calories}
+                onChange={e => setNutritionForm({ ...nutritionForm, calories: e.target.value })}
+              />
+            </label>
+            <label>
+              Активность
+              <input
+                placeholder="Например: 2 тренировки в неделю"
+                value={nutritionForm.activity}
+                onChange={e => setNutritionForm({ ...nutritionForm, activity: e.target.value })}
+              />
+            </label>
+          </div>
+          <label>
+            Опишите цель или вопрос
+            <textarea
+              placeholder="Например: хочу снизить вес без жестких диет"
+              value={nutritionForm.question}
+              onChange={e => setNutritionForm({ ...nutritionForm, question: e.target.value })}
+            />
+          </label>
+          <label>
+            Комментарий к измерениям
+            <textarea
+              placeholder="Дополнительные примечания: как чувствовали себя, что ели"
+              value={nutritionForm.comment}
+              onChange={e => setNutritionForm({ ...nutritionForm, comment: e.target.value })}
+            />
+          </label>
+          <div className="form-actions">
+            <button type="submit" disabled={nutritionLoading}>
+              {nutritionLoading ? "Запрашиваем рекомендации..." : "Получить советы"}
+            </button>
+            {nutritionError && <p className="error">{nutritionError}</p>}
+          </div>
+        </form>
+        {nutritionAdvice && (
+          <article className="card advice-result form-card">
+            <h3>Рекомендации</h3>
+            <pre className="advice-text">{nutritionAdvice}</pre>
+          </article>
+        )}
+        {nutritionHistory.length > 0 && (
+          <details className="card history-card form-card" open>
+            <summary>Архив нутрициолога</summary>
+            <ul className="history-list">
+              {nutritionHistory.map(entry => (
+                <li key={entry.id} className="history-item">
+                  <div className="history-meta">
+                    <span className="history-tag">{formatDateTime(entry.createdAt)}</span>
+                    <div className="metric-tags">
+                      {entry.weight && <span className="metric-tag">Вес: {entry.weight} кг</span>}
+                      {entry.height && <span className="metric-tag">Рост: {entry.height} см</span>}
+                      {entry.calories && <span className="metric-tag">Калории: {entry.calories}</span>}
+                      {entry.activity && <span className="metric-tag">Активность: {entry.activity}</span>}
+                    </div>
+                  </div>
+                  {entry.question && (
+                    <p className="history-question">
+                      <strong>Запрос:</strong> {entry.question}
+                    </p>
+                  )}
+                  {entry.comment && (
+                    <p className="history-comment">
+                      <strong>Комментарий:</strong> {entry.comment}
+                    </p>
+                  )}
+                  {entry.advice && <pre className="history-advice">{entry.advice}</pre>}
                 </li>
               ))}
             </ul>
@@ -847,68 +1309,37 @@ const App = observer(() => {
   function renderAssistantTab() {
     return (
       <div className="tab-panel assistant-panel">
-        <div className="card assistant">
-          <div className="assistant-header">
-            <h3>Спросите о здоровье сердца</h3>
-            <button type="button" className="ghost" onClick={resetAssistant} disabled={assistantMessages.length === 0 || assistantLoading}>
-              Очистить диалог
-            </button>
-          </div>
-          <div className="assistant-log">
-            {assistantMessages.length === 0 && <p className="muted">Задайте вопрос, например: «Что съесть на ужин при высоком холестерине?»</p>}
-            {assistantMessages.map((msg, index) => (
-              <div key={index} className={`assistant-message ${msg.role}`}>
-                <span>{msg.content}</span>
+        <h2>AI ассистент</h2>
+        <div className="card assistant-card form-card">
+          <div className="assistant-messages">
+            {assistantMessages.length === 0 && <p className="muted">Задайте вопрос, и ассистент ответит.</p>}
+            {assistantMessages.map((message, index) => (
+              <div key={`${message.role}-${index}`} className={`assistant-message ${message.role}`}>
+                <span className="assistant-role">{message.role === "user" ? "Вы" : "Ассистент"}</span>
+                <p>{message.content}</p>
               </div>
             ))}
           </div>
-          {assistantError && <p className="error">{assistantError}</p>}
           <form className="assistant-form" onSubmit={sendAssistantMessage}>
-            <input
+            <textarea
+              placeholder="Напишите, что вас беспокоит"
               value={assistantInput}
               onChange={e => setAssistantInput(e.target.value)}
-              placeholder="Задайте вопрос ассистенту"
+              rows={3}
             />
-            <button type="submit" disabled={assistantLoading || assistantInput.trim() === ""}>
-              {assistantLoading ? "Отправляем..." : "Спросить"}
-            </button>
+            <div className="assistant-actions">
+              <button type="submit" disabled={assistantLoading}>
+                {assistantLoading ? "Ассистент думает..." : "Отправить"}
+              </button>
+              <button type="button" className="ghost" onClick={resetAssistant}>
+                Очистить диалог
+              </button>
+              {assistantError && <p className="error">{assistantError}</p>}
+            </div>
           </form>
         </div>
-        {assistantHistory.length > 0 && (
-          <details className="card history-card">
-            <summary>Архив диалогов</summary>
-            <ul className="history-list">
-              {assistantHistory.map(item => (
-                <li key={item.id}>
-                  <div className="history-meta">
-                    <span className="muted">{formatDateTime(item.created_at)}</span>
-                  </div>
-                  <p className="history-user"><strong>Вы:</strong> {item.user_message}</p>
-                  <p className="history-assistant"><strong>Ассистент:</strong> {item.assistant_reply}</p>
-                </li>
-              ))}
-            </ul>
-          </details>
-        )}
       </div>
     );
-  }
-
-  function renderActiveTab() {
-    switch (activeTab) {
-      case "profile":
-        return renderProfileTab();
-      case "lipids":
-        return renderLipidsTab();
-      case "diary":
-        return renderDiaryTab();
-      case "advice":
-        return renderAdviceTab();
-      case "analysis":
-        return renderAnalysisTab();
-      default:
-        return renderAssistantTab();
-    }
   }
 
   if (!userStore.token) {
@@ -920,31 +1351,30 @@ const App = observer(() => {
       <header className="topbar">
         <div className="brand">
           <h1>CholestoFit</h1>
-          <p>Ваш персональный помощник по здоровью сердца</p>
+          <p>Персональные рекомендации по здоровью</p>
         </div>
         <div className="topbar-profile">
-          <button
-            type="button"
-            className={`topbar-profile-info${activeTab === "profile" ? " active" : ""}`}
-            onClick={() => setActiveTab("profile")}
-            aria-label="Открыть профиль"
-          >
-            <span className="topbar-profile-icon" aria-hidden="true">
-              {PROFILE_TAB.icon}
-            </span>
-            <div className="topbar-profile-text">
-              <span className="topbar-profile-label">Аккаунт</span>
-              <span className="topbar-profile-email">{userStore.me?.email ?? "—"}</span>
-            </div>
+          <div className="topbar-profile-text">
+            <span className="topbar-profile-label">Аккаунт</span>
+            <span className="topbar-profile-email">{userStore.me?.email ?? email}</span>
+          </div>
+          <button className="button ghost" href="/settings" onClick={openSettings}>
+            Настройки
           </button>
-          <button type="button" onClick={() => userStore.logout()}>
+          <button className="ghost" type="button" onClick={() => userStore.logout()}>
             Выйти
           </button>
         </div>
       </header>
       <main className="content">
-        <div className="tab-container">{renderActiveTab()}</div>
+        <div className="tab-container">
+          {activeTab === "bp" && renderBloodPressureTab()}
+          {activeTab === "lipid" && renderLipidTab()}
+          {activeTab === "nutrition" && renderNutritionTab()}
+          {activeTab === "assistant" && renderAssistantTab()}
+        </div>
       </main>
+      {renderSettingsDialog()}
       <nav className="tabbar">
         {TAB_ITEMS.map(item => (
           <button
@@ -953,9 +1383,7 @@ const App = observer(() => {
             className={`tab-button${activeTab === item.key ? " active" : ""}`}
             onClick={() => setActiveTab(item.key)}
           >
-            <span className="tab-icon" aria-hidden="true">
-              {item.icon}
-            </span>
+            <TabIconGlyph tab={item.key} />
             <span className="tab-label">{item.label}</span>
           </button>
         ))}
