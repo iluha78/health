@@ -29,6 +29,7 @@ type LipidRecord = {
   hdl: string;
   ldl: string;
   triglycerides: string;
+  glucose: string;
   goal: AdjustmentGoal;
   question: string;
   comment: string;
@@ -49,7 +50,7 @@ type NutritionRecord = {
 
 const TAB_ITEMS: { key: TabKey; label: string; icon: string }[] = [
   { key: "bp", label: "Давление и пульс", icon: "🩺" },
-  { key: "lipid", label: "Липидный профиль", icon: "🩸" },
+  { key: "lipid", label: "Липидный профиль и сахар", icon: "🩸" },
   { key: "nutrition", label: "Нутрициолог", icon: "🥗" },
   { key: "assistant", label: "AI ассистент", icon: "🤖" }
 ];
@@ -93,6 +94,7 @@ const App = observer(() => {
     hdl: "",
     ldl: "",
     triglycerides: "",
+    glucose: "",
     goal: "lower" as AdjustmentGoal,
     question: "",
     comment: ""
@@ -193,6 +195,7 @@ const App = observer(() => {
           hdl: item.hdl ?? "",
           ldl: item.ldl ?? "",
           triglycerides: item.triglycerides ?? "",
+          glucose: item.glucose ?? "",
           goal: item.goal ?? "lower",
           question: item.question ?? "",
           comment: item.comment ?? "",
@@ -210,6 +213,7 @@ const App = observer(() => {
             cholGoal?: AdjustmentGoal;
             sugarGoal?: AdjustmentGoal;
             question?: string;
+            comment?: string;
             advice?: string;
           }[]
         | null;
@@ -222,9 +226,10 @@ const App = observer(() => {
           hdl: "",
           ldl: "",
           triglycerides: "",
+          glucose: item.sugar ?? "",
           goal: item.cholGoal ?? "lower",
           question: item.question ?? "",
-          comment: item.sugar ? `Уровень сахара: ${item.sugar}` : "",
+          comment: item.comment ?? "",
           advice: item.advice ?? ""
         }));
         setLipidHistory(converted);
@@ -282,6 +287,7 @@ const App = observer(() => {
       hdl: "",
       ldl: "",
       triglycerides: "",
+      glucose: "",
       goal: "lower",
       question: "",
       comment: ""
@@ -406,6 +412,7 @@ const App = observer(() => {
       if (lipidForm.hdl) metrics.push(`ЛПВП ${lipidForm.hdl} ммоль/л`);
       if (lipidForm.ldl) metrics.push(`ЛПНП ${lipidForm.ldl} ммоль/л`);
       if (lipidForm.triglycerides) metrics.push(`триглицериды ${lipidForm.triglycerides} ммоль/л`);
+      if (lipidForm.glucose) metrics.push(`глюкоза крови ${lipidForm.glucose} ммоль/л`);
       if (lipidForm.comment) metrics.push(`комментарий: ${lipidForm.comment}`);
       const prompt = [
         "Ты — врач профилактической медицины и эндокринолог.",
@@ -429,6 +436,7 @@ const App = observer(() => {
         hdl: lipidForm.hdl,
         ldl: lipidForm.ldl,
         triglycerides: lipidForm.triglycerides,
+        glucose: lipidForm.glucose,
         goal: lipidForm.goal,
         question: lipidForm.question.trim(),
         comment: lipidForm.comment.trim(),
@@ -445,7 +453,12 @@ const App = observer(() => {
 
   function saveLipidToArchive() {
     const hasMetrics =
-      lipidForm.date || lipidForm.cholesterol || lipidForm.hdl || lipidForm.ldl || lipidForm.triglycerides;
+      lipidForm.date ||
+      lipidForm.cholesterol ||
+      lipidForm.hdl ||
+      lipidForm.ldl ||
+      lipidForm.triglycerides ||
+      lipidForm.glucose;
     if (!hasMetrics) {
       setLipidError("Укажите хотя бы один показатель, чтобы сохранить запись");
       return;
@@ -459,6 +472,7 @@ const App = observer(() => {
       hdl: lipidForm.hdl,
       ldl: lipidForm.ldl,
       triglycerides: lipidForm.triglycerides,
+      glucose: lipidForm.glucose,
       goal: lipidForm.goal,
       question: lipidForm.question.trim(),
       comment: lipidForm.comment.trim(),
@@ -715,7 +729,7 @@ const App = observer(() => {
   function renderLipidTab() {
     return (
       <div className="tab-panel tab-stack">
-        <h2>Липидный профиль</h2>
+        <h2>Липидный профиль и сахар</h2>
         <form className="card" onSubmit={handleLipidSubmit}>
           <div className="metrics-grid">
             <label>
@@ -760,6 +774,16 @@ const App = observer(() => {
                 min="0"
                 value={lipidForm.triglycerides}
                 onChange={e => setLipidForm({ ...lipidForm, triglycerides: e.target.value })}
+              />
+            </label>
+            <label>
+              Уровень сахара (глюкоза), ммоль/л
+              <input
+                type="number"
+                step="0.1"
+                min="0"
+                value={lipidForm.glucose}
+                onChange={e => setLipidForm({ ...lipidForm, glucose: e.target.value })}
               />
             </label>
           </div>
@@ -822,7 +846,7 @@ const App = observer(() => {
         )}
         {lipidHistory.length > 0 && (
           <details className="card history-card" open>
-            <summary>Архив липидов</summary>
+            <summary>Архив липидов и сахара</summary>
             <ul className="history-list">
               {lipidHistory.map(entry => (
                 <li key={entry.id} className="history-item">
@@ -834,6 +858,7 @@ const App = observer(() => {
                       {entry.hdl && <span className="metric-tag">ЛПВП: {entry.hdl}</span>}
                       {entry.ldl && <span className="metric-tag">ЛПНП: {entry.ldl}</span>}
                       {entry.triglycerides && <span className="metric-tag">Триглицериды: {entry.triglycerides}</span>}
+                      {entry.glucose && <span className="metric-tag">Глюкоза: {entry.glucose}</span>}
                       <span className={`metric-tag goal ${entry.goal === "lower" ? "goal-lower" : "goal-raise"}`}>
                         Цель: {entry.goal === "lower" ? "Снизить риски" : "Повысить значения"}
                       </span>
