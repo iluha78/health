@@ -8,6 +8,10 @@ class OpenAiService
     private ?string $apiKey;
     private string $baseUrl;
     private string $model;
+    /**
+     * @var array<int, array<string, mixed>>
+     */
+    private array $logBuffer = [];
 
     public function __construct(?string $apiKey = null, ?string $baseUrl = null, ?string $model = null)
     {
@@ -28,6 +32,17 @@ class OpenAiService
             $resolvedModel = 'gpt-4o-mini';
         }
         $this->model = $resolvedModel;
+    }
+
+    /**
+     * @return array<int, array<string, mixed>>
+     */
+    public function releaseLogs(): array
+    {
+        $logs = $this->logBuffer;
+        $this->logBuffer = [];
+
+        return $logs;
     }
 
     public function isConfigured(): bool
@@ -431,6 +446,20 @@ class OpenAiService
      */
     private function log(string $level, string $message, array $context = []): void
     {
+        $entry = [
+            'level' => strtolower($level),
+            'message' => $message,
+        ];
+
+        if ($context !== []) {
+            $entry['context'] = $context;
+        }
+
+        $this->logBuffer[] = $entry;
+        if (count($this->logBuffer) > 50) {
+            $this->logBuffer = array_slice($this->logBuffer, -50);
+        }
+
         $prefix = '[OpenAiService][' . strtoupper($level) . '] ' . $message;
         if ($context === []) {
             error_log($prefix);
