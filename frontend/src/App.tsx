@@ -169,6 +169,13 @@ const createEmptySettingsForm = (): SettingsFormState => ({
   fiberGoal: ""
 });
 
+const labelClass = "flex flex-col gap-2 text-sm font-semibold text-slate-700";
+const inputClass =
+  "h-12 rounded-xl border border-slate-200 bg-white px-4 text-base text-slate-900 shadow-sm transition focus:border-indigo-500 focus:outline-none focus:ring-4 focus:ring-indigo-100 placeholder:text-slate-400";
+const selectClass = `${inputClass} pr-10`;
+const textareaClass =
+  "min-h-[120px] rounded-2xl border border-slate-200 bg-white px-4 py-3 text-base text-slate-900 shadow-sm transition focus:border-indigo-500 focus:outline-none focus:ring-4 focus:ring-indigo-100 placeholder:text-slate-400 resize-y";
+
 const App = observer(() => {
   const [mode, setMode] = useState<"login" | "register">("login");
   const [email, setEmail] = useState("");
@@ -830,15 +837,22 @@ const App = observer(() => {
       <div className="auth">
         <h1>CholestoFit</h1>
         <p>Войдите, чтобы получить рекомендации ассистента</p>
-        <form className="card" onSubmit={handleAuthSubmit}>
-          <label>
+        <form className="card flex flex-col gap-6" onSubmit={handleAuthSubmit}>
+          <label className={labelClass}>
             Email
-            <input type="email" value={email} onChange={e => setEmail(e.target.value)} required />
+            <input
+              className={inputClass}
+              type="email"
+              value={email}
+              onChange={e => setEmail(e.target.value)}
+              required
+            />
           </label>
-          <label>
+          <label className={labelClass}>
             Пароль
-            <span className="password-input">
+            <span className="flex items-center gap-3">
               <input
+                className={inputClass}
                 type={showPassword ? "text" : "password"}
                 value={password}
                 onChange={e => setPassword(e.target.value)}
@@ -873,19 +887,24 @@ const App = observer(() => {
               Закрыть
             </button>
           </div>
-          <form className="settings-form" onSubmit={handleSettingsSubmit}>
-            <div className="settings-grid">
-              <label>
+          <form className="settings-form flex flex-col gap-6" onSubmit={handleSettingsSubmit}>
+            <div className="grid gap-4 md:grid-cols-2">
+              <label className={labelClass}>
                 Пол
-                <select value={settingsForm.sex} onChange={e => handleSettingsFieldChange("sex", e.target.value)}>
+                <select
+                  className={selectClass}
+                  value={settingsForm.sex}
+                  onChange={e => handleSettingsFieldChange("sex", e.target.value)}
+                >
                   <option value="">Не указан</option>
                   <option value="male">Мужской</option>
                   <option value="female">Женский</option>
                 </select>
               </label>
-              <label>
+              <label className={labelClass}>
                 Возраст
                 <input
+                  className={inputClass}
                   type="number"
                   min="0"
                   inputMode="numeric"
@@ -893,9 +912,10 @@ const App = observer(() => {
                   onChange={e => handleSettingsFieldChange("age", e.target.value)}
                 />
               </label>
-              <label>
+              <label className={labelClass}>
                 Рост (см)
                 <input
+                  className={inputClass}
                   type="number"
                   min="0"
                   inputMode="numeric"
@@ -903,9 +923,10 @@ const App = observer(() => {
                   onChange={e => handleSettingsFieldChange("height", e.target.value)}
                 />
               </label>
-              <label>
+              <label className={labelClass}>
                 Вес (кг)
                 <input
+                  className={inputClass}
                   type="number"
                   min="0"
                   step="0.1"
@@ -914,9 +935,13 @@ const App = observer(() => {
                   onChange={e => handleSettingsFieldChange("weight", e.target.value)}
                 />
               </label>
-              <label>
+              <label className={labelClass}>
                 Активность
-                <select value={settingsForm.activity} onChange={e => handleSettingsFieldChange("activity", e.target.value)}>
+                <select
+                  className={selectClass}
+                  value={settingsForm.activity}
+                  onChange={e => handleSettingsFieldChange("activity", e.target.value)}
+                >
                   <option value="">Не выбрано</option>
                   <option value="Сидячая">Сидячая</option>
                   <option value="Лёгкая">Лёгкая</option>
@@ -925,9 +950,10 @@ const App = observer(() => {
                   <option value="Спортивная">Спортивная</option>
                 </select>
               </label>
-              <label>
+              <label className={labelClass}>
                 Цель по калориям (ккал)
                 <input
+                  className={inputClass}
                   type="number"
                   min="0"
                   inputMode="numeric"
@@ -935,9 +961,10 @@ const App = observer(() => {
                   onChange={e => handleSettingsFieldChange("kcalGoal", e.target.value)}
                 />
               </label>
-              <label>
+              <label className={labelClass}>
                 Лимит насыщенных жиров (г)
                 <input
+                  className={inputClass}
                   type="number"
                   min="0"
                   inputMode="numeric"
@@ -945,9 +972,10 @@ const App = observer(() => {
                   onChange={e => handleSettingsFieldChange("sfaLimit", e.target.value)}
                 />
               </label>
-              <label>
+              <label className={labelClass}>
                 Цель по клетчатке (г)
                 <input
+                  className={inputClass}
                   type="number"
                   min="0"
                   inputMode="numeric"
@@ -956,7 +984,7 @@ const App = observer(() => {
                 />
               </label>
             </div>
-            <div className="settings-actions">
+            <div className="settings-actions flex flex-wrap items-center justify-end gap-4">
               <button type="submit" disabled={settingsSaving}>
                 {settingsSaving ? "Сохраняем..." : "Сохранить профиль"}
               </button>
@@ -973,29 +1001,32 @@ const App = observer(() => {
     return (
       <div className="tab-panel tab-stack">
         <h2>Давление и пульс</h2>
-        <form className="card" onSubmit={handleBloodPressureSubmit}>
-          <div className="metrics-grid">
-            <label>
+        <form className="card flex flex-col gap-6" onSubmit={handleBloodPressureSubmit}>
+          <div className="grid gap-4 md:grid-cols-3">
+            <label className={labelClass}>
               Систолическое давление, мм рт. ст.
               <input
+                className={inputClass}
                 type="number"
                 min="0"
                 value={bpForm.systolic}
                 onChange={e => setBpForm({ ...bpForm, systolic: e.target.value })}
               />
             </label>
-            <label>
+            <label className={labelClass}>
               Диастолическое давление, мм рт. ст.
               <input
+                className={inputClass}
                 type="number"
                 min="0"
                 value={bpForm.diastolic}
                 onChange={e => setBpForm({ ...bpForm, diastolic: e.target.value })}
               />
             </label>
-            <label>
+            <label className={labelClass}>
               Пульс, уд/мин
               <input
+                className={inputClass}
                 type="number"
                 min="0"
                 value={bpForm.pulse}
@@ -1003,23 +1034,25 @@ const App = observer(() => {
               />
             </label>
           </div>
-          <label>
+          <label className={labelClass}>
             Дополнительный вопрос или симптомы
             <textarea
+              className={textareaClass}
               placeholder="Например: какие упражнения безопасны?"
               value={bpForm.question}
               onChange={e => setBpForm({ ...bpForm, question: e.target.value })}
             />
           </label>
-          <label>
+          <label className={labelClass}>
             Комментарий к измерению
             <textarea
+              className={textareaClass}
               placeholder="Например: измерял утром после пробуждения"
               value={bpForm.comment}
               onChange={e => setBpForm({ ...bpForm, comment: e.target.value })}
             />
           </label>
-          <div className="form-actions">
+          <div className="form-actions flex flex-wrap items-center justify-end gap-4">
             <button type="button" className="ghost" onClick={saveBloodPressureToArchive} disabled={bpLoading}>
               Сохранить показатели
             </button>
@@ -1073,15 +1106,21 @@ const App = observer(() => {
     return (
       <div className="tab-panel tab-stack">
         <h2>Липидный профиль и сахар</h2>
-        <form className="card" onSubmit={handleLipidSubmit}>
-          <div className="metrics-grid">
-            <label>
+        <form className="card flex flex-col gap-6" onSubmit={handleLipidSubmit}>
+          <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+            <label className={labelClass}>
               Дата анализа
-              <input type="date" value={lipidForm.date} onChange={e => setLipidForm({ ...lipidForm, date: e.target.value })} />
+              <input
+                className={inputClass}
+                type="date"
+                value={lipidForm.date}
+                onChange={e => setLipidForm({ ...lipidForm, date: e.target.value })}
+              />
             </label>
-            <label>
+            <label className={labelClass}>
               Общий холестерин, ммоль/л
               <input
+                className={inputClass}
                 type="number"
                 step="0.1"
                 min="0"
@@ -1089,9 +1128,10 @@ const App = observer(() => {
                 onChange={e => setLipidForm({ ...lipidForm, cholesterol: e.target.value })}
               />
             </label>
-            <label>
+            <label className={labelClass}>
               Холестерин ЛПВП (HDL), ммоль/л
               <input
+                className={inputClass}
                 type="number"
                 step="0.1"
                 min="0"
@@ -1099,9 +1139,10 @@ const App = observer(() => {
                 onChange={e => setLipidForm({ ...lipidForm, hdl: e.target.value })}
               />
             </label>
-            <label>
+            <label className={labelClass}>
               Холестерин ЛПНП (LDL), ммоль/л
               <input
+                className={inputClass}
                 type="number"
                 step="0.1"
                 min="0"
@@ -1109,9 +1150,10 @@ const App = observer(() => {
                 onChange={e => setLipidForm({ ...lipidForm, ldl: e.target.value })}
               />
             </label>
-            <label>
+            <label className={labelClass}>
               Триглицериды, ммоль/л
               <input
+                className={inputClass}
                 type="number"
                 step="0.1"
                 min="0"
@@ -1119,9 +1161,10 @@ const App = observer(() => {
                 onChange={e => setLipidForm({ ...lipidForm, triglycerides: e.target.value })}
               />
             </label>
-            <label>
+            <label className={labelClass}>
               Уровень сахара (глюкоза), ммоль/л
               <input
+                className={inputClass}
                 type="number"
                 step="0.1"
                 min="0"
@@ -1130,23 +1173,25 @@ const App = observer(() => {
               />
             </label>
           </div>
-          <label>
+          <label className={labelClass}>
             Что ещё важно уточнить?
             <textarea
+              className={textareaClass}
               placeholder="Например: принимаю статины и хочу понять, что добавить в рацион"
               value={lipidForm.question}
               onChange={e => setLipidForm({ ...lipidForm, question: e.target.value })}
             />
           </label>
-          <label>
+          <label className={labelClass}>
             Комментарий к анализу
             <textarea
+              className={textareaClass}
               placeholder="Например: сдавал анализ после курса терапии"
               value={lipidForm.comment}
               onChange={e => setLipidForm({ ...lipidForm, comment: e.target.value })}
             />
           </label>
-          <div className="form-actions">
+          <div className="form-actions flex flex-wrap items-center justify-end gap-4">
             <button type="button" className="ghost" onClick={saveLipidToArchive} disabled={lipidLoading}>
               Сохранить показатели
             </button>
@@ -1203,11 +1248,12 @@ const App = observer(() => {
     return (
       <div className="tab-panel tab-stack">
         <h2>Консультация нутрициолога</h2>
-        <form className="card" onSubmit={handleNutritionSubmit}>
-          <div className="metrics-grid">
-            <label>
+        <form className="card flex flex-col gap-6" onSubmit={handleNutritionSubmit}>
+          <div className="grid gap-4 md:grid-cols-2">
+            <label className={labelClass}>
               Вес, кг
               <input
+                className={inputClass}
                 type="number"
                 min="0"
                 step="0.1"
@@ -1215,50 +1261,55 @@ const App = observer(() => {
                 onChange={e => setNutritionForm({ ...nutritionForm, weight: e.target.value })}
               />
             </label>
-            <label>
+            <label className={labelClass}>
               Рост, см
               <input
+                className={inputClass}
                 type="number"
                 min="0"
                 value={nutritionForm.height}
                 onChange={e => setNutritionForm({ ...nutritionForm, height: e.target.value })}
               />
             </label>
-            <label>
+            <label className={labelClass}>
               Калорийность рациона, ккал
               <input
+                className={inputClass}
                 type="number"
                 min="0"
                 value={nutritionForm.calories}
                 onChange={e => setNutritionForm({ ...nutritionForm, calories: e.target.value })}
               />
             </label>
-            <label>
+            <label className={labelClass}>
               Активность
               <input
+                className={inputClass}
                 placeholder="Например: 2 тренировки в неделю"
                 value={nutritionForm.activity}
                 onChange={e => setNutritionForm({ ...nutritionForm, activity: e.target.value })}
               />
             </label>
           </div>
-          <label>
+          <label className={labelClass}>
             Опишите цель или вопрос
             <textarea
+              className={textareaClass}
               placeholder="Например: хочу снизить вес без жестких диет"
               value={nutritionForm.question}
               onChange={e => setNutritionForm({ ...nutritionForm, question: e.target.value })}
             />
           </label>
-          <label>
+          <label className={labelClass}>
             Комментарий к измерениям
             <textarea
+              className={textareaClass}
               placeholder="Дополнительные примечания: как чувствовали себя, что ели"
               value={nutritionForm.comment}
               onChange={e => setNutritionForm({ ...nutritionForm, comment: e.target.value })}
             />
           </label>
-          <div className="form-actions">
+          <div className="form-actions flex flex-wrap items-center justify-end gap-4">
             <button type="submit" disabled={nutritionLoading}>
               {nutritionLoading ? "Запрашиваем рекомендации..." : "Получить советы"}
             </button>
@@ -1320,14 +1371,15 @@ const App = observer(() => {
               </div>
             ))}
           </div>
-          <form className="assistant-form" onSubmit={sendAssistantMessage}>
+          <form className="assistant-form flex flex-col gap-4" onSubmit={sendAssistantMessage}>
             <textarea
+              className={`${textareaClass} min-h-[96px]`}
               placeholder="Напишите, что вас беспокоит"
               value={assistantInput}
               onChange={e => setAssistantInput(e.target.value)}
               rows={3}
             />
-            <div className="assistant-actions">
+            <div className="assistant-actions flex flex-wrap items-center justify-end gap-4">
               <button type="submit" disabled={assistantLoading}>
                 {assistantLoading ? "Ассистент думает..." : "Отправить"}
               </button>

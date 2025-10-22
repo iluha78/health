@@ -256,73 +256,6 @@ body {
   gap: 1.25rem;
 }
 
-.card label,
-.card input,
-.card select,
-.card button,
-.card textarea {
-  font-size: 0.95rem;
-}
-
-.password-input {
-  display: flex;
-  gap: 0.5rem;
-  align-items: center;
-}
-
-.password-input input {
-  flex: 1;
-}
-
-label {
-  display: flex;
-  flex-direction: column;
-  gap: 0.55rem;
-  font-weight: 600;
-  color: #2f3a4c;
-}
-
-input,
-select,
-textarea {
-  padding: 0.65rem 1rem;
-  border-radius: 0.7rem;
-  border: 1px solid #cbd5f5;
-  background: #fff;
-  font: inherit;
-  color: #1f2933;
-  width: 100%;
-  min-height: 44px;
-  transition: border-color 0.2s ease, box-shadow 0.2s ease;
-}
-
-input::placeholder,
-textarea::placeholder {
-  color: #7a869f;
-}
-
-textarea {
-  min-height: 120px;
-  resize: vertical;
-}
-
-input:focus,
-select:focus,
-textarea:focus {
-  outline: none;
-  border-color: #5b7cff;
-  box-shadow: 0 0 0 3px rgba(91, 124, 255, 0.15);
-}
-
-input[type="date"] {
-  appearance: none;
-  padding-right: 0.75rem;
-}
-
-input[type="date"]::-webkit-calendar-picker-indicator {
-  cursor: pointer;
-}
-
 button,
 .button {
   cursor: pointer;
@@ -749,12 +682,6 @@ details summary {
   }
 }
 
-.metrics-grid {
-  display: grid;
-  gap: 1.1rem;
-  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
-}
-
 .assistant-card {
   gap: 1.25rem;
 }
@@ -858,12 +785,6 @@ details summary {
   display: flex;
   flex-direction: column;
   gap: 1.5rem;
-}
-
-.settings-grid {
-  display: grid;
-  gap: 1.1rem;
-  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
 }
 
 .settings-actions {
