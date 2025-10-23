@@ -1,35 +1,258 @@
-import { useState } from 'react'
-import reactLogo from './assets/react.svg'
-import viteLogo from '/vite.svg'
-import './App.css'
+import { useCallback, useEffect, useMemo, useState } from "react";
+import type { FormEvent } from "react";
+import { observer } from "mobx-react-lite";
+import { userStore } from "./stores/user";
+import type { TabKey } from "./types/forms";
+import { AuthPanel } from "./features/auth/AuthPanel";
+import { TabNavigation, type TabItem } from "./components/TabNavigation";
+import { useBloodPressureFeature } from "./features/blood-pressure/useBloodPressureFeature";
+import { BloodPressureTab } from "./features/blood-pressure/BloodPressureTab";
+import { useLipidFeature } from "./features/lipid/useLipidFeature";
+import { LipidTab } from "./features/lipid/LipidTab";
+import { useNutritionFeature } from "./features/nutrition/useNutritionFeature";
+import { NutritionTab } from "./features/nutrition/NutritionTab";
+import { useAssistantChat } from "./features/assistant/useAssistantChat";
+import { AssistantTab } from "./features/assistant/AssistantTab";
+import { SettingsDialog } from "./features/settings/SettingsDialog";
+import { useSettingsState } from "./features/settings/useSettingsState";
+import { requestAssistantPrompt } from "./lib/assistant";
+import "./App.css";
 
-function App() {
-  const [count, setCount] = useState(0)
+const TAB_ITEMS: TabItem[] = [
+  { key: "bp", label: "Давление и пульс" },
+  { key: "lipid", label: "Липидный профиль и сахар" },
+  { key: "nutrition", label: "Нутрициолог" },
+  { key: "assistant", label: "AI ассистент" }
+];
+
+const App = observer(() => {
+  const [mode, setMode] = useState<"login" | "register">("login");
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
+  const [activeTab, setActiveTab] = useState<TabKey>("bp");
+
+  const jsonHeaders = useMemo(() => {
+    if (!userStore.token) return undefined;
+    return {
+      Authorization: `Bearer ${userStore.token}`,
+      "Content-Type": "application/json"
+    } as Record<string, string>;
+  }, [userStore.token]);
+
+  const userId = userStore.me?.id ?? null;
+
+  const requestAdvice = useCallback(
+    (prompt: string) => requestAssistantPrompt(jsonHeaders, prompt),
+    [jsonHeaders]
+  );
+
+  const {
+    form: bpForm,
+    advice: bpAdvice,
+    loading: bpLoading,
+    error: bpError,
+    history: bpHistory,
+    updateField: updateBpField,
+    saveRecord: saveBpRecord,
+    submit: submitBp,
+    reset: resetBp
+  } = useBloodPressureFeature(userId, requestAdvice);
+
+  const {
+    form: lipidForm,
+    advice: lipidAdvice,
+    loading: lipidLoading,
+    error: lipidError,
+    history: lipidHistory,
+    updateField: updateLipidField,
+    saveRecord: saveLipidRecord,
+    submit: submitLipid,
+    reset: resetLipid
+  } = useLipidFeature(userId, requestAdvice);
+
+  const nutritionDefaults = useMemo(
+    () => ({
+      weight: userStore.targets?.weight_kg ?? null,
+      height: userStore.targets?.height_cm ?? null,
+      calories: userStore.targets?.kcal_goal ?? null,
+      activity: userStore.targets?.activity ?? null
+    }),
+    [
+      userStore.targets?.weight_kg,
+      userStore.targets?.height_cm,
+      userStore.targets?.kcal_goal,
+      userStore.targets?.activity
+    ]
+  );
+
+  const {
+    form: nutritionForm,
+    advice: nutritionAdvice,
+    loading: nutritionLoading,
+    error: nutritionError,
+    history: nutritionHistory,
+    updateField: updateNutritionField,
+    submit: submitNutrition,
+    reset: resetNutrition
+  } = useNutritionFeature(userId, requestAdvice, nutritionDefaults);
+
+  const {
+    messages: assistantMessages,
+    input: assistantInput,
+    loading: assistantLoading,
+    error: assistantError,
+    handleInputChange: handleAssistantInput,
+    submit: submitAssistant,
+    reset: resetAssistant
+  } = useAssistantChat(userStore.token, jsonHeaders);
+
+  const {
+    open: settingsOpen,
+    form: settingsForm,
+    saving: settingsSaving,
+    error: settingsError,
+    success: settingsSuccess,
+    openDialog: openSettings,
+    closeDialog: closeSettings,
+    handleFieldChange: handleSettingsField,
+    submit: submitSettings,
+    reset: resetSettings
+  } = useSettingsState(userStore, jsonHeaders);
+
+  const resetAll = useCallback(() => {
+    setActiveTab("bp");
+    resetBp();
+    resetLipid();
+    resetNutrition();
+    resetAssistant();
+    resetSettings();
+  }, [resetAssistant, resetBp, resetLipid, resetNutrition, resetSettings]);
+
+  useEffect(() => {
+    if (userStore.token) {
+      setActiveTab("bp");
+      if (!userStore.me) {
+        void userStore.refresh();
+      }
+    } else {
+      resetAll();
+    }
+  }, [resetAll, userStore.me, userStore.token]);
+
+  const handleAuthSubmit = async (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    try {
+      if (mode === "login") {
+        await userStore.login(email, password);
+      } else {
+        await userStore.register(email, password);
+      }
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
+  if (!userStore.token) {
+    return (
+      <AuthPanel
+        mode={mode}
+        email={email}
+        password={password}
+        showPassword={showPassword}
+        error={userStore.error}
+        onEmailChange={setEmail}
+        onPasswordChange={setPassword}
+        onTogglePassword={() => setShowPassword(prev => !prev)}
+        onSwitchMode={() => setMode(prev => (prev === "login" ? "register" : "login"))}
+        onSubmit={handleAuthSubmit}
+      />
+    );
+  }
 
   return (
-    <>
-      <div>
-        <a href="https://vite.dev" target="_blank">
-          <img src={viteLogo} className="logo" alt="Vite logo" />
-        </a>
-        <a href="https://react.dev" target="_blank">
-          <img src={reactLogo} className="logo react" alt="React logo" />
-        </a>
-      </div>
-      <h1>Vite + React</h1>
-      <div className="card">
-        <button onClick={() => setCount((count) => count + 1)}>
-          count is {count}
-        </button>
-        <p>
-          Edit <code>src/App.tsx</code> and save to test HMR
-        </p>
-      </div>
-      <p className="read-the-docs">
-        Click on the Vite and React logos to learn more
-      </p>
-    </>
-  )
-}
+    <div className="app-shell">
+      <header className="topbar">
+        <div className="brand">
+          <h1>CholestoFit</h1>
+          <p>Персональные рекомендации по здоровью</p>
+        </div>
+        <div className="topbar-profile">
+          <div className="topbar-profile-text">
+            <span className="topbar-profile-label">Аккаунт</span>
+            <span className="topbar-profile-email">{userStore.me?.email ?? email}</span>
+          </div>
+          <button className="button ghost" href="/settings" onClick={openSettings}>
+            Настройки
+          </button>
+          <button className="ghost" type="button" onClick={() => userStore.logout()}>
+            Выйти
+          </button>
+        </div>
+      </header>
+      <main className="content">
+        <div className="tab-container">
+          {activeTab === "bp" && (
+            <BloodPressureTab
+              form={bpForm}
+              advice={bpAdvice}
+              loading={bpLoading}
+              error={bpError}
+              history={bpHistory}
+              onFieldChange={updateBpField}
+              onSubmit={submitBp}
+              onSave={saveBpRecord}
+            />
+          )}
+          {activeTab === "lipid" && (
+            <LipidTab
+              form={lipidForm}
+              advice={lipidAdvice}
+              loading={lipidLoading}
+              error={lipidError}
+              history={lipidHistory}
+              onFieldChange={updateLipidField}
+              onSubmit={submitLipid}
+              onSave={saveLipidRecord}
+            />
+          )}
+          {activeTab === "nutrition" && (
+            <NutritionTab
+              form={nutritionForm}
+              advice={nutritionAdvice}
+              loading={nutritionLoading}
+              error={nutritionError}
+              history={nutritionHistory}
+              onFieldChange={updateNutritionField}
+              onSubmit={submitNutrition}
+            />
+          )}
+          {activeTab === "assistant" && (
+            <AssistantTab
+              messages={assistantMessages}
+              input={assistantInput}
+              loading={assistantLoading}
+              error={assistantError}
+              onInputChange={handleAssistantInput}
+              onSubmit={submitAssistant}
+              onReset={resetAssistant}
+            />
+          )}
+        </div>
+      </main>
+      <SettingsDialog
+        open={settingsOpen}
+        form={settingsForm}
+        saving={settingsSaving}
+        error={settingsError}
+        success={settingsSuccess}
+        onClose={closeSettings}
+        onSubmit={submitSettings}
+        onFieldChange={handleSettingsField}
+      />
+      <TabNavigation items={TAB_ITEMS} activeTab={activeTab} onSelect={setActiveTab} />
+    </div>
+  );
+});
 
-export default App
+export default App;
