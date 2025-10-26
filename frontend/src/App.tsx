@@ -181,8 +181,8 @@ const App = observer(() => {
           <div className="topbar-profile-text">
             <span className="topbar-profile-label">Аккаунт</span>
             <span className="topbar-profile-email">{userStore.me?.email ?? email}</span>
-          </div>
-          <button className="button ghost" type="button" onClick={openSettings}>
+          </div> 
+          <button className="button ghost"  onClick={openSettings}>
             Настройки
           </button>
           <button className="ghost" type="button" onClick={() => userStore.logout()}>
