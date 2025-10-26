@@ -195,6 +195,32 @@ body {
   box-shadow: 0 14px 24px -18px rgba(30, 63, 180, 0.6);
 }
 
+@media (max-width: 640px) {
+  #root {
+    max-width: none;
+    margin: 0;
+    padding: 1.5rem 1rem 7.5rem;
+  }
+
+  .tabbar {
+    position: fixed;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    width: 100vw;
+    max-width: none;
+    border-radius: 0;
+    padding: 0.75rem 1.25rem calc(0.85rem + env(safe-area-inset-bottom));
+    gap: 0.6rem;
+    background: #ffffffee;
+    box-shadow: 0 -4px 32px -12px rgba(47, 70, 175, 0.45);
+  }
+
+  .app-shell {
+    padding-bottom: 0;
+  }
+}
+
 .profile-meta {
   display: flex;
   align-items: center;
