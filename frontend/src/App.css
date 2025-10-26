@@ -162,8 +162,8 @@ body {
   bottom: 1.5rem;
   align-self: center;
   width: min(100%, 680px);
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(100px, 1fr));
+  display: flex;
+  flex-wrap: nowrap;
   gap: 0.75rem;
   padding: 0.85rem;
   padding-bottom: calc(0.85rem + env(safe-area-inset-bottom, 0));
@@ -186,6 +186,8 @@ body {
   gap: 0.25rem;
   align-items: center;
   justify-content: center;
+  flex: 1 1 0;
+  min-width: 0;
 }
 
 .tab-icon {
