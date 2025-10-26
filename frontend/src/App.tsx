@@ -171,8 +171,8 @@ const App = observer(() => {
   }
 
   return (
-    <div className="app-shell">
-      <header className="topbar">
+    <div className="app-shell text-slate-900">
+      <header className="topbar rounded-2xl bg-white/70 px-4 py-3 shadow-sm backdrop-blur md:px-6 md:py-4">
         <div className="brand">
           <h1>CholestoFit</h1>
           <p>Персональные рекомендации по здоровью</p>
@@ -182,7 +182,7 @@ const App = observer(() => {
             <span className="topbar-profile-label">Аккаунт</span>
             <span className="topbar-profile-email">{userStore.me?.email ?? email}</span>
           </div>
-          <button className="button ghost" href="/settings" onClick={openSettings}>
+          <button className="button ghost"  onClick={openSettings}>
             Настройки
           </button>
           <button className="ghost" type="button" onClick={() => userStore.logout()}>
@@ -190,7 +190,7 @@ const App = observer(() => {
           </button>
         </div>
       </header>
-      <main className="content">
+      <main className="content pb-6 md:pb-8">
         <div className="tab-container">
           {activeTab === "bp" && (
             <BloodPressureTab
@@ -250,7 +250,12 @@ const App = observer(() => {
         onSubmit={submitSettings}
         onFieldChange={handleSettingsField}
       />
-      <TabNavigation items={TAB_ITEMS} activeTab={activeTab} onSelect={setActiveTab} />
+      <TabNavigation
+        items={TAB_ITEMS}
+        activeTab={activeTab}
+        onSelect={setActiveTab}
+        className="border border-white/60 bg-white/80 shadow-2xl backdrop-blur md:bottom-8"
+      />
     </div>
   );
 });

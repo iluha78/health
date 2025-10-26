@@ -10,20 +10,26 @@ export type TabNavigationProps = {
   items: TabItem[];
   activeTab: TabKey;
   onSelect: (tab: TabKey) => void;
+  className?: string;
 };
 
-export const TabNavigation = ({ items, activeTab, onSelect }: TabNavigationProps) => (
-  <nav className="tabbar">
-    {items.map(item => (
-      <button
-        key={item.key}
-        type="button"
-        className={`tab-button${activeTab === item.key ? " active" : ""}`}
-        onClick={() => onSelect(item.key)}
-      >
-        <TabIconGlyph tab={item.key} />
-        <span className="tab-label">{item.label}</span>
-      </button>
-    ))}
-  </nav>
-);
+export const TabNavigation = ({ items, activeTab, onSelect, className }: TabNavigationProps) => {
+  const navClassName = className ? `tabbar ${className}` : "tabbar";
+
+  return (
+    <nav className={navClassName} aria-label="Основные разделы">
+      {items.map(item => (
+        <button
+          key={item.key}
+          type="button"
+          className={`tab-button${activeTab === item.key ? " active" : ""}`}
+          onClick={() => onSelect(item.key)}
+          aria-current={activeTab === item.key ? "page" : undefined}
+        >
+          <TabIconGlyph tab={item.key} />
+          <span className="tab-label">{item.label}</span>
+        </button>
+      ))}
+    </nav>
+  );
+};

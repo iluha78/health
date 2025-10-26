@@ -4,9 +4,10 @@
 }
 
 #root {
+  width: 100%;
   max-width: 1100px;
   margin: 0 auto;
-  padding: 2rem 1rem 7rem;
+  padding: 2rem 1.5rem 7.5rem;
   color: #1f2933;
 }
 
@@ -28,6 +29,7 @@ body {
   flex-direction: column;
   gap: 1.5rem;
   min-height: 100vh;
+  min-height: 100dvh;
 }
 
 .topbar {
@@ -35,6 +37,7 @@ body {
   justify-content: space-between;
   align-items: center;
   gap: 1.5rem;
+  flex-wrap: wrap;
 }
 
 .brand h1 {
@@ -52,11 +55,13 @@ body {
   display: flex;
   align-items: center;
   gap: 0.85rem;
+  flex-wrap: wrap;
   background: #ffffffcc;
   backdrop-filter: blur(6px);
   padding: 0.75rem 1.15rem;
   border-radius: 999px;
   box-shadow: 0 12px 24px -18px rgba(47, 70, 175, 0.4);
+  justify-content: center;
 }
 
 .topbar-profile-info {
@@ -90,6 +95,7 @@ body {
   border-radius: 999px;
   min-height: 40px;
   padding: 0.55rem 1.4rem;
+  flex: 0 0 auto;
 }
 
 .topbar-profile .button.ghost,
@@ -156,10 +162,11 @@ body {
   bottom: 1.5rem;
   align-self: center;
   width: min(100%, 680px);
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(100px, 1fr));
+  display: flex;
+  flex-wrap: nowrap;
   gap: 0.75rem;
   padding: 0.85rem;
+  padding-bottom: calc(0.85rem + env(safe-area-inset-bottom, 0));
   border-radius: 1.1rem;
   background: #ffffffd8;
   backdrop-filter: blur(16px);
@@ -179,6 +186,8 @@ body {
   gap: 0.25rem;
   align-items: center;
   justify-content: center;
+  flex: 1 1 0;
+  min-width: 0;
 }
 
 .tab-icon {
@@ -576,6 +585,7 @@ section h2 {
   gap: 0.75rem;
   align-items: center;
   margin-bottom: 0.75rem;
+  max-width: 655px;
 }
 
 .history-tag {
@@ -632,6 +642,7 @@ section h2 {
   line-height: 1.55;
   font-family: inherit;
   font-size: 0.95rem;
+  max-width: 625px;
 }
 
 .photo-history-item h4 {
@@ -746,18 +757,234 @@ details summary {
   font-weight: 600;
 }
 
-@media (max-width: 720px) {
-  .topbar {
-    flex-direction: column;
-    gap: 0.5rem;
+@media (max-width: 1024px) {
+  #root {
+    padding: 1.75rem 1.25rem 7rem;
   }
 
-  .tabbar {
+  .app-shell {
+    gap: 1.25rem;
+  }
+
+  .tab-container {
+    gap: 1.75rem;
+  }
+}
+
+@media (max-width: 768px) {
+  #root {
+    padding: 1.5rem 1.25rem 6.5rem;
+  }
+
+  .topbar {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.75rem;
+  }
+
+  .brand {
     width: 100%;
   }
 
+  .topbar-profile {
+    width: 100%;
+    justify-content: space-between;
+  }
+
+  .topbar-profile-text {
+    text-align: left;
+  }
+
+  .content {
+    padding-bottom: 1rem;
+  }
+
+  .form-card {
+    padding: 1.5rem 1.35rem 1.6rem;
+  }
+
+  .metrics-grid {
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  }
+}
+
+@media (max-width: 640px) {
   #root {
-    padding: 1.5rem 1rem 6rem;
+    padding: 1.25rem 1rem calc(5.5rem + env(safe-area-inset-bottom, 0));
+  }
+
+  .brand h1 {
+    font-size: 1.6rem;
+  }
+
+  .brand p {
+    font-size: 0.95rem;
+  }
+
+  .topbar {
+    gap: 0.75rem;
+  }
+
+  .topbar-profile {
+    flex-wrap: wrap;
+    gap: 0.6rem;
+    padding: 0.75rem 0.95rem;
+    border-radius: 1rem;
+  }
+
+  .topbar-profile .button,
+  .topbar-profile button {
+    flex: 1 1 48%;
+    width: 100%;
+  }
+
+  .tab-container {
+    gap: 1.5rem;
+  }
+
+  .form-card {
+    width: 100%;
+    margin: 0;
+    padding: 1.35rem 1.1rem 1.5rem;
+    border-radius: 1rem;
+  }
+
+  .metrics-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .form-actions {
+    flex-direction: column;
+    align-items: stretch;
+    justify-content: stretch;
+  }
+
+  .form-actions button {
+    width: 100%;
+  }
+
+  .form-actions .error {
+    order: 3;
+    text-align: left;
+  }
+
+  .advice-result,
+  .history-card {
+    padding: 1.25rem 1.1rem;
+  }
+
+  .history-meta {
+    gap: 0.6rem;
+  }
+
+  .assistant-form {
+    flex-direction: column;
+  }
+
+  .assistant-message {
+    max-width: 100%;
+  }
+
+  .assistant-actions {
+    justify-content: stretch;
+  }
+
+  .assistant-actions button {
+    flex: 1 1 auto;
+    width: 100%;
+  }
+
+  .settings-overlay {
+    padding: 1.25rem 1rem;
+    align-items: flex-end;
+  }
+
+  .settings-card {
+    width: 100%;
+    border-radius: 1.2rem;
+    padding: 1.6rem;
+    max-height: calc(100dvh - 2.5rem);
+  }
+
+  .settings-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .settings-actions {
+    justify-content: stretch;
+  }
+
+  .settings-actions button {
+    flex: 1 1 auto;
+  }
+
+  .settings-actions .settings-success,
+  .settings-actions .error {
+    margin-left: 0;
+    text-align: left;
+    width: 100%;
+  }
+
+  .tabbar {
+    position: fixed;
+    left: 1rem;
+    right: 1rem;
+    bottom: 1rem;
+    width: auto;
+    border-radius: 1rem;
+    padding: 0.75rem;
+    padding-bottom: calc(0.75rem + env(safe-area-inset-bottom, 0));
+  }
+}
+
+@media (max-width: 480px) {
+  .brand h1 {
+    font-size: 1.45rem;
+  }
+
+  .brand p {
+    font-size: 0.9rem;
+  }
+
+  .topbar-profile {
+    gap: 0.5rem;
+  }
+
+  .topbar-profile .button,
+  .topbar-profile button {
+    flex: 1 1 100%;
+  }
+
+  .tab-button {
+    padding: 0.5rem;
+    gap: 0.2rem;
+  }
+
+  .tab-label {
+    font-size: 0.75rem;
+  }
+
+  .history-meta {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .settings-card {
+    padding: 1.5rem;
+  }
+}
+
+@media (max-width: 400px) {
+  .brand h1 {
+    font-size: 1.35rem;
+  }
+
+  .tab-label {
+    display: none;
+  }
+
+  .tab-button {
+    padding: 0.6rem;
   }
 }
 
