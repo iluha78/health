@@ -187,6 +187,32 @@ body {
   display: block;
 }
 
+@media (max-width: 1200px) {
+  #root {
+    max-width: none;
+    margin: 0;
+    padding: 1.5rem 1rem 7.5rem;
+  }
+
+  .tabbar {
+    position: fixed;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    width: 100vw;
+    max-width: none;
+    border-radius: 0;
+    padding: 0.75rem 1.25rem calc(0.85rem + env(safe-area-inset-bottom));
+    gap: 0.6rem;
+    background: #ffffffee;
+    box-shadow: 0 -4px 32px -12px rgba(47, 70, 175, 0.45);
+  }
+
+  .app-shell {
+    padding-bottom: 0;
+  }
+}
+
 .tab-label {
   font-size: 0.85rem;
 }
@@ -749,6 +775,167 @@ details summary {
 @media (max-width: 720px) {
   .topbar {
     flex-direction: column;
+<<<<<<< Updated upstream
+=======
+    align-items: flex-start;
+    gap: 0.75rem;
+  }
+
+  .brand {
+    width: 100%;
+  }
+
+  .topbar-profile {
+    width: 100%;
+    justify-content: space-between;
+  }
+
+  .topbar-profile-text {
+    text-align: left;
+  }
+
+  .content {
+    padding-bottom: 1rem;
+  }
+
+  .form-card {
+    padding: 1.5rem 1.35rem 1.6rem;
+  }
+
+  .metrics-grid {
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  }
+}
+
+@media (max-width: 640px) {
+  #root {
+    padding: 1.25rem 1rem calc(5.5rem + env(safe-area-inset-bottom, 0));
+  }
+
+  .brand h1 {
+    font-size: 1.6rem;
+  }
+
+  .brand p {
+    font-size: 0.95rem;
+  }
+
+  .topbar {
+    gap: 0.75rem;
+  }
+
+  .topbar-profile {
+    flex-wrap: wrap;
+    gap: 0.6rem;
+    padding: 0.75rem 0.95rem;
+    border-radius: 1rem;
+  }
+
+  .topbar-profile .button,
+  .topbar-profile button {
+    flex: 1 1 48%;
+    width: 100%;
+  }
+
+  .tab-container {
+    gap: 1.5rem;
+  }
+
+  .form-card {
+    width: 100%;
+    margin: 0;
+    padding: 1.35rem 1.1rem 1.5rem;
+    border-radius: 1rem;
+  }
+
+  .metrics-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .form-actions {
+    flex-direction: column;
+    align-items: stretch;
+    justify-content: stretch;
+  }
+
+  .form-actions button {
+    width: 100%;
+  }
+
+  .form-actions .error {
+    order: 3;
+    text-align: left;
+  }
+
+  .advice-result,
+  .history-card {
+    padding: 1.25rem 1.1rem;
+  }
+
+  .history-meta {
+    gap: 0.6rem;
+  }
+
+  .assistant-form {
+    flex-direction: column;
+  }
+
+  .assistant-message {
+    max-width: 100%;
+  }
+
+  .assistant-actions {
+    justify-content: stretch;
+  }
+
+  .assistant-actions button {
+    flex: 1 1 auto;
+    width: 100%;
+  }
+
+  .settings-overlay {
+    padding: 1.25rem 1rem;
+    align-items: flex-end;
+  }
+
+  .settings-card {
+    width: 100%;
+    border-radius: 1.2rem;
+    padding: 1.6rem;
+    max-height: calc(100dvh - 2.5rem);
+  }
+
+  .settings-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .settings-actions {
+    justify-content: stretch;
+  }
+
+  .settings-actions button {
+    flex: 1 1 auto;
+  }
+
+  .settings-actions .settings-success,
+  .settings-actions .error {
+    margin-left: 0;
+    text-align: left;
+    width: 100%;
+  }
+}
+
+@media (max-width: 480px) {
+  .brand h1 {
+    font-size: 1.45rem;
+  }
+
+  .brand p {
+    font-size: 0.9rem;
+  }
+
+  .topbar-profile {
+>>>>>>> Stashed changes
     gap: 0.5rem;
   }
 
