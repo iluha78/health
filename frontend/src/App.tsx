@@ -14,7 +14,7 @@ import { NutritionTab } from "./features/nutrition/NutritionTab";
 import { useAssistantChat } from "./features/assistant/useAssistantChat";
 import { AssistantTab } from "./features/assistant/AssistantTab";
 import { SettingsDialog } from "./features/settings/SettingsDialog";
-import { useSettingsState } from "./features/settings/useSettingsState";
+import { useSettingsState, type SettingsTabKey } from "./features/settings/useSettingsState";
 import { useBillingControls } from "./features/settings/useBillingControls";
 import { requestAssistantPrompt } from "./lib/assistant";
 import "./App.css";
@@ -75,7 +75,6 @@ const App = observer(() => {
 
   const userId = userStore.me?.id ?? null;
   const billing = userStore.billing;
-  const planLabel = billing?.plan_label ?? "Загрузка...";
   const balanceLabel = billing ? `${billing.balance} ${billing.currency}` : "—";
 
   const { adviceEnabled, adviceDisabledReason, assistantEnabled, assistantDisabledReason } = useMemo(() => {
@@ -207,11 +206,13 @@ const App = observer(() => {
     saving: settingsSaving,
     error: settingsError,
     success: settingsSuccess,
+    activeTab: settingsActiveTab,
     openDialog: openSettings,
     closeDialog: closeSettings,
     handleFieldChange: handleSettingsField,
     submit: submitSettings,
-    reset: resetSettings
+    reset: resetSettings,
+    setActiveTab: setSettingsActiveTab
   } = useSettingsState(userStore, jsonHeaders);
 
   const {
@@ -253,13 +254,18 @@ const App = observer(() => {
     closeSettings();
   }, [closeSettings, resetBillingFlags]);
 
-  const handlePlanChangeClick = useCallback(() => {
-    resetBillingFlags();
-    if (billing?.plan) {
-      setSelectedPlan(billing.plan);
-    }
-    openSettings();
-  }, [billing?.plan, openSettings, resetBillingFlags, setSelectedPlan]);
+  const handleSettingsTabSelect = useCallback(
+    (tab: SettingsTabKey) => {
+      if (tab === "billing") {
+        resetBillingFlags();
+        if (billing?.plan) {
+          setSelectedPlan(billing.plan);
+        }
+      }
+      setSettingsActiveTab(tab);
+    },
+    [billing?.plan, resetBillingFlags, setSelectedPlan, setSettingsActiveTab]
+  );
 
   useEffect(() => {
     if (userStore.token) {
@@ -313,20 +319,6 @@ const App = observer(() => {
           <div className="topbar-profile-text">
             <span className="topbar-profile-label">Аккаунт</span>
             <span className="topbar-profile-email">{userStore.me?.email ?? email}</span>
-            <div className="topbar-plan-row">
-              <span className="topbar-plan-chip" title={`Ваш текущий тариф: ${planLabel}`}>
-                <span className="topbar-plan-chip-label">Тариф</span>
-                <span className="topbar-plan-chip-value">{planLabel}</span>
-              </span>
-              <button
-                type="button"
-                className="button ghost small topbar-plan-change"
-                onClick={handlePlanChangeClick}
-                disabled={!billing}
-              >
-                Сменить тариф
-              </button>
-            </div>
             <span className="topbar-profile-meta">Баланс: {balanceLabel}</span>
           </div>
           <div className="topbar-actions">
@@ -428,6 +420,8 @@ const App = observer(() => {
         planError={planError}
         planSuccess={planSuccess}
         onPlanSubmit={submitPlanChange}
+        activeTab={settingsActiveTab}
+        onSelectTab={handleSettingsTabSelect}
         onClose={handleCloseSettings}
         onSubmit={submitSettings}
         onFieldChange={handleSettingsField}
