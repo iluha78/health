@@ -3,7 +3,6 @@ declare(strict_types=1);
 
 use App\Support\Env;
 use App\Support\MigrationRunner;
-use Throwable;
 
 require __DIR__ . '/../vendor/autoload.php';
 
@@ -25,8 +24,17 @@ try {
         $stream = $level === 'error' ? STDERR : STDOUT;
         fwrite($stream, $message . PHP_EOL);
     });
-} catch (Throwable $e) {
-    fwrite(STDERR, "✘ Ошибка миграции: {$e->getMessage()}\n");
+} catch (\Throwable $e) {
+    $message = $e->getMessage();
+    fwrite(STDERR, "✘ Ошибка миграции: {$message}\n");
+
+    if (str_contains($message, 'getaddrinfo')) {
+        fwrite(
+            STDERR,
+            "Убедитесь, что переменная DB_HOST в .env указывает на доступный сервер MySQL. " .
+            "Для запуска в Docker используйте имя службы (например, db), а для локальной машины — IP-адрес (например, 127.0.0.1).\n"
+        );
+    }
     exit(1);
 }
 
