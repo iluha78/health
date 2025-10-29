@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
-import type { FormEvent } from "react";
+import type { FormEvent, MouseEvent as ReactMouseEvent } from "react";
 import { observer } from "mobx-react-lite";
 import { userStore } from "./stores/user";
 import type { TabKey } from "./types/forms";
@@ -15,6 +15,7 @@ import { useAssistantChat } from "./features/assistant/useAssistantChat";
 import { AssistantTab } from "./features/assistant/AssistantTab";
 import { SettingsDialog } from "./features/settings/SettingsDialog";
 import { useSettingsState } from "./features/settings/useSettingsState";
+import { useBillingControls } from "./features/settings/useBillingControls";
 import { requestAssistantPrompt } from "./lib/assistant";
 import "./App.css";
 
@@ -41,10 +42,61 @@ const App = observer(() => {
   }, [userStore.token]);
 
   const userId = userStore.me?.id ?? null;
+  const billing = userStore.billing;
+
+  const { adviceEnabled, adviceDisabledReason, assistantEnabled, assistantDisabledReason } = useMemo(() => {
+    if (!billing) {
+      return {
+        adviceEnabled: false,
+        adviceDisabledReason: "Загрузка данных тарифа...",
+        assistantEnabled: false,
+        assistantDisabledReason: "Загрузка данных тарифа...",
+      };
+    }
+    const balanceCents = billing.balance_cents;
+    const remainingCents = billing.ai_usage.remaining_cents;
+    const adviceCost = billing.costs.advice_cents;
+    const assistantCost = billing.costs.assistant_cents;
+
+    let adviceReason: string | null = null;
+    if (!billing.features.advice) {
+      adviceReason = "Ваш тариф не включает AI-советы.";
+    } else if (balanceCents < adviceCost) {
+      adviceReason = "Недостаточно средств на балансе.";
+    } else if (remainingCents < adviceCost) {
+      adviceReason = "Достигнут месячный лимит расходов на AI.";
+    }
+
+    let assistantReason: string | null = null;
+    if (!billing.features.assistant) {
+      assistantReason = "Ваш тариф не включает AI-ассистента.";
+    } else if (balanceCents < assistantCost) {
+      assistantReason = "Недостаточно средств на балансе.";
+    } else if (remainingCents < assistantCost) {
+      assistantReason = "Достигнут месячный лимит расходов на AI.";
+    }
+
+    return {
+      adviceEnabled: adviceReason === null,
+      adviceDisabledReason: adviceReason,
+      assistantEnabled: assistantReason === null,
+      assistantDisabledReason: assistantReason,
+    };
+  }, [billing]);
 
   const requestAdvice = useCallback(
-    (prompt: string) => requestAssistantPrompt(jsonHeaders, prompt),
-    [jsonHeaders]
+    async (prompt: string) => {
+      if (!jsonHeaders) {
+        throw new Error("Необходимо войти в систему");
+      }
+      if (!adviceEnabled) {
+        throw new Error(adviceDisabledReason ?? "AI-советы недоступны");
+      }
+      const reply = await requestAssistantPrompt(jsonHeaders, prompt);
+      await userStore.refresh();
+      return reply;
+    },
+    [adviceDisabledReason, adviceEnabled, jsonHeaders, userStore]
   );
 
   const {
@@ -105,7 +157,15 @@ const App = observer(() => {
     handleInputChange: handleAssistantInput,
     submit: submitAssistant,
     reset: resetAssistant
-  } = useAssistantChat(userStore.token, jsonHeaders);
+  } = useAssistantChat(
+    userStore.token,
+    jsonHeaders,
+    assistantEnabled,
+    assistantDisabledReason,
+    async () => {
+      await userStore.refresh();
+    }
+  );
 
   const {
     open: settingsOpen,
@@ -120,6 +180,22 @@ const App = observer(() => {
     reset: resetSettings
   } = useSettingsState(userStore, jsonHeaders);
 
+  const {
+    depositAmount,
+    depositLoading,
+    depositError,
+    depositSuccess,
+    setDepositAmount,
+    submitDeposit,
+    selectedPlan,
+    setSelectedPlan,
+    planLoading,
+    planError,
+    planSuccess,
+    submitPlanChange,
+    resetFlags: resetBillingFlags
+  } = useBillingControls(userStore, jsonHeaders);
+
   const resetAll = useCallback(() => {
     setActiveTab("bp");
     resetBp();
@@ -127,7 +203,21 @@ const App = observer(() => {
     resetNutrition();
     resetAssistant();
     resetSettings();
-  }, [resetAssistant, resetBp, resetLipid, resetNutrition, resetSettings]);
+    resetBillingFlags();
+  }, [resetAssistant, resetBillingFlags, resetBp, resetLipid, resetNutrition, resetSettings]);
+
+  const handleOpenSettings = useCallback(
+    (event?: ReactMouseEvent<HTMLAnchorElement | HTMLButtonElement>) => {
+      resetBillingFlags();
+      openSettings(event);
+    },
+    [openSettings, resetBillingFlags]
+  );
+
+  const handleCloseSettings = useCallback(() => {
+    resetBillingFlags();
+    closeSettings();
+  }, [closeSettings, resetBillingFlags]);
 
   useEffect(() => {
     if (userStore.token) {
@@ -181,8 +271,11 @@ const App = observer(() => {
           <div className="topbar-profile-text">
             <span className="topbar-profile-label">Аккаунт</span>
             <span className="topbar-profile-email">{userStore.me?.email ?? email}</span>
+            <span className="topbar-profile-meta">
+              Тариф: {billing?.plan_label ?? "—"} · Баланс: ${billing?.balance ?? "0.00"}
+            </span>
           </div>
-          <button className="button ghost"  onClick={openSettings}>
+          <button className="button ghost" onClick={handleOpenSettings}>
             Настройки
           </button>
           <button className="ghost" type="button" onClick={() => userStore.logout()}>
@@ -198,6 +291,8 @@ const App = observer(() => {
               advice={bpAdvice}
               loading={bpLoading}
               error={bpError}
+              disabled={!adviceEnabled}
+              disabledReason={adviceDisabledReason}
               history={bpHistory}
               onFieldChange={updateBpField}
               onSubmit={submitBp}
@@ -210,6 +305,8 @@ const App = observer(() => {
               advice={lipidAdvice}
               loading={lipidLoading}
               error={lipidError}
+              disabled={!adviceEnabled}
+              disabledReason={adviceDisabledReason}
               history={lipidHistory}
               onFieldChange={updateLipidField}
               onSubmit={submitLipid}
@@ -222,6 +319,8 @@ const App = observer(() => {
               advice={nutritionAdvice}
               loading={nutritionLoading}
               error={nutritionError}
+              disabled={!adviceEnabled}
+              disabledReason={adviceDisabledReason}
               history={nutritionHistory}
               onFieldChange={updateNutritionField}
               onSubmit={submitNutrition}
@@ -233,6 +332,8 @@ const App = observer(() => {
               input={assistantInput}
               loading={assistantLoading}
               error={assistantError}
+              disabled={!assistantEnabled}
+              disabledReason={assistantDisabledReason}
               onInputChange={handleAssistantInput}
               onSubmit={submitAssistant}
               onReset={resetAssistant}
@@ -246,7 +347,20 @@ const App = observer(() => {
         saving={settingsSaving}
         error={settingsError}
         success={settingsSuccess}
-        onClose={closeSettings}
+        billing={billing ?? null}
+        depositAmount={depositAmount}
+        depositLoading={depositLoading}
+        depositError={depositError}
+        depositSuccess={depositSuccess}
+        onDepositAmountChange={value => setDepositAmount(value)}
+        onDepositSubmit={submitDeposit}
+        selectedPlan={selectedPlan}
+        onSelectPlan={value => setSelectedPlan(value)}
+        planLoading={planLoading}
+        planError={planError}
+        planSuccess={planSuccess}
+        onPlanSubmit={submitPlanChange}
+        onClose={handleCloseSettings}
         onSubmit={submitSettings}
         onFieldChange={handleSettingsField}
       />

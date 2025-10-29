@@ -2,6 +2,7 @@
 namespace App\Controllers;
 
 use App\Models\User;
+use App\Services\SubscriptionService;
 use App\Support\Env;
 use App\Support\ResponseHelper;
 use Firebase\JWT\JWT;
@@ -32,6 +33,13 @@ class AuthController
             'email'      => $email,
             'pass_hash'  => password_hash($pass, PASSWORD_DEFAULT),
             'created_at' => date('Y-m-d H:i:s'),
+            'plan'       => SubscriptionService::PLAN_FREE,
+            'balance_cents' => 0,
+            'ai_cycle_started_at' => SubscriptionService::currentCycleDate(),
+            'ai_cycle_requests' => 0,
+            'ai_cycle_spent_cents' => 0,
+            'ai_cycle_advice_requests' => 0,
+            'ai_cycle_assistant_requests' => 0,
         ]);
 
         return ResponseHelper::json($response, [

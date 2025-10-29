@@ -16,6 +16,8 @@ class MeController
             'id'         => $user->id,
             'email'      => $user->email,
             'created_at' => $user->created_at,
+            'plan'       => $user->plan,
+            'balance_cents' => (int) $user->balance_cents,
         ]);
     }
 }

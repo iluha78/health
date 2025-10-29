@@ -1,5 +1,5 @@
 import { makeAutoObservable, runInAction } from "mobx";
-import type { ApiError, AuthSuccess, ProfileTargets, UserSummary } from "../types/api";
+import type { ApiError, AuthSuccess, BillingStatus, ProfileTargets, UserSummary } from "../types/api";
 import { apiUrl } from "../lib/api";
 
 const TOKEN_STORAGE_KEY = "cholestofit_token";
@@ -11,6 +11,7 @@ export class UserStore {
     token: string | null = null;
     me: UserSummary | null = null;
     targets: ProfileTargets | null = null;
+    billing: BillingStatus | null = null;
     error: string | null = null;
 
     constructor(){
@@ -91,11 +92,15 @@ export class UserStore {
     async refresh(){
         if (!this.token) return;
         try {
-            const me = await this._get<UserSummary>("/me");
-            const targets = await this._get<ProfileTargets>("/targets");
+            const [me, targets, billing] = await Promise.all([
+                this._get<UserSummary>("/me"),
+                this._get<ProfileTargets>("/targets"),
+                this._get<BillingStatus>("/billing/status"),
+            ]);
             runInAction(() => {
                 this.me = me;
                 this.targets = targets;
+                this.billing = billing;
             });
         } catch (err) {
             console.error(err);
@@ -133,6 +138,7 @@ export class UserStore {
             this.token = null;
             this.me = null;
             this.targets = null;
+            this.billing = null;
         });
         this.persistToken();
     }

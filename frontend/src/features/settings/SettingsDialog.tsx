@@ -1,4 +1,5 @@
 import type { FormEvent } from "react";
+import type { BillingStatus } from "../../types/api";
 import type { SettingsFormState } from "../../types/forms";
 
 export type SettingsDialogProps = {
@@ -7,6 +8,19 @@ export type SettingsDialogProps = {
   saving: boolean;
   error: string | null;
   success: boolean;
+  billing: BillingStatus | null;
+  depositAmount: string;
+  depositLoading: boolean;
+  depositError: string | null;
+  depositSuccess: boolean;
+  onDepositAmountChange: (value: string) => void;
+  onDepositSubmit: () => void;
+  selectedPlan: string;
+  onSelectPlan: (plan: string) => void;
+  planLoading: boolean;
+  planError: string | null;
+  planSuccess: boolean;
+  onPlanSubmit: () => void;
   onClose: () => void;
   onSubmit: (event: FormEvent<HTMLFormElement>) => void;
   onFieldChange: <TKey extends keyof SettingsFormState>(key: TKey, value: string) => void;
@@ -18,11 +32,33 @@ export const SettingsDialog = ({
   saving,
   error,
   success,
+  billing,
+  depositAmount,
+  depositLoading,
+  depositError,
+  depositSuccess,
+  onDepositAmountChange,
+  onDepositSubmit,
+  selectedPlan,
+  onSelectPlan,
+  planLoading,
+  planError,
+  planSuccess,
+  onPlanSubmit,
   onClose,
   onSubmit,
   onFieldChange
 }: SettingsDialogProps) => {
   if (!open) return null;
+  const formatCents = (value: number) => (value / 100).toFixed(2);
+  const handleDepositSubmit = (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    onDepositSubmit();
+  };
+  const handlePlanSubmit = (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    onPlanSubmit();
+  };
   return (
     <div className="settings-overlay" role="dialog" aria-modal="true">
       <div className="card settings-card">
@@ -125,6 +161,80 @@ export const SettingsDialog = ({
             {success && <p className="success">Профиль обновлен</p>}
           </div>
         </form>
+        {billing && (
+          <section className="billing-section">
+            <h3>Баланс и тариф</h3>
+            <div className="billing-summary">
+              <div>
+                <span className="billing-label">Текущий тариф</span>
+                <strong>{billing.plan_label}</strong>
+                <p className="muted">Месячный платёж: ${formatCents(billing.monthly_fee_cents)}</p>
+              </div>
+              <div>
+                <span className="billing-label">Баланс</span>
+                <strong>{billing.balance} {billing.currency}</strong>
+                <p className="muted">
+                  Расходы AI в этом месяце: ${formatCents(billing.ai_usage.spent_cents)} из ${formatCents(billing.ai_usage.budget_cents)}
+                </p>
+              </div>
+            </div>
+            <div className="billing-grid">
+              <form className="billing-form" onSubmit={handleDepositSubmit}>
+                <h4>Пополнить баланс</h4>
+                <label>
+                  Сумма, USD
+                  <input
+                    type="number"
+                    min="0"
+                    step="0.01"
+                    inputMode="decimal"
+                    value={depositAmount}
+                    onChange={event => onDepositAmountChange(event.target.value)}
+                  />
+                </label>
+                <button type="submit" disabled={depositLoading}>
+                  {depositLoading ? "Пополняем..." : "Пополнить"}
+                </button>
+                {depositError && <p className="error">{depositError}</p>}
+                {depositSuccess && <p className="success">Баланс пополнен</p>}
+              </form>
+              <form className="billing-form" onSubmit={handlePlanSubmit}>
+                <h4>Выбрать тариф</h4>
+                <div className="plan-options">
+                  {billing.plans.map(plan => (
+                    <label key={plan.code} className={`plan-option ${selectedPlan === plan.code ? "active" : ""}`}>
+                      <input
+                        type="radio"
+                        name="plan"
+                        value={plan.code}
+                        checked={selectedPlan === plan.code}
+                        onChange={() => onSelectPlan(plan.code)}
+                      />
+                      <div className="plan-option-body">
+                        <div className="plan-option-header">
+                          <span className="plan-name">{plan.label}</span>
+                          <span className="plan-price">${formatCents(plan.monthly_fee_cents)}</span>
+                        </div>
+                        <ul className="plan-features">
+                          <li>{plan.features.advice ? "AI-советы доступны" : "AI-советы недоступны"}</li>
+                          <li>{plan.features.assistant ? "AI-ассистент доступен" : "AI-ассистент недоступен"}</li>
+                        </ul>
+                      </div>
+                    </label>
+                  ))}
+                </div>
+                <button type="submit" disabled={planLoading}>
+                  {planLoading ? "Обновляем..." : "Сохранить тариф"}
+                </button>
+                {planError && <p className="error">{planError}</p>}
+                {planSuccess && <p className="success">Тариф обновлен</p>}
+              </form>
+            </div>
+            <p className="muted billing-note">
+              Лимит расходов на AI — ${formatCents(billing.ai_usage.budget_cents)} в месяц. Один совет стоит ${formatCents(billing.costs.advice_cents)}, обращение к ассистенту — ${formatCents(billing.costs.assistant_cents)}.
+            </p>
+          </section>
+        )}
       </div>
     </div>
   );

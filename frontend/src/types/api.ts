@@ -11,6 +11,8 @@ export interface UserSummary {
   id: number;
   email: string;
   created_at?: string;
+  plan?: string;
+  balance_cents?: number;
 }
 
 export interface ProfileTargets {
@@ -108,6 +110,43 @@ export interface AssistantReply {
   error?: string;
   history?: AssistantHistoryItem[];
   [key: string]: unknown;
+}
+
+export interface BillingPlan {
+  code: string;
+  label: string;
+  monthly_fee_cents: number;
+  features: {
+    advice: boolean;
+    assistant: boolean;
+  };
+}
+
+export interface BillingStatus {
+  plan: string;
+  plan_label: string;
+  monthly_fee_cents: number;
+  balance_cents: number;
+  balance: string;
+  currency: string;
+  features: {
+    advice: boolean;
+    assistant: boolean;
+  };
+  ai_usage: {
+    month_started_at: string | null;
+    budget_cents: number;
+    spent_cents: number;
+    remaining_cents: number;
+    requests: number;
+    advice_requests: number;
+    assistant_requests: number;
+  };
+  costs: {
+    advice_cents: number;
+    assistant_cents: number;
+  };
+  plans: BillingPlan[];
 }
 
 const isRecord = (value: unknown): value is Record<string, unknown> =>

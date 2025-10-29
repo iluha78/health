@@ -5,6 +5,8 @@ use App\Models\Lipid;
 use App\Models\NutritionAdvice;
 use App\Models\Profile;
 use App\Services\OpenAiService;
+use App\Services\SubscriptionException;
+use App\Services\SubscriptionService;
 use App\Support\Auth;
 use App\Support\ResponseHelper;
 use Psr\Http\Message\ResponseInterface as Response;
@@ -22,6 +24,12 @@ class AdviceController
 
         $data = (array) $request->getParsedBody();
         $focus = trim((string) ($data['focus'] ?? ''));
+
+        try {
+            SubscriptionService::ensureAdviceAccess($user);
+        } catch (SubscriptionException $e) {
+            return ResponseHelper::json($response, ['error' => $e->getMessage()], $e->getStatus());
+        }
 
         $service = new OpenAiService();
         if (!$service->isConfigured()) {
@@ -81,11 +89,63 @@ class AdviceController
             'focus'   => $focus !== '' ? $focus : null,
             'advice'  => $advice,
         ]);
+        SubscriptionService::recordAdviceUsage($user);
         $record->refresh();
 
         return ResponseHelper::json($response, [
             'advice'  => $advice,
             'history' => $this->serializeHistory([$record]),
+        ]);
+    }
+
+    public function general(Request $request, Response $response): Response
+    {
+        $user = Auth::user($request);
+
+        $data = (array) $request->getParsedBody();
+        $prompt = trim((string) ($data['prompt'] ?? ''));
+        if ($prompt === '') {
+            return ResponseHelper::json($response, ['error' => 'Опишите вопрос для получения совета'], 422);
+        }
+
+        try {
+            SubscriptionService::ensureAdviceAccess($user);
+        } catch (SubscriptionException $e) {
+            return ResponseHelper::json($response, ['error' => $e->getMessage()], $e->getStatus());
+        }
+
+        $service = new OpenAiService();
+        if (!$service->isConfigured()) {
+            return ResponseHelper::json($response, [
+                'error' => 'AI-сервисы не настроены. Укажите ключ OPENAI_API_KEY.',
+            ], 500);
+        }
+
+        try {
+            $advice = $service->chat([
+                [
+                    'role' => 'system',
+                    'content' => 'Ты — заботливый российский врач. Дай практичные, безопасные и основанные на фактах советы по ' .
+                        'здоровью. Всегда напоминай о необходимости обратиться к врачу при тревожных симптомах.',
+                ],
+                [
+                    'role' => 'user',
+                    'content' => $prompt,
+                ],
+            ], [
+                'temperature' => 0.4,
+                'max_tokens' => 700,
+            ]);
+        } catch (\Throwable $e) {
+            return ResponseHelper::json($response, [
+                'error' => 'Не удалось получить рекомендации: ' . $e->getMessage(),
+            ], 500);
+        }
+
+        SubscriptionService::recordAdviceUsage($user);
+
+        return ResponseHelper::json($response, [
+            'advice' => $advice,
         ]);
     }
 

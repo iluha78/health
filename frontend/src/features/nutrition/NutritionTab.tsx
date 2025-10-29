@@ -7,6 +7,8 @@ export type NutritionTabProps = {
   advice: string;
   loading: boolean;
   error: string | null;
+  disabled: boolean;
+  disabledReason: string | null;
   history: NutritionRecord[];
   onFieldChange: (key: keyof NutritionFormState, value: string) => void;
   onSubmit: (event: FormEvent<HTMLFormElement>) => void;
@@ -20,6 +22,8 @@ export const NutritionTab = ({
   advice,
   loading,
   error,
+  disabled,
+  disabledReason,
   history,
   onFieldChange,
   onSubmit
@@ -27,6 +31,9 @@ export const NutritionTab = ({
   <div className="tab-panel tab-stack">
     <h2>Консультация нутрициолога</h2>
     <form className="card form-card" onSubmit={onSubmit}>
+      {disabled && (
+        <p className="error">{disabledReason ?? "Получение советов недоступно"}</p>
+      )}
       <div className="metrics-grid">
         <label>
           Вес, кг
@@ -72,10 +79,10 @@ export const NutritionTab = ({
         />
       </label>
       <div className="form-actions">
-        <button type="submit" disabled={loading}>
+        <button type="submit" disabled={loading || disabled}>
           {loading ? "Запрашиваем рекомендации..." : "Получить советы"}
         </button>
-        {error && <p className="error">{error}</p>}
+        {!disabled && error && <p className="error">{error}</p>}
       </div>
     </form>
     {advice && (

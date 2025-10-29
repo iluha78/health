@@ -7,6 +7,8 @@ export type LipidTabProps = {
   advice: string;
   loading: boolean;
   error: string | null;
+  disabled: boolean;
+  disabledReason: string | null;
   history: LipidRecord[];
   onFieldChange: (key: keyof LipidFormState, value: string) => void;
   onSubmit: (event: FormEvent<HTMLFormElement>) => void;
@@ -21,6 +23,8 @@ export const LipidTab = ({
   advice,
   loading,
   error,
+  disabled,
+  disabledReason,
   history,
   onFieldChange,
   onSubmit,
@@ -29,6 +33,9 @@ export const LipidTab = ({
   <div className="tab-panel tab-stack">
     <h2>Липидный профиль и сахар</h2>
     <form className="card form-card" onSubmit={onSubmit}>
+      {disabled && (
+        <p className="error">{disabledReason ?? "Получение советов недоступно"}</p>
+      )}
       <div className="metrics-grid">
         <label>
           Дата анализа
@@ -105,10 +112,10 @@ export const LipidTab = ({
         <button type="button" className="ghost" onClick={onSave} disabled={loading}>
           Сохранить показатели
         </button>
-        <button type="submit" disabled={loading}>
+        <button type="submit" disabled={loading || disabled}>
           {loading ? "Запрашиваем рекомендации..." : "Получить советы"}
         </button>
-        {error && <p className="error">{error}</p>}
+        {!disabled && error && <p className="error">{error}</p>}
       </div>
     </form>
     {advice && (
