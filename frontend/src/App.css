@@ -64,6 +64,12 @@ body {
   justify-content: center;
 }
 
+.topbar-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+}
+
 .topbar-profile-info {
   display: flex;
   align-items: center;
@@ -109,6 +115,7 @@ body {
   flex-direction: column;
   gap: 0.2rem;
   text-align: right;
+  flex: 1 1 auto;
 }
 
 .topbar-profile-label {
@@ -125,6 +132,76 @@ body {
 .topbar-profile-meta {
   font-size: 0.75rem;
   color: #4b5c83;
+}
+
+.topbar-plan-row {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.topbar-plan-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  padding: 0.25rem 0.85rem;
+  border-radius: 999px;
+  background: rgba(58, 87, 241, 0.12);
+  color: #2f46af;
+  font-weight: 600;
+  line-height: 1.2;
+}
+
+.topbar-plan-chip-label {
+  font-size: 0.65rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: #4b5c83;
+  font-weight: 700;
+}
+
+.topbar-plan-chip-value {
+  font-size: 0.85rem;
+}
+
+.topbar-plan-change {
+  border-color: rgba(58, 87, 241, 0.4);
+  color: #2f46af;
+}
+
+.topbar-plan-change:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.topbar-icon-button {
+  min-height: 40px;
+  width: 40px;
+  padding: 0;
+  border-radius: 999px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-color: rgba(58, 87, 241, 0.5);
+  color: #3a57f1;
+}
+
+.topbar-icon-button:hover {
+  background: rgba(58, 87, 241, 0.12);
+}
+
+.topbar-icon {
+  width: 1.2rem;
+  height: 1.2rem;
+}
+
+.button.small,
+button.small {
+  padding: 0.45rem 1.1rem;
+  min-height: 36px;
+  font-size: 0.85rem;
 }
 
 .content {

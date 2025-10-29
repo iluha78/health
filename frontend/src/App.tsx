@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
-import type { FormEvent, MouseEvent as ReactMouseEvent } from "react";
+import type { FormEvent, MouseEvent as ReactMouseEvent, SVGProps } from "react";
 import { observer } from "mobx-react-lite";
 import { userStore } from "./stores/user";
 import type { TabKey } from "./types/forms";
@@ -26,6 +26,38 @@ const TAB_ITEMS: TabItem[] = [
   { key: "assistant", label: "AI ассистент" }
 ];
 
+const SettingsIcon = (props: SVGProps<SVGSVGElement>) => (
+  <svg
+    aria-hidden="true"
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth={1.5}
+    strokeLinecap="round"
+    strokeLinejoin="round"
+    {...props}
+  >
+    <path d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 0 0 2.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 0 0 1.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 0 0-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 0 0-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 0 0-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 0 0-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 0 0 1.066-2.573c-.94-1.543.826-3.31 2.37-2.37a1.724 1.724 0 0 0 2.572-1.065z" />
+    <path d="M15 12a3 3 0 1 1-6 0 3 3 0 0 1 6 0z" />
+  </svg>
+);
+
+const LogoutIcon = (props: SVGProps<SVGSVGElement>) => (
+  <svg
+    aria-hidden="true"
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth={1.5}
+    strokeLinecap="round"
+    strokeLinejoin="round"
+    {...props}
+  >
+    <path d="M15.75 9V5.25A2.25 2.25 0 0 0 13.5 3h-6A2.25 2.25 0 0 0 5.25 5.25v13.5A2.25 2.25 0 0 0 7.5 21h6a2.25 2.25 0 0 0 2.25-2.25V15" />
+    <path d="M12 9l3 3-3 3m3-3H9" />
+  </svg>
+);
+
 const App = observer(() => {
   const [mode, setMode] = useState<"login" | "register">("login");
   const [email, setEmail] = useState("");
@@ -43,6 +75,8 @@ const App = observer(() => {
 
   const userId = userStore.me?.id ?? null;
   const billing = userStore.billing;
+  const planLabel = billing?.plan_label ?? "Загрузка...";
+  const balanceLabel = billing ? `${billing.balance} ${billing.currency}` : "—";
 
   const { adviceEnabled, adviceDisabledReason, assistantEnabled, assistantDisabledReason } = useMemo(() => {
     if (!billing) {
@@ -219,6 +253,14 @@ const App = observer(() => {
     closeSettings();
   }, [closeSettings, resetBillingFlags]);
 
+  const handlePlanChangeClick = useCallback(() => {
+    resetBillingFlags();
+    if (billing?.plan) {
+      setSelectedPlan(billing.plan);
+    }
+    openSettings();
+  }, [billing?.plan, openSettings, resetBillingFlags, setSelectedPlan]);
+
   useEffect(() => {
     if (userStore.token) {
       setActiveTab("bp");
@@ -271,16 +313,42 @@ const App = observer(() => {
           <div className="topbar-profile-text">
             <span className="topbar-profile-label">Аккаунт</span>
             <span className="topbar-profile-email">{userStore.me?.email ?? email}</span>
-            <span className="topbar-profile-meta">
-              Тариф: {billing?.plan_label ?? "—"} · Баланс: ${billing?.balance ?? "0.00"}
-            </span>
+            <div className="topbar-plan-row">
+              <span className="topbar-plan-chip" title={`Ваш текущий тариф: ${planLabel}`}>
+                <span className="topbar-plan-chip-label">Тариф</span>
+                <span className="topbar-plan-chip-value">{planLabel}</span>
+              </span>
+              <button
+                type="button"
+                className="button ghost small topbar-plan-change"
+                onClick={handlePlanChangeClick}
+                disabled={!billing}
+              >
+                Сменить тариф
+              </button>
+            </div>
+            <span className="topbar-profile-meta">Баланс: {balanceLabel}</span>
           </div>
-          <button className="button ghost" onClick={handleOpenSettings}>
-            Настройки
-          </button>
-          <button className="ghost" type="button" onClick={() => userStore.logout()}>
-            Выйти
-          </button>
+          <div className="topbar-actions">
+            <button
+              className="ghost topbar-icon-button"
+              onClick={handleOpenSettings}
+              type="button"
+              aria-label="Открыть настройки"
+              title="Настройки"
+            >
+              <SettingsIcon className="topbar-icon" />
+            </button>
+            <button
+              className="ghost topbar-icon-button"
+              type="button"
+              onClick={() => userStore.logout()}
+              aria-label="Выйти из аккаунта"
+              title="Выйти"
+            >
+              <LogoutIcon className="topbar-icon" />
+            </button>
+          </div>
         </div>
       </header>
       <main className="content pb-6 md:pb-8">
