@@ -54,9 +54,14 @@ export const SettingsDialog = ({
   onSubmit,
   onFieldChange
 }: SettingsDialogProps) => {
-  if (!open) return null;
   const formatCents = (value: number) => (value / 100).toFixed(2);
   const [showPlanSelector, setShowPlanSelector] = useState(false);
+
+  useEffect(() => {
+    if (!open) {
+      setShowPlanSelector(false);
+    }
+  }, [open]);
 
   useEffect(() => {
     if (activeTab !== "billing") {
@@ -69,6 +74,8 @@ export const SettingsDialog = ({
       setShowPlanSelector(false);
     }
   }, [planSuccess]);
+
+  if (!open) return null;
 
   const planDescription = billing
     ? billing.features.assistant
