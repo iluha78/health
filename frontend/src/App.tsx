@@ -281,13 +281,16 @@ const App = observer(() => {
   useEffect(() => {
     if (userStore.token) {
       setActiveTab("bp");
-      if (!userStore.me) {
-        void userStore.refresh();
-      }
     } else {
       resetAll();
     }
-  }, [resetAll, userStore.me, userStore.token]);
+  }, [resetAll, userStore.token]);
+
+  useEffect(() => {
+    if (userStore.token && !userStore.me) {
+      void userStore.refresh();
+    }
+  }, [userStore.me, userStore.token]);
 
   const handleAuthSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -328,7 +331,6 @@ const App = observer(() => {
         </div>
         <div className="topbar-profile">
           <div className="topbar-profile-text">
-            <span className="topbar-profile-label">{t("common.account")}</span>
             <span className="topbar-profile-email">{userStore.me?.email ?? email}</span>
             <span className="topbar-profile-meta">{t("common.balanceLabel")}: {balanceLabel}</span>
           </div>

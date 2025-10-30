@@ -79,10 +79,10 @@ body {
   gap: 0.45rem;
 }
 
+
 .language-selector {
   display: inline-flex;
   align-items: center;
-  gap: 0.35rem;
   font-size: 0.875rem;
   color: #3f4c6b;
 }
@@ -102,10 +102,6 @@ body {
   outline-offset: 2px;
 }
 
-.language-label {
-  font-weight: 600;
-}
-
 .topbar-profile-info {
   display: flex;
   align-items: center;
@@ -122,7 +118,6 @@ body {
   outline-offset: 2px;
 }
 
-.topbar-profile-info.active .topbar-profile-label,
 .topbar-profile-info.active .topbar-profile-email {
   color: #2f46af;
 }
@@ -152,13 +147,6 @@ body {
   gap: 0.2rem;
   text-align: right;
   flex: 1 1 auto;
-}
-
-.topbar-profile-label {
-  font-size: 0.7rem;
-  text-transform: uppercase;
-  letter-spacing: 0.08em;
-  color: #5a6b91;
 }
 
 .topbar-profile-email {
