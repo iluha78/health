@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import type { FormEvent, MouseEvent as ReactMouseEvent, SVGProps } from "react";
 import { observer } from "mobx-react-lite";
+import { useTranslation } from "./i18n";
 import { userStore } from "./stores/user";
 import type { TabKey } from "./types/forms";
 import { AuthPanel } from "./features/auth/AuthPanel";
@@ -17,14 +18,8 @@ import { SettingsDialog } from "./features/settings/SettingsDialog";
 import { useSettingsState, type SettingsTabKey } from "./features/settings/useSettingsState";
 import { useBillingControls } from "./features/settings/useBillingControls";
 import { requestAssistantPrompt } from "./lib/assistant";
+import { LanguageSelector } from "./components/LanguageSelector";
 import "./App.css";
-
-const TAB_ITEMS: TabItem[] = [
-  { key: "bp", label: "Давление и пульс" },
-  { key: "lipid", label: "Липидный профиль и сахар" },
-  { key: "nutrition", label: "Нутрициолог" },
-  { key: "assistant", label: "AI ассистент" }
-];
 
 const SettingsIcon = (props: SVGProps<SVGSVGElement>) => (
   <svg
@@ -64,6 +59,17 @@ const App = observer(() => {
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [activeTab, setActiveTab] = useState<TabKey>("bp");
+  const { t } = useTranslation();
+
+  const tabItems: TabItem[] = useMemo(
+    () => [
+      { key: "bp", label: t("tabs.bp") },
+      { key: "lipid", label: t("tabs.lipid") },
+      { key: "nutrition", label: t("tabs.nutrition") },
+      { key: "assistant", label: t("tabs.assistant") }
+    ],
+    [t]
+  );
 
   const jsonHeaders = useMemo(() => {
     if (!userStore.token) return undefined;
@@ -82,9 +88,9 @@ const App = observer(() => {
     if (!billing) {
       return {
         adviceEnabled: false,
-        adviceDisabledReason: "Загрузка данных тарифа...",
+        adviceDisabledReason: t("billing.loading"),
         assistantEnabled: false,
-        assistantDisabledReason: "Загрузка данных тарифа...",
+        assistantDisabledReason: t("billing.loading"),
       };
     }
     const balanceCents = billing.balance_cents;
@@ -94,20 +100,20 @@ const App = observer(() => {
 
     let adviceReason: string | null = null;
     if (!billing.features.advice) {
-      adviceReason = "Ваш тариф не включает AI-советы.";
+      adviceReason = t("billing.adviceNotIncluded");
     } else if (balanceCents < adviceCost) {
-      adviceReason = "Недостаточно средств на балансе.";
+      adviceReason = t("billing.insufficientBalance");
     } else if (remainingCents < adviceCost) {
-      adviceReason = "Достигнут месячный лимит расходов на AI.";
+      adviceReason = t("billing.monthlyLimitReached");
     }
 
     let assistantReason: string | null = null;
     if (!billing.features.assistant) {
-      assistantReason = "Ваш тариф не включает AI-ассистента.";
+      assistantReason = t("billing.assistantNotIncluded");
     } else if (balanceCents < assistantCost) {
-      assistantReason = "Недостаточно средств на балансе.";
+      assistantReason = t("billing.insufficientBalance");
     } else if (remainingCents < assistantCost) {
-      assistantReason = "Достигнут месячный лимит расходов на AI.";
+      assistantReason = t("billing.monthlyLimitReached");
     }
 
     return {
@@ -116,21 +122,21 @@ const App = observer(() => {
       assistantEnabled: assistantReason === null,
       assistantDisabledReason: assistantReason,
     };
-  }, [billing]);
+  }, [billing, t]);
 
   const requestAdvice = useCallback(
     async (prompt: string) => {
       if (!jsonHeaders) {
-        throw new Error("Необходимо войти в систему");
+        throw new Error(t("common.loginRequired"));
       }
       if (!adviceEnabled) {
-        throw new Error(adviceDisabledReason ?? "AI-советы недоступны");
+        throw new Error(adviceDisabledReason ?? t("common.aiAdviceUnavailable"));
       }
       const reply = await requestAssistantPrompt(jsonHeaders, prompt);
       await userStore.refresh();
       return reply;
     },
-    [adviceDisabledReason, adviceEnabled, jsonHeaders, userStore]
+    [adviceDisabledReason, adviceEnabled, jsonHeaders, t, userStore]
   );
 
   const {
@@ -318,21 +324,22 @@ const App = observer(() => {
       <header className="topbar rounded-2xl bg-white/70 px-4 py-3 shadow-sm backdrop-blur md:px-6 md:py-4">
         <div className="brand">
           <h1>CholestoFit</h1>
-          <p>Персональные рекомендации по здоровью</p>
+          <p>{t("common.tagline")}</p>
         </div>
         <div className="topbar-profile">
           <div className="topbar-profile-text">
-            <span className="topbar-profile-label">Аккаунт</span>
+            <span className="topbar-profile-label">{t("common.account")}</span>
             <span className="topbar-profile-email">{userStore.me?.email ?? email}</span>
-            <span className="topbar-profile-meta">Баланс: {balanceLabel}</span>
+            <span className="topbar-profile-meta">{t("common.balanceLabel")}: {balanceLabel}</span>
           </div>
           <div className="topbar-actions">
+            <LanguageSelector className="topbar-language" />
             <button
               className="ghost topbar-icon-button"
               onClick={handleOpenSettings}
               type="button"
-              aria-label="Открыть настройки"
-              title="Настройки"
+              aria-label={t("common.openSettings")}
+              title={t("common.settings")}
             >
               <SettingsIcon className="topbar-icon" />
             </button>
@@ -340,8 +347,8 @@ const App = observer(() => {
               className="ghost topbar-icon-button"
               type="button"
               onClick={() => userStore.logout()}
-              aria-label="Выйти из аккаунта"
-              title="Выйти"
+              aria-label={t("common.logoutTitle")}
+              title={t("common.logout")}
             >
               <LogoutIcon className="topbar-icon" />
             </button>
@@ -434,7 +441,7 @@ const App = observer(() => {
         onFieldChange={handleSettingsField}
       />
       <TabNavigation
-        items={TAB_ITEMS}
+        items={tabItems}
         activeTab={activeTab}
         onSelect={setActiveTab}
         className="border border-white/60 bg-white/80 shadow-2xl backdrop-blur md:bottom-8"

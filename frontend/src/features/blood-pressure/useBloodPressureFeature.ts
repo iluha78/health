@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from "react";
 import type { FormEvent } from "react";
+import { useTranslation } from "../../i18n";
 import { createRecordId } from "../../lib/ids";
 import { readArchive, writeArchive } from "../../lib/storage";
 import type { BloodPressureFormState, BloodPressureRecord } from "../../types/forms";
@@ -27,6 +28,7 @@ export const useBloodPressureFeature = (
   userId: number | null,
   requestAdvice: (prompt: string) => Promise<string>
 ) => {
+  const { t } = useTranslation();
   const [form, setForm] = useState<BloodPressureFormState>(DEFAULT_FORM);
   const [advice, setAdvice] = useState("");
   const [loading, setLoading] = useState(false);
@@ -61,7 +63,7 @@ export const useBloodPressureFeature = (
   const saveRecord = useCallback(() => {
     const hasMetrics = form.systolic || form.diastolic || form.pulse;
     if (!hasMetrics) {
-      setError("Укажите хотя бы одно значение, чтобы сохранить его в архиве");
+      setError(t("bpPrompt.saveError"));
       return;
     }
     setError(null);
@@ -85,20 +87,21 @@ export const useBloodPressureFeature = (
       setError(null);
       try {
         const metrics: string[] = [];
-        if (form.systolic) metrics.push(`систолическое давление ${form.systolic} мм рт. ст.`);
-        if (form.diastolic) metrics.push(`диастолическое давление ${form.diastolic} мм рт. ст.`);
-        if (form.pulse) metrics.push(`пульс ${form.pulse} уд/мин`);
-        if (form.comment) metrics.push(`комментарий: ${form.comment}`);
-        const metricSummary = metrics.length > 0 ? metrics.join(", ") : "показатели не указаны";
+        if (form.systolic) metrics.push(t("bpPrompt.metrics.systolic", { value: form.systolic }));
+        if (form.diastolic) metrics.push(t("bpPrompt.metrics.diastolic", { value: form.diastolic }));
+        if (form.pulse) metrics.push(t("bpPrompt.metrics.pulse", { value: form.pulse }));
+        if (form.comment) metrics.push(t("bpPrompt.metrics.comment", { value: form.comment }));
+        const metricSummary =
+          metrics.length > 0 ? metrics.join(", ") : t("bpPrompt.metrics.missing");
         const prompt = [
-          "Ты — кардиолог, который объясняет понятным языком.",
-          `Пациент сообщает: ${metricSummary}.`,
-          "Дай советы, как стабилизировать давление и пульс безопасными методами.",
-          "Добавь практические советы по образу жизни и упомяни тревожные симптомы, при которых нужно немедленно обратиться к врачу.",
-          form.question ? `Дополнительный контекст от пациента: ${form.question}.` : ""
+          t("bpPrompt.role"),
+          t("bpPrompt.summary", { summary: metricSummary }),
+          t("bpPrompt.advice"),
+          t("bpPrompt.lifestyle"),
+          form.question ? t("bpPrompt.extra", { question: form.question }) : ""
         ]
           .filter(Boolean)
-          .join(" ");
+          .join("\n");
         const reply = await requestAdvice(prompt);
         setAdvice(reply);
         const record: BloodPressureRecord = {
@@ -113,13 +116,13 @@ export const useBloodPressureFeature = (
         };
         setHistory(prev => [record, ...prev]);
       } catch (err) {
-        setError(err instanceof Error ? err.message : "Не удалось получить рекомендации");
+        setError(err instanceof Error ? err.message : t("bpPrompt.submitError"));
         setAdvice("");
       } finally {
         setLoading(false);
       }
     },
-    [form, requestAdvice]
+    [form, requestAdvice, t]
   );
 
   return {

@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from "react";
 import type { FormEvent } from "react";
+import { useTranslation } from "../../i18n";
 import { createRecordId } from "../../lib/ids";
 import { readArchive, writeArchive } from "../../lib/storage";
 import type { NutritionFormState, NutritionRecord } from "../../types/forms";
@@ -37,6 +38,7 @@ export const useNutritionFeature = (
   requestAdvice: (prompt: string) => Promise<string>,
   defaults: NutritionDefaults
 ) => {
+  const { t } = useTranslation();
   const [form, setForm] = useState<NutritionFormState>(DEFAULT_FORM);
   const [advice, setAdvice] = useState("");
   const [loading, setLoading] = useState(false);
@@ -99,19 +101,21 @@ export const useNutritionFeature = (
       setError(null);
       try {
         const facts: string[] = [];
-        if (form.weight) facts.push(`масса тела ${form.weight} кг`);
-        if (form.height) facts.push(`рост ${form.height} см`);
-        if (form.calories) facts.push(`суточная калорийность ${form.calories} ккал`);
-        if (form.activity) facts.push(`уровень активности: ${form.activity}`);
-        if (form.comment) facts.push(`комментарий: ${form.comment}`);
+        if (form.weight) facts.push(t("nutritionPrompt.facts.weight", { value: form.weight }));
+        if (form.height) facts.push(t("nutritionPrompt.facts.height", { value: form.height }));
+        if (form.calories) facts.push(t("nutritionPrompt.facts.calories", { value: form.calories }));
+        if (form.activity) facts.push(t("nutritionPrompt.facts.activity", { value: form.activity }));
+        if (form.comment) facts.push(t("nutritionPrompt.facts.comment", { value: form.comment }));
         const prompt = [
-          "Ты — нутрициолог. На основе данных клиента составь рекомендации по питанию и режиму на ближайшие 1-2 недели.",
-          facts.length > 0 ? `Исходные данные: ${facts.join(", ")}.` : "Клиент не указал исходные данные.",
+          t("nutritionPrompt.role"),
+          facts.length > 0
+            ? t("nutritionPrompt.summary", { facts: facts.join(", ") })
+            : t("nutritionPrompt.summaryMissing"),
           form.question
-            ? `Дополнительный запрос клиента: ${form.question}.`
-            : "Сделай рекомендации универсальными и безопасными.",
-          "Напомни о необходимости консультации врача при хронических заболеваниях."
-        ].join(" ");
+            ? t("nutritionPrompt.extra", { question: form.question })
+            : t("nutritionPrompt.universal"),
+          t("nutritionPrompt.reminder")
+        ].join("\n");
         const reply = await requestAdvice(prompt);
         setAdvice(reply);
         const record: NutritionRecord = {
@@ -127,13 +131,13 @@ export const useNutritionFeature = (
         };
         setHistory(prev => [record, ...prev]);
       } catch (err) {
-        setError(err instanceof Error ? err.message : "Не удалось получить рекомендации");
+        setError(err instanceof Error ? err.message : t("nutritionPrompt.submitError"));
         setAdvice("");
       } finally {
         setLoading(false);
       }
     },
-    [form, requestAdvice]
+    [form, requestAdvice, t]
   );
 
   return {

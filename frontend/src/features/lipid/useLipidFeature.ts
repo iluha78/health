@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from "react";
 import type { FormEvent } from "react";
+import { useTranslation } from "../../i18n";
 import { createRecordId } from "../../lib/ids";
 import { readArchive, readArchiveByKey, storageKey, writeArchive } from "../../lib/storage";
 import type { LipidFormState, LipidRecord } from "../../types/forms";
@@ -55,6 +56,7 @@ export const useLipidFeature = (
   userId: number | null,
   requestAdvice: (prompt: string) => Promise<string>
 ) => {
+  const { t } = useTranslation();
   const [form, setForm] = useState<LipidFormState>(DEFAULT_FORM);
   const [advice, setAdvice] = useState("");
   const [loading, setLoading] = useState(false);
@@ -106,7 +108,7 @@ export const useLipidFeature = (
     const hasMetrics =
       form.date || form.cholesterol || form.hdl || form.ldl || form.triglycerides || form.glucose;
     if (!hasMetrics) {
-      setError("Укажите хотя бы один показатель, чтобы сохранить запись");
+      setError(t("lipidPrompt.saveError"));
       return;
     }
     setError(null);
@@ -133,24 +135,24 @@ export const useLipidFeature = (
       setError(null);
       try {
         const metrics: string[] = [];
-        if (form.date) metrics.push(`дата анализа ${form.date}`);
-        if (form.cholesterol) metrics.push(`общий холестерин ${form.cholesterol} ммоль/л`);
-        if (form.hdl) metrics.push(`ЛПВП ${form.hdl} ммоль/л`);
-        if (form.ldl) metrics.push(`ЛПНП ${form.ldl} ммоль/л`);
-        if (form.triglycerides) metrics.push(`триглицериды ${form.triglycerides} ммоль/л`);
-        if (form.glucose) metrics.push(`глюкоза крови ${form.glucose} ммоль/л`);
-        if (form.comment) metrics.push(`комментарий: ${form.comment}`);
+        if (form.date) metrics.push(t("lipidPrompt.metrics.date", { value: form.date }));
+        if (form.cholesterol) metrics.push(t("lipidPrompt.metrics.cholesterol", { value: form.cholesterol }));
+        if (form.hdl) metrics.push(t("lipidPrompt.metrics.hdl", { value: form.hdl }));
+        if (form.ldl) metrics.push(t("lipidPrompt.metrics.ldl", { value: form.ldl }));
+        if (form.triglycerides) metrics.push(t("lipidPrompt.metrics.triglycerides", { value: form.triglycerides }));
+        if (form.glucose) metrics.push(t("lipidPrompt.metrics.glucose", { value: form.glucose }));
+        if (form.comment) metrics.push(t("lipidPrompt.metrics.comment", { value: form.comment }));
         const prompt = [
-          "Ты — врач профилактической медицины и эндокринолог.",
+          t("lipidPrompt.role"),
           metrics.length > 0
-            ? `Актуальные показатели пациента: ${metrics.join(", ")}.`
-            : "Пациент не указал текущие показатели.",
-          "Дай рекомендации, как поддерживать липидный профиль и уровень сахара в безопасных пределах.",
-          "Составь план из нескольких пунктов: питание, активность, контроль образа жизни и когда нужно обратиться к врачу.",
-          form.question ? `Дополнительный вопрос пациента: ${form.question}.` : ""
+            ? t("lipidPrompt.summary", { metrics: metrics.join(", ") })
+            : t("lipidPrompt.summaryMissing"),
+          t("lipidPrompt.advice"),
+          t("lipidPrompt.plan"),
+          form.question ? t("lipidPrompt.extra", { question: form.question }) : ""
         ]
           .filter(Boolean)
-          .join(" ");
+          .join("\n");
         const reply = await requestAdvice(prompt);
         setAdvice(reply);
         const record: LipidRecord = {
@@ -168,13 +170,13 @@ export const useLipidFeature = (
         };
         setHistory(prev => [record, ...prev]);
       } catch (err) {
-        setError(err instanceof Error ? err.message : "Не удалось получить рекомендации");
+        setError(err instanceof Error ? err.message : t("lipidPrompt.submitError"));
         setAdvice("");
       } finally {
         setLoading(false);
       }
     },
-    [form, requestAdvice]
+    [form, requestAdvice, t]
   );
 
   return {

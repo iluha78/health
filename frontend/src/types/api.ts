@@ -1,3 +1,5 @@
+import { i18n } from "../i18n";
+
 export interface AuthSuccess {
   token: string;
 }
@@ -290,7 +292,7 @@ export function normalizePhotoAnalysis(value: unknown): PhotoAnalysis | null {
   if (!isRecord(value)) {
     return null;
   }
-  const title = typeof value.title === "string" ? value.title : "Блюдо";
+  const title = typeof value.title === "string" ? value.title : i18n.t("common.defaultDishTitle");
   const description = typeof value.description === "string" ? value.description : "";
   const estimatedSource = toNumberOrNull(value.estimated_calories);
   const estimated = estimatedSource === null ? null : Math.round(estimatedSource);

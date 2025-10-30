@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
+import { useTranslation } from "../../i18n";
 import type { FormEvent, MouseEvent as ReactMouseEvent } from "react";
 import type { SettingsFormState } from "../../types/forms";
 import { createEmptySettingsForm } from "../../types/forms";
@@ -18,6 +19,7 @@ export const useSettingsState = (
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
   const [activeTab, setActiveTab] = useState<SettingsTabKey>("profile");
+  const { t } = useTranslation();
 
   const prepareOpen = useCallback((tab: SettingsTabKey) => {
     setError(null);
@@ -66,7 +68,7 @@ export const useSettingsState = (
     async (event: FormEvent<HTMLFormElement>) => {
       event.preventDefault();
       if (!userStore.token || !headers) {
-        setError("Необходимо войти в систему");
+        setError(t("common.loginRequired"));
         return;
       }
       setSaving(true);
@@ -90,24 +92,24 @@ export const useSettingsState = (
         });
         const data = await response.json().catch(() => null);
         if (!response.ok) {
-          const message = data && typeof data.error === "string" ? data.error : "Не удалось сохранить профиль";
+          const message = data && typeof data.error === "string" ? data.error : t("settingsErrors.profileSave");
           throw new Error(message);
         }
         const profile = normalizeProfileTargets(data);
         if (!profile) {
-          throw new Error("Сервер вернул неожиданный ответ");
+          throw new Error(t("settingsErrors.profileSave"));
         }
         userStore.updateProfileTargets(profile);
         setSuccess(true);
         void userStore.refresh();
       } catch (err) {
         console.error(err);
-        setError(err instanceof Error ? err.message : "Не удалось сохранить профиль");
+        setError(err instanceof Error ? err.message : t("settingsErrors.profileSave"));
       } finally {
         setSaving(false);
       }
     },
-    [form, headers, userStore]
+    [form, headers, t, userStore]
   );
 
   useEffect(() => {

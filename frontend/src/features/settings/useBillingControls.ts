@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
+import { useTranslation } from "../../i18n";
 import { apiUrl } from "../../lib/api";
 import type { BillingStatus } from "../../types/api";
 import type { UserStore } from "../../stores/user";
@@ -16,6 +17,7 @@ export const useBillingControls = (
   const [planLoading, setPlanLoading] = useState(false);
   const [planError, setPlanError] = useState<string | null>(null);
   const [planSuccess, setPlanSuccess] = useState(false);
+  const { t } = useTranslation();
 
   useEffect(() => {
     if (userStore.billing?.plan) {
@@ -29,11 +31,11 @@ export const useBillingControls = (
 
   const submitDeposit = useCallback(async () => {
     if (!headers) {
-      setDepositError("Необходимо войти в систему");
+      setDepositError(t("common.loginRequired"));
       return;
     }
     if (!depositAmount.trim()) {
-      setDepositError("Введите сумму пополнения");
+      setDepositError(t("settingsErrors.depositAmount"));
       return;
     }
     setDepositLoading(true);
@@ -47,7 +49,7 @@ export const useBillingControls = (
       });
       const data = await response.json().catch(() => null);
       if (!response.ok) {
-        const message = data && typeof data.error === "string" ? data.error : "Не удалось пополнить баланс";
+        const message = data && typeof data.error === "string" ? data.error : t("settingsErrors.deposit");
         throw new Error(message);
       }
       const status = data as BillingStatus;
@@ -56,19 +58,19 @@ export const useBillingControls = (
       setDepositSuccess(true);
     } catch (err) {
       console.error(err);
-      setDepositError(err instanceof Error ? err.message : "Не удалось пополнить баланс");
+      setDepositError(err instanceof Error ? err.message : t("settingsErrors.deposit"));
     } finally {
       setDepositLoading(false);
     }
-  }, [applyBilling, depositAmount, headers]);
+  }, [applyBilling, depositAmount, headers, t]);
 
   const submitPlanChange = useCallback(async () => {
     if (!headers) {
-      setPlanError("Необходимо войти в систему");
+      setPlanError(t("common.loginRequired"));
       return;
     }
     if (!selectedPlan) {
-      setPlanError("Выберите тариф");
+      setPlanError(t("settingsErrors.planSelect"));
       return;
     }
     setPlanLoading(true);
@@ -82,7 +84,7 @@ export const useBillingControls = (
       });
       const data = await response.json().catch(() => null);
       if (!response.ok) {
-        const message = data && typeof data.error === "string" ? data.error : "Не удалось обновить тариф";
+        const message = data && typeof data.error === "string" ? data.error : t("settingsErrors.plan");
         throw new Error(message);
       }
       const status = data as BillingStatus;
@@ -90,11 +92,11 @@ export const useBillingControls = (
       setPlanSuccess(true);
     } catch (err) {
       console.error(err);
-      setPlanError(err instanceof Error ? err.message : "Не удалось обновить тариф");
+      setPlanError(err instanceof Error ? err.message : t("settingsErrors.plan"));
     } finally {
       setPlanLoading(false);
     }
-  }, [applyBilling, headers, selectedPlan]);
+  }, [applyBilling, headers, selectedPlan, t]);
 
   const resetFlags = useCallback(() => {
     setDepositError(null);
