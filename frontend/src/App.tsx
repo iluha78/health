@@ -324,7 +324,7 @@ const App = observer(() => {
 
   return (
     <div className="app-shell text-slate-900">
-      <header className="topbar rounded-2xl bg-white/70 px-4 py-3 shadow-sm backdrop-blur md:px-6 md:py-4">
+      <header className="topbar content rounded-2xl bg-white/70 px-4 py-3 shadow-sm backdrop-blur md:px-6 md:py-4">
         <div className="brand">
           <h1>CholestoFit</h1>
           <p>{t("common.tagline")}</p>

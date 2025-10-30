@@ -131,7 +131,6 @@ body {
 .topbar-profile button {
   border-radius: 999px;
   min-height: 40px;
-  padding: 0.55rem 1.4rem;
   flex: 0 0 auto;
 }
 
