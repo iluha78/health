@@ -1,4 +1,3 @@
-import { runInAction } from "mobx";
 import { useCallback, useEffect, useState } from "react";
 import { apiUrl } from "../../lib/api";
 import type { BillingStatus } from "../../types/api";
@@ -25,9 +24,7 @@ export const useBillingControls = (
   }, [userStore.billing?.plan]);
 
   const applyBilling = useCallback((status: BillingStatus) => {
-    runInAction(() => {
-      userStore.billing = status;
-    });
+    userStore.updateBilling(status, null);
   }, [userStore]);
 
   const submitDeposit = useCallback(async () => {

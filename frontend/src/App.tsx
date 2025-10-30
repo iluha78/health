@@ -75,6 +75,7 @@ const App = observer(() => {
 
   const userId = userStore.me?.id ?? null;
   const billing = userStore.billing;
+  const billingError = userStore.billingError;
   const balanceLabel = billing ? `${billing.balance} ${billing.currency}` : "—";
 
   const { adviceEnabled, adviceDisabledReason, assistantEnabled, assistantDisabledReason } = useMemo(() => {
@@ -267,6 +268,10 @@ const App = observer(() => {
     [billing?.plan, resetBillingFlags, setSelectedPlan, setSettingsActiveTab]
   );
 
+  const handleReloadBilling = useCallback(() => {
+    void userStore.refresh();
+  }, []);
+
   useEffect(() => {
     if (userStore.token) {
       setActiveTab("bp");
@@ -408,6 +413,7 @@ const App = observer(() => {
         error={settingsError}
         success={settingsSuccess}
         billing={billing ?? null}
+        billingError={billingError ?? null}
         depositAmount={depositAmount}
         depositLoading={depositLoading}
         depositError={depositError}
@@ -422,6 +428,7 @@ const App = observer(() => {
         onPlanSubmit={submitPlanChange}
         activeTab={settingsActiveTab}
         onSelectTab={handleSettingsTabSelect}
+        onReloadBilling={handleReloadBilling}
         onClose={handleCloseSettings}
         onSubmit={submitSettings}
         onFieldChange={handleSettingsField}

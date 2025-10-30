@@ -10,6 +10,7 @@ export type SettingsDialogProps = {
   error: string | null;
   success: boolean;
   billing: BillingStatus | null;
+  billingError: string | null;
   depositAmount: string;
   depositLoading: boolean;
   depositError: string | null;
@@ -24,10 +25,20 @@ export type SettingsDialogProps = {
   onPlanSubmit: () => void;
   activeTab: SettingsTabKey;
   onSelectTab: (tab: SettingsTabKey) => void;
+  onReloadBilling: () => void;
   onClose: () => void;
   onSubmit: (event: FormEvent<HTMLFormElement>) => void;
   onFieldChange: <TKey extends keyof SettingsFormState>(key: TKey, value: string) => void;
 };
+
+const ACTIVITY_OPTIONS: Array<{ value: string; label: string }> = [
+  { value: "", label: "Не указано" },
+  { value: "sed", label: "Сидячая" },
+  { value: "light", label: "Лёгкая" },
+  { value: "mod", label: "Умеренная" },
+  { value: "high", label: "Высокая" },
+  { value: "ath", label: "Спортивная" }
+];
 
 export const SettingsDialog = ({
   open,
@@ -36,6 +47,7 @@ export const SettingsDialog = ({
   error,
   success,
   billing,
+  billingError,
   depositAmount,
   depositLoading,
   depositError,
@@ -50,6 +62,7 @@ export const SettingsDialog = ({
   onPlanSubmit,
   activeTab,
   onSelectTab,
+  onReloadBilling,
   onClose,
   onSubmit,
   onFieldChange
@@ -180,11 +193,11 @@ export const SettingsDialog = ({
               <label>
                 Активность
                 <select value={form.activity} onChange={event => onFieldChange("activity", event.target.value)}>
-                  <option value="">Не выбрано</option>
-                  <option value="Сидячая">Сидячая</option>
-                  <option value="Лёгкая">Лёгкая</option>
-                  <option value="Умеренная">Умеренная</option>
-                  <option value="Высокая">Высокая</option>
+                  {ACTIVITY_OPTIONS.map(option => (
+                    <option key={option.value || "none"} value={option.value}>
+                      {option.label}
+                    </option>
+                  ))}
                 </select>
               </label>
               <label>
@@ -315,7 +328,14 @@ export const SettingsDialog = ({
         )}
         {activeTab === "billing" && !billing && (
           <div className="billing-section loading">
-            <p className="muted">Информация о тарифе загружается...</p>
+            <p className={billingError ? "error" : "muted"}>
+              {billingError ?? "Информация о тарифе загружается..."}
+            </p>
+            {billingError && (
+              <button type="button" className="ghost" onClick={onReloadBilling}>
+                Повторить попытку
+              </button>
+            )}
           </div>
         )}
       </div>
