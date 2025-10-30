@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from "react";
 import type { FormEvent, ChangeEvent } from "react";
+import { useTranslation } from "../../i18n";
 import { apiUrl } from "../../lib/api";
 import type { AssistantMessage } from "../../types/api";
 
@@ -10,6 +11,7 @@ export const useAssistantChat = (
   disabledReason: string | null,
   onUsage?: () => Promise<void> | void
 ) => {
+  const { t } = useTranslation();
   const [messages, setMessages] = useState<AssistantMessage[]>([]);
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
@@ -39,11 +41,11 @@ export const useAssistantChat = (
       const text = input.trim();
       if (!text) return;
       if (!enabled) {
-        setError(disabledReason || "AI-ассистент недоступен для вашего тарифа");
+        setError(disabledReason || t("assistant.unavailable"));
         return;
       }
       if (!token || !headers) {
-        setError("Необходимо войти, чтобы общаться с ассистентом");
+        setError(t("common.loginRequired"));
         return;
       }
       const historyPayload = [...messages, { role: "user" as const, content: text }].map(message => ({
@@ -62,7 +64,7 @@ export const useAssistantChat = (
         });
         const data = await response.json();
         if (!response.ok || typeof data.reply !== "string") {
-          const message = typeof data.error === "string" ? data.error : "Ассистент временно недоступен";
+          const message = typeof data.error === "string" ? data.error : t("assistant.unavailable");
           throw new Error(message);
         }
         setMessages(prev => [...prev, { role: "assistant", content: data.reply.trim() }]);
@@ -70,12 +72,12 @@ export const useAssistantChat = (
           await onUsage();
         }
       } catch (err) {
-        setError(err instanceof Error ? err.message : "Ассистент временно недоступен");
+        setError(err instanceof Error ? err.message : t("assistant.unavailable"));
       } finally {
         setLoading(false);
       }
     },
-    [disabledReason, enabled, headers, input, messages, onUsage, token]
+    [disabledReason, enabled, headers, input, messages, onUsage, t, token]
   );
 
   return {

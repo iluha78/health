@@ -1,3 +1,5 @@
+import { i18n } from "../i18n";
+
 export const storageKey = (scope: string, userId: number | null) => `cholestofit_${scope}_archive_${userId ?? "guest"}`;
 
 export const readArchiveByKey = (key: string): unknown[] | null => {
@@ -8,7 +10,7 @@ export const readArchiveByKey = (key: string): unknown[] | null => {
     const parsed = JSON.parse(saved);
     return Array.isArray(parsed) ? parsed : null;
   } catch (err) {
-    console.warn(`Не удалось прочитать архив ${key}`, err);
+    console.warn(i18n.t("storage.readFailed", { key }), err);
     return null;
   }
 };

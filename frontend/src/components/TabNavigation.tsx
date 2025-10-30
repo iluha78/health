@@ -1,3 +1,4 @@
+import { useTranslation } from "../i18n";
 import type { TabKey } from "../types/forms";
 import { TabIconGlyph } from "./TabIconGlyph";
 
@@ -15,9 +16,10 @@ export type TabNavigationProps = {
 
 export const TabNavigation = ({ items, activeTab, onSelect, className }: TabNavigationProps) => {
   const navClassName = className ? `tabbar ${className}` : "tabbar";
+  const { t } = useTranslation();
 
   return (
-    <nav className={navClassName} aria-label="Основные разделы">
+    <nav className={navClassName} aria-label={t("common.menuLabel")}>
       {items.map(item => (
         <button
           key={item.key}

@@ -1,4 +1,5 @@
 import type { ChangeEvent, FormEvent } from "react";
+import { useTranslation } from "../../i18n";
 import { formatDateTime } from "../../lib/datetime";
 import type { NutritionFormState, NutritionRecord } from "../../types/forms";
 
@@ -27,100 +28,102 @@ export const NutritionTab = ({
   history,
   onFieldChange,
   onSubmit
-}: NutritionTabProps) => (
-  <div className="tab-panel tab-stack">
-    <h2>Консультация нутрициолога</h2>
-    <form className="card form-card" onSubmit={onSubmit}>
-      {disabled && (
-        <p className="error">{disabledReason ?? "Получение советов недоступно"}</p>
+}: NutritionTabProps) => {
+  const { t } = useTranslation();
+
+  return (
+    <div className="tab-panel tab-stack">
+      <h2>{t("nutrition.title")}</h2>
+      <form className="card form-card" onSubmit={onSubmit}>
+        {disabled && <p className="error">{disabledReason ?? t("nutrition.disabled")}</p>}
+        <div className="metrics-grid">
+          <label>
+            {t("nutrition.weight")}
+            <input
+              type="number"
+              min="0"
+              step="0.1"
+              value={form.weight}
+              onChange={handleChange("weight", onFieldChange)}
+            />
+          </label>
+          <label>
+            {t("nutrition.height")}
+            <input type="number" min="0" value={form.height} onChange={handleChange("height", onFieldChange)} />
+          </label>
+          <label>
+            {t("nutrition.calories")}
+            <input type="number" min="0" value={form.calories} onChange={handleChange("calories", onFieldChange)} />
+          </label>
+          <label>
+            {t("nutrition.activity")}
+            <input
+              placeholder={t("nutrition.activityPlaceholder")}
+              value={form.activity}
+              onChange={handleChange("activity", onFieldChange)}
+            />
+          </label>
+        </div>
+        <label>
+          {t("nutrition.question")}
+          <textarea
+            placeholder={t("nutrition.questionPlaceholder")}
+            value={form.question}
+            onChange={handleChange("question", onFieldChange)}
+          />
+        </label>
+        <label>
+          {t("nutrition.comment")}
+          <textarea
+            placeholder={t("nutrition.commentPlaceholder")}
+            value={form.comment}
+            onChange={handleChange("comment", onFieldChange)}
+          />
+        </label>
+        <div className="form-actions">
+          <button type="submit" disabled={loading || disabled}>
+            {loading ? t("nutrition.loading") : t("nutrition.submit")}
+          </button>
+          {!disabled && error && <p className="error">{error}</p>}
+        </div>
+      </form>
+      {advice && (
+        <article className="card advice-result form-card">
+          <h3>{t("nutrition.adviceTitle")}</h3>
+          <pre className="advice-text">{advice}</pre>
+        </article>
       )}
-      <div className="metrics-grid">
-        <label>
-          Вес, кг
-          <input
-            type="number"
-            min="0"
-            step="0.1"
-            value={form.weight}
-            onChange={handleChange("weight", onFieldChange)}
-          />
-        </label>
-        <label>
-          Рост, см
-          <input type="number" min="0" value={form.height} onChange={handleChange("height", onFieldChange)} />
-        </label>
-        <label>
-          Калорийность рациона, ккал
-          <input type="number" min="0" value={form.calories} onChange={handleChange("calories", onFieldChange)} />
-        </label>
-        <label>
-          Активность
-          <input
-            placeholder="Например: 2 тренировки в неделю"
-            value={form.activity}
-            onChange={handleChange("activity", onFieldChange)}
-          />
-        </label>
-      </div>
-      <label>
-        Опишите цель или вопрос
-        <textarea
-          placeholder="Например: хочу снизить вес без жестких диет"
-          value={form.question}
-          onChange={handleChange("question", onFieldChange)}
-        />
-      </label>
-      <label>
-        Комментарий к измерениям
-        <textarea
-          placeholder="Дополнительные примечания: как чувствовали себя, что ели"
-          value={form.comment}
-          onChange={handleChange("comment", onFieldChange)}
-        />
-      </label>
-      <div className="form-actions">
-        <button type="submit" disabled={loading || disabled}>
-          {loading ? "Запрашиваем рекомендации..." : "Получить советы"}
-        </button>
-        {!disabled && error && <p className="error">{error}</p>}
-      </div>
-    </form>
-    {advice && (
-      <article className="card advice-result form-card">
-        <h3>Рекомендации</h3>
-        <pre className="advice-text">{advice}</pre>
-      </article>
-    )}
-    {history.length > 0 && (
-      <details className="card history-card form-card" open>
-        <summary>Архив нутрициолога</summary>
-        <ul className="history-list">
-          {history.map(entry => (
-            <li key={entry.id} className="history-item">
-              <div className="history-meta">
-                <span className="history-tag">{formatDateTime(entry.createdAt)}</span>
-                <div className="metric-tags">
-                  {entry.weight && <span className="metric-tag">Вес: {entry.weight} кг</span>}
-                  {entry.height && <span className="metric-tag">Рост: {entry.height} см</span>}
-                  {entry.calories && <span className="metric-tag">Калории: {entry.calories}</span>}
-                  {entry.activity && <span className="metric-tag">Активность: {entry.activity}</span>}
+      {history.length > 0 && (
+        <details className="card history-card form-card" open>
+          <summary>{t("nutrition.historyTitle")}</summary>
+          <ul className="history-list">
+            {history.map(entry => (
+              <li key={entry.id} className="history-item">
+                <div className="history-meta">
+                  <span className="history-tag">{formatDateTime(entry.createdAt)}</span>
+                  <div className="metric-tags">
+                    {entry.weight && <span className="metric-tag">{t("nutrition.metrics.weight", { value: entry.weight })}</span>}
+                    {entry.height && <span className="metric-tag">{t("nutrition.metrics.height", { value: entry.height })}</span>}
+                    {entry.calories && <span className="metric-tag">{t("nutrition.metrics.calories", { value: entry.calories })}</span>}
+                    {entry.activity && <span className="metric-tag">{t("nutrition.metrics.activity", { value: entry.activity })}</span>}
+                  </div>
                 </div>
-              </div>
-              {entry.question && (
-                <p className="history-question">
-                  <strong>Запрос:</strong> {entry.question}
-                </p>
-              )}
-              {entry.comment && (
-                <p className="history-comment">
-                  <strong>Комментарий:</strong> {entry.comment}
-                </p>
-              )}
-              {entry.advice && <pre className="history-advice">{entry.advice}</pre>}
-            </li>
-          ))}
-        </ul>
-      </details>
-    )}
-  </div>
-);
+                {entry.question && (
+                  <p className="history-question">
+                    <strong>{t("nutrition.metrics.question")}</strong> {entry.question}
+                  </p>
+                )}
+                {entry.comment && (
+                  <p className="history-comment">
+                    <strong>{t("nutrition.metrics.comment")}</strong> {entry.comment}
+                  </p>
+                )}
+                {entry.advice && <pre className="history-advice">{entry.advice}</pre>}
+              </li>
+            ))}
+          </ul>
+        </details>
+      )}
+    </div>
+  );
+};

@@ -22,6 +22,15 @@ body {
   gap: 1rem;
   align-items: center;
   text-align: center;
+  width: 100%;
+}
+
+.auth .auth-language {
+  align-self: flex-end;
+}
+
+.auth .auth-language select {
+  min-width: 140px;
 }
 
 .app-shell {
@@ -70,6 +79,29 @@ body {
   gap: 0.45rem;
 }
 
+
+.language-selector {
+  display: inline-flex;
+  align-items: center;
+  font-size: 0.875rem;
+  color: #3f4c6b;
+}
+
+.language-selector select {
+  border-radius: 999px;
+  border: 1px solid rgba(47, 70, 175, 0.3);
+  padding: 0.2rem 0.9rem;
+  background: white;
+  color: inherit;
+  font-weight: 500;
+  appearance: none;
+}
+
+.language-selector select:focus-visible {
+  outline: 2px solid rgba(47, 70, 175, 0.4);
+  outline-offset: 2px;
+}
+
 .topbar-profile-info {
   display: flex;
   align-items: center;
@@ -86,7 +118,6 @@ body {
   outline-offset: 2px;
 }
 
-.topbar-profile-info.active .topbar-profile-label,
 .topbar-profile-info.active .topbar-profile-email {
   color: #2f46af;
 }
@@ -116,13 +147,6 @@ body {
   gap: 0.2rem;
   text-align: right;
   flex: 1 1 auto;
-}
-
-.topbar-profile-label {
-  font-size: 0.7rem;
-  text-transform: uppercase;
-  letter-spacing: 0.08em;
-  color: #5a6b91;
 }
 
 .topbar-profile-email {
@@ -530,7 +554,8 @@ section h2 {
 }
 
 .diary-form input[type="number"],
-.diary-form input[placeholder="Комментарий"] {
+.diary-form input[type="text"],
+.diary-form textarea {
   flex: 1 1 140px;
 }
 

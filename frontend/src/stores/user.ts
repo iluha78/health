@@ -1,6 +1,7 @@
 import { makeAutoObservable, runInAction } from "mobx";
 import type { ApiError, AuthSuccess, BillingStatus, ProfileTargets, UserSummary } from "../types/api";
 import { apiUrl } from "../lib/api";
+import { i18n } from "../i18n";
 
 const TOKEN_STORAGE_KEY = "cholestofit_token";
 
@@ -45,7 +46,7 @@ export class UserStore {
         });
         const payload = await r.json() as AuthSuccess | ApiError;
         if (!r.ok || !isAuthSuccess(payload)) {
-            const message = (payload as ApiError).error ?? "Ошибка регистрации";
+            const message = (payload as ApiError).error ?? i18n.t("auth.registerError");
             runInAction(() => {
                 this.error = message;
             });
@@ -82,7 +83,9 @@ export class UserStore {
         } catch (e) {
             if (!this.error) {
                 runInAction(() => {
-                    this.error = `Сеть/CORS: ${e instanceof Error ? e.message : String(e)}`;
+                    this.error = i18n.t("common.networkError", {
+                        message: e instanceof Error ? e.message : String(e)
+                    });
                 });
             }
             throw e;
@@ -150,11 +153,11 @@ export class UserStore {
     private describeError(reason: unknown): string {
         if (reason instanceof Error && reason.message) {
             if (/unknown column/i.test(reason.message) || /no such column/i.test(reason.message)) {
-                return "Биллинг недоступен: выполните миграции базы данных.";
+                return i18n.t("billing.unavailable");
             }
             return reason.message;
         }
-        return "Не удалось загрузить данные тарифа.";
+        return i18n.t("billing.failed");
     }
 
     private async _get<T>(path: string): Promise<T>{
@@ -166,14 +169,14 @@ export class UserStore {
                 data = JSON.parse(raw);
             } catch (err) {
                 if (r.ok) {
-                    console.error("Не удалось разобрать ответ", err);
+                    console.error(i18n.t("common.parseError"), err);
                     throw err;
                 }
             }
         }
 
         if (!r.ok) {
-            const message = ((data as ApiError)?.error ?? raw) || `Ошибка запроса (${r.status})`;
+            const message = ((data as ApiError)?.error ?? raw) || i18n.t("common.requestError", { status: r.status });
             if (r.status === 401) {
                 this.clearAuth();
             }

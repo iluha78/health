@@ -1,3 +1,4 @@
+import { i18n } from "../i18n";
 import { apiUrl } from "./api";
 
 export const requestAssistantPrompt = async (
@@ -5,7 +6,7 @@ export const requestAssistantPrompt = async (
   prompt: string
 ): Promise<string> => {
   if (!headers) {
-    throw new Error("Необходимо войти в систему");
+    throw new Error(i18n.t("common.loginRequired"));
   }
   const response = await fetch(apiUrl("/advice/general"), {
     method: "POST",
@@ -14,7 +15,7 @@ export const requestAssistantPrompt = async (
   });
   const data = await response.json();
   if (!response.ok || typeof data.advice !== "string") {
-    const message = typeof data.error === "string" ? data.error : "Не удалось получить рекомендации";
+    const message = typeof data.error === "string" ? data.error : i18n.t("common.adviceRequestFailed");
     throw new Error(message);
   }
   return data.advice.trim();
