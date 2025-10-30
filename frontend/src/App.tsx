@@ -18,6 +18,7 @@ import { SettingsDialog } from "./features/settings/SettingsDialog";
 import { useSettingsState, type SettingsTabKey } from "./features/settings/useSettingsState";
 import { useBillingControls } from "./features/settings/useBillingControls";
 import { requestAssistantPrompt } from "./lib/assistant";
+import { requestNutritionPhotoCalories } from "./lib/nutrition";
 import { LanguageSelector } from "./components/LanguageSelector";
 import "./App.css";
 
@@ -76,6 +77,13 @@ const App = observer(() => {
     return {
       Authorization: `Bearer ${userStore.token}`,
       "Content-Type": "application/json"
+    } as Record<string, string>;
+  }, [userStore.token]);
+
+  const authHeaders = useMemo(() => {
+    if (!userStore.token) return undefined;
+    return {
+      Authorization: `Bearer ${userStore.token}`
     } as Record<string, string>;
   }, [userStore.token]);
 
@@ -178,6 +186,21 @@ const App = observer(() => {
     ]
   );
 
+  const analyzeNutritionPhoto = useCallback(
+    async (file: File) => {
+      if (!authHeaders) {
+        throw new Error(t("common.loginRequired"));
+      }
+      if (!adviceEnabled) {
+        throw new Error(adviceDisabledReason ?? t("common.aiAdviceUnavailable"));
+      }
+      const result = await requestNutritionPhotoCalories(authHeaders, file);
+      await userStore.refresh();
+      return result;
+    },
+    [adviceDisabledReason, adviceEnabled, authHeaders, t, userStore]
+  );
+
   const {
     form: nutritionForm,
     advice: nutritionAdvice,
@@ -186,8 +209,16 @@ const App = observer(() => {
     history: nutritionHistory,
     updateField: updateNutritionField,
     submit: submitNutrition,
-    reset: resetNutrition
-  } = useNutritionFeature(userId, requestAdvice, nutritionDefaults);
+    reset: resetNutrition,
+    photoFile: nutritionPhotoFile,
+    photoPreview: nutritionPhotoPreview,
+    photoResult: nutritionPhotoResult,
+    photoError: nutritionPhotoError,
+    photoLoading: nutritionPhotoLoading,
+    selectPhoto: selectNutritionPhoto,
+    clearPhoto: clearNutritionPhoto,
+    analyzePhoto: analyzeNutritionPhotoRequest
+  } = useNutritionFeature(userId, requestAdvice, nutritionDefaults, analyzeNutritionPhoto);
 
   const {
     messages: assistantMessages,
@@ -388,17 +419,25 @@ const App = observer(() => {
             />
           )}
           {activeTab === "nutrition" && (
-            <NutritionTab
-              form={nutritionForm}
-              advice={nutritionAdvice}
-              loading={nutritionLoading}
-              error={nutritionError}
-              disabled={!adviceEnabled}
-              disabledReason={adviceDisabledReason}
-              history={nutritionHistory}
-              onFieldChange={updateNutritionField}
-              onSubmit={submitNutrition}
-            />
+        <NutritionTab
+          form={nutritionForm}
+          advice={nutritionAdvice}
+          loading={nutritionLoading}
+          error={nutritionError}
+          disabled={!adviceEnabled}
+          disabledReason={adviceDisabledReason}
+          history={nutritionHistory}
+          onFieldChange={updateNutritionField}
+          onSubmit={submitNutrition}
+          photoFile={nutritionPhotoFile}
+          photoPreview={nutritionPhotoPreview}
+          photoResult={nutritionPhotoResult}
+          photoError={nutritionPhotoError}
+          photoLoading={nutritionPhotoLoading}
+          onPhotoChange={selectNutritionPhoto}
+          onPhotoClear={clearNutritionPhoto}
+          onPhotoAnalyze={analyzeNutritionPhotoRequest}
+        />
           )}
           {activeTab === "assistant" && (
             <AssistantTab

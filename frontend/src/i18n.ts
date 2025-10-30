@@ -189,7 +189,23 @@ const resources = {
           question: "Запрос:",
           comment: "Комментарий:"
         },
-        disabledReasonFallback: "Получение советов недоступно"
+        disabledReasonFallback: "Получение советов недоступно",
+        photo: {
+          title: "Оценка калорий по фото",
+          subtitle: "Загрузите фото блюда, чтобы получить примерную калорийность порции.",
+          uploadLabel: "Фото блюда",
+          hint: "Поддерживаются JPG, PNG, HEIC до 5 МБ.",
+          previewAlt: "Фото блюда для оценки калорийности",
+          remove: "Удалить фото",
+          analyze: "Оценить калорийность",
+          analyzing: "Анализируем фото...",
+          calories: "Оценка: около {{value}} ккал",
+          confidence: "Уверенность: {{value}}",
+          notesTitle: "Комментарий",
+          ingredientsTitle: "Предполагаемые ингредиенты",
+          missing: "Сначала выберите фото.",
+          error: "Не удалось проанализировать фото"
+        }
       },
       nutritionPrompt: {
         role: "Ты — нутрициолог. На основе данных клиента составь рекомендации по питанию и режиму на ближайшие 1-2 недели.",
@@ -454,7 +470,23 @@ const resources = {
           question: "Request:",
           comment: "Comment:"
         },
-        disabledReasonFallback: "Advice is unavailable"
+        disabledReasonFallback: "Advice is unavailable",
+        photo: {
+          title: "Calorie estimate from photo",
+          subtitle: "Upload a meal photo to get an approximate calorie count for the portion.",
+          uploadLabel: "Meal photo",
+          hint: "Supports JPG, PNG, HEIC up to 5 MB.",
+          previewAlt: "Meal photo for calorie estimation",
+          remove: "Remove photo",
+          analyze: "Estimate calories",
+          analyzing: "Analyzing photo...",
+          calories: "Estimate: about {{value}} kcal",
+          confidence: "Confidence: {{value}}",
+          notesTitle: "Notes",
+          ingredientsTitle: "Likely ingredients",
+          missing: "Please choose a photo first.",
+          error: "Failed to analyze the photo"
+        }
       },
       nutritionPrompt: {
         role: "You are a nutritionist. Use the client data to create nutrition and lifestyle tips for the next 1–2 weeks.",
@@ -719,7 +751,23 @@ const resources = {
           question: "Anfrage:",
           comment: "Kommentar:"
         },
-        disabledReasonFallback: "Ratschläge sind nicht verfügbar"
+        disabledReasonFallback: "Ratschläge sind nicht verfügbar",
+        photo: {
+          title: "Kalorienabschätzung per Foto",
+          subtitle: "Laden Sie ein Foto Ihres Gerichts hoch, um eine ungefähre Kalorienzahl für die Portion zu erhalten.",
+          uploadLabel: "Essensfoto",
+          hint: "Unterstützt JPG, PNG, HEIC bis 5 MB.",
+          previewAlt: "Essensfoto zur Kalorienabschätzung",
+          remove: "Foto entfernen",
+          analyze: "Kalorien schätzen",
+          analyzing: "Foto wird analysiert...",
+          calories: "Schätzung: ca. {{value}} kcal",
+          confidence: "Vertrauen: {{value}}",
+          notesTitle: "Kommentar",
+          ingredientsTitle: "Vermutete Zutaten",
+          missing: "Bitte wählen Sie zuerst ein Foto.",
+          error: "Fotoanalyse fehlgeschlagen"
+        }
       },
       nutritionPrompt: {
         role: "Du bist Ernährungsberater. Erstelle Empfehlungen für die nächsten 1–2 Wochen.",
@@ -984,7 +1032,23 @@ const resources = {
           question: "Solicitud:",
           comment: "Comentario:"
         },
-        disabledReasonFallback: "La asesoría no está disponible"
+        disabledReasonFallback: "La asesoría no está disponible",
+        photo: {
+          title: "Estimación de calorías por foto",
+          subtitle: "Sube una foto del plato para obtener un cálculo aproximado de calorías de la porción.",
+          uploadLabel: "Foto del plato",
+          hint: "Compatible con JPG, PNG, HEIC de hasta 5 MB.",
+          previewAlt: "Foto del plato para estimar calorías",
+          remove: "Eliminar foto",
+          analyze: "Calcular calorías",
+          analyzing: "Analizando foto...",
+          calories: "Estimación: unas {{value}} kcal",
+          confidence: "Confianza: {{value}}",
+          notesTitle: "Comentario",
+          ingredientsTitle: "Ingredientes estimados",
+          missing: "Selecciona primero una foto.",
+          error: "No se pudo analizar la foto"
+        }
       },
       nutritionPrompt: {
         role: "Eres nutricionista. Usa los datos para proponer recomendaciones para 1-2 semanas.",

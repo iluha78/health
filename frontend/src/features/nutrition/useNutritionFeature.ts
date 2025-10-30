@@ -4,6 +4,7 @@ import { useTranslation } from "../../i18n";
 import { createRecordId } from "../../lib/ids";
 import { readArchive, writeArchive } from "../../lib/storage";
 import type { NutritionFormState, NutritionRecord } from "../../types/forms";
+import type { NutritionPhotoAnalysis } from "../../lib/nutrition";
 
 const DEFAULT_FORM: NutritionFormState = {
   weight: "",
@@ -36,7 +37,8 @@ type NutritionDefaults = {
 export const useNutritionFeature = (
   userId: number | null,
   requestAdvice: (prompt: string) => Promise<string>,
-  defaults: NutritionDefaults
+  defaults: NutritionDefaults,
+  analyzePhoto: (file: File) => Promise<NutritionPhotoAnalysis>
 ) => {
   const { t } = useTranslation();
   const [form, setForm] = useState<NutritionFormState>(DEFAULT_FORM);
@@ -44,6 +46,28 @@ export const useNutritionFeature = (
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [history, setHistory] = useState<NutritionRecord[]>([]);
+  const [photoFile, setPhotoFile] = useState<File | null>(null);
+  const [photoPreview, setPhotoPreview] = useState<string | null>(null);
+  const [photoResult, setPhotoResult] = useState<NutritionPhotoAnalysis | null>(null);
+  const [photoError, setPhotoError] = useState<string | null>(null);
+  const [photoLoading, setPhotoLoading] = useState(false);
+
+  useEffect(() => {
+    if (!photoFile) {
+      setPhotoPreview(null);
+      setPhotoResult(null);
+      setPhotoLoading(false);
+      return;
+    }
+    const url = URL.createObjectURL(photoFile);
+    setPhotoPreview(url);
+    setPhotoResult(null);
+    setPhotoError(null);
+    setPhotoLoading(false);
+    return () => {
+      URL.revokeObjectURL(url);
+    };
+  }, [photoFile]);
 
   useEffect(() => {
     const data = readArchive("nutrition", userId) as Partial<NutritionRecord>[] | null;
@@ -92,7 +116,41 @@ export const useNutritionFeature = (
     setLoading(false);
     setError(null);
     setHistory([]);
+    setPhotoFile(null);
+    setPhotoPreview(null);
+    setPhotoResult(null);
+    setPhotoError(null);
+    setPhotoLoading(false);
   }, []);
+
+  const selectPhoto = useCallback((file: File | null) => {
+    setPhotoFile(file);
+  }, []);
+
+  const clearPhoto = useCallback(() => {
+    setPhotoFile(null);
+    setPhotoResult(null);
+    setPhotoError(null);
+    setPhotoLoading(false);
+  }, []);
+
+  const analyzeSelectedPhoto = useCallback(async () => {
+    if (!photoFile) {
+      setPhotoError(t("nutrition.photo.missing"));
+      return;
+    }
+    setPhotoLoading(true);
+    setPhotoError(null);
+    try {
+      const result = await analyzePhoto(photoFile);
+      setPhotoResult(result);
+    } catch (err) {
+      setPhotoError(err instanceof Error ? err.message : t("nutrition.photo.error"));
+      setPhotoResult(null);
+    } finally {
+      setPhotoLoading(false);
+    }
+  }, [analyzePhoto, photoFile, t]);
 
   const submit = useCallback(
     async (event: FormEvent<HTMLFormElement>) => {
@@ -148,6 +206,14 @@ export const useNutritionFeature = (
     history,
     updateField,
     submit,
-    reset
+    reset,
+    photoFile,
+    photoPreview,
+    photoResult,
+    photoError,
+    photoLoading,
+    selectPhoto,
+    clearPhoto,
+    analyzePhoto: analyzeSelectedPhoto
   };
 };

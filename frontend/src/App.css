@@ -367,6 +367,108 @@ button.small {
   gap: 1.35rem;
 }
 
+.nutrition-photo-card {
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+}
+
+.photo-upload {
+  gap: 0.4rem;
+}
+
+.photo-upload input[type="file"] {
+  padding: 0.6rem 1rem;
+}
+
+.photo-hint {
+  font-size: 0.85rem;
+  color: #6c789b;
+  font-weight: 500;
+}
+
+.photo-preview-wrapper {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.photo-preview {
+  max-width: 100%;
+  border-radius: 1rem;
+  border: 1px solid #dbe4ff;
+  background: #f8faff;
+  object-fit: cover;
+}
+
+.photo-meta {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+  justify-content: space-between;
+}
+
+.photo-name {
+  margin: 0;
+  font-weight: 600;
+  color: #2f3a4c;
+  word-break: break-word;
+}
+
+.photo-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+}
+
+.photo-result {
+  display: flex;
+  flex-direction: column;
+  gap: 0.9rem;
+  background: #f8faff;
+  border: 1px solid #dbe4ff;
+  border-radius: 1rem;
+  padding: 1.1rem 1.2rem;
+}
+
+.photo-calories {
+  margin: 0;
+  font-weight: 700;
+  color: #2f46af;
+  font-size: 1.1rem;
+}
+
+.photo-confidence {
+  margin: 0;
+  color: #4b5c83;
+  font-size: 0.95rem;
+}
+
+.photo-notes h4,
+.photo-ingredients h4 {
+  margin: 0;
+  color: #2f3a4c;
+  font-size: 1rem;
+}
+
+.photo-notes p {
+  margin: 0.35rem 0 0;
+}
+
+.photo-ingredients ul {
+  margin: 0.45rem 0 0;
+  padding-left: 1.2rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.photo-ingredients li {
+  color: #3b4764;
+}
+
 .card label,
 .card input,
 .card select,
