@@ -173,6 +173,29 @@ const toStringOrNull = (value: unknown): string | null => {
 export const isHealthiness = (value: unknown): value is Healthiness =>
   typeof value === "string" && HEALTHINESS_VALUES.includes(value as Healthiness);
 
+export function normalizeProfileTargets(value: unknown): ProfileTargets | null {
+  if (!isRecord(value)) {
+    return null;
+  }
+
+  const userId = toNumberOrNull(value.user_id);
+  if (userId === null) {
+    return null;
+  }
+
+  return {
+    user_id: userId,
+    sex: toStringOrNull(value.sex),
+    age: toNumberOrNull(value.age),
+    height_cm: toNumberOrNull(value.height_cm),
+    weight_kg: toNumberOrNull(value.weight_kg),
+    activity: toStringOrNull(value.activity),
+    kcal_goal: toNumberOrNull(value.kcal_goal),
+    sfa_limit_g: toNumberOrNull(value.sfa_limit_g),
+    fiber_goal_g: toNumberOrNull(value.fiber_goal_g),
+  } satisfies ProfileTargets;
+}
+
 export function normalizeLipids(value: unknown): Lipid[] {
   if (!Array.isArray(value)) {
     return [];

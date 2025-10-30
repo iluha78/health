@@ -4,6 +4,7 @@ import type { SettingsFormState } from "../../types/forms";
 import { createEmptySettingsForm } from "../../types/forms";
 import type { UserStore } from "../../stores/user";
 import { apiUrl } from "../../lib/api";
+import { normalizeProfileTargets } from "../../types/api";
 
 export type SettingsTabKey = "profile" | "billing";
 
@@ -92,8 +93,13 @@ export const useSettingsState = (
           const message = data && typeof data.error === "string" ? data.error : "Не удалось сохранить профиль";
           throw new Error(message);
         }
+        const profile = normalizeProfileTargets(data);
+        if (!profile) {
+          throw new Error("Сервер вернул неожиданный ответ");
+        }
+        userStore.updateProfileTargets(profile);
         setSuccess(true);
-        await userStore.refresh();
+        void userStore.refresh();
       } catch (err) {
         console.error(err);
         setError(err instanceof Error ? err.message : "Не удалось сохранить профиль");

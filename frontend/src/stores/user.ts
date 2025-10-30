@@ -107,6 +107,12 @@ export class UserStore {
         }
     }
 
+    updateProfileTargets(targets: ProfileTargets){
+        runInAction(() => {
+            this.targets = targets;
+        });
+    }
+
     logout(){
         this.clearAuth();
     }
