@@ -11,6 +11,8 @@ export interface UserSummary {
   id: number;
   email: string;
   created_at?: string;
+  plan?: string;
+  balance_cents?: number;
 }
 
 export interface ProfileTargets {
@@ -110,6 +112,43 @@ export interface AssistantReply {
   [key: string]: unknown;
 }
 
+export interface BillingPlan {
+  code: string;
+  label: string;
+  monthly_fee_cents: number;
+  features: {
+    advice: boolean;
+    assistant: boolean;
+  };
+}
+
+export interface BillingStatus {
+  plan: string;
+  plan_label: string;
+  monthly_fee_cents: number;
+  balance_cents: number;
+  balance: string;
+  currency: string;
+  features: {
+    advice: boolean;
+    assistant: boolean;
+  };
+  ai_usage: {
+    month_started_at: string | null;
+    budget_cents: number;
+    spent_cents: number;
+    remaining_cents: number;
+    requests: number;
+    advice_requests: number;
+    assistant_requests: number;
+  };
+  costs: {
+    advice_cents: number;
+    assistant_cents: number;
+  };
+  plans: BillingPlan[];
+}
+
 const isRecord = (value: unknown): value is Record<string, unknown> =>
   typeof value === "object" && value !== null;
 
@@ -133,6 +172,29 @@ const toStringOrNull = (value: unknown): string | null => {
 
 export const isHealthiness = (value: unknown): value is Healthiness =>
   typeof value === "string" && HEALTHINESS_VALUES.includes(value as Healthiness);
+
+export function normalizeProfileTargets(value: unknown): ProfileTargets | null {
+  if (!isRecord(value)) {
+    return null;
+  }
+
+  const userId = toNumberOrNull(value.user_id);
+  if (userId === null) {
+    return null;
+  }
+
+  return {
+    user_id: userId,
+    sex: toStringOrNull(value.sex),
+    age: toNumberOrNull(value.age),
+    height_cm: toNumberOrNull(value.height_cm),
+    weight_kg: toNumberOrNull(value.weight_kg),
+    activity: toStringOrNull(value.activity),
+    kcal_goal: toNumberOrNull(value.kcal_goal),
+    sfa_limit_g: toNumberOrNull(value.sfa_limit_g),
+    fiber_goal_g: toNumberOrNull(value.fiber_goal_g),
+  } satisfies ProfileTargets;
+}
 
 export function normalizeLipids(value: unknown): Lipid[] {
   if (!Array.isArray(value)) {

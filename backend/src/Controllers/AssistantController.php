@@ -3,6 +3,8 @@ namespace App\Controllers;
 
 use App\Models\AssistantInteraction;
 use App\Services\OpenAiService;
+use App\Services\SubscriptionException;
+use App\Services\SubscriptionService;
 use App\Support\Auth;
 use App\Support\ResponseHelper;
 use Psr\Http\Message\ResponseInterface as Response;
@@ -41,6 +43,12 @@ class AssistantController
             }
         }
 
+        try {
+            SubscriptionService::ensureAssistantAccess($user);
+        } catch (SubscriptionException $e) {
+            return ResponseHelper::json($response, ['error' => $e->getMessage()], $e->getStatus());
+        }
+
         $service = new OpenAiService();
         if (!$service->isConfigured()) {
             return ResponseHelper::json($response, [
@@ -76,6 +84,7 @@ class AssistantController
             'user_message' => $message,
             'assistant_reply' => $answer,
         ]);
+        SubscriptionService::recordAssistantUsage($user);
         $record->refresh();
 
         return ResponseHelper::json($response, [

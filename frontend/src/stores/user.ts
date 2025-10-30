@@ -1,5 +1,5 @@
 import { makeAutoObservable, runInAction } from "mobx";
-import type { ApiError, AuthSuccess, ProfileTargets, UserSummary } from "../types/api";
+import type { ApiError, AuthSuccess, BillingStatus, ProfileTargets, UserSummary } from "../types/api";
 import { apiUrl } from "../lib/api";
 
 const TOKEN_STORAGE_KEY = "cholestofit_token";
@@ -11,6 +11,8 @@ export class UserStore {
     token: string | null = null;
     me: UserSummary | null = null;
     targets: ProfileTargets | null = null;
+    billing: BillingStatus | null = null;
+    billingError: string | null = null;
     error: string | null = null;
 
     constructor(){
@@ -90,32 +92,94 @@ export class UserStore {
 
     async refresh(){
         if (!this.token) return;
-        try {
-            const me = await this._get<UserSummary>("/me");
-            const targets = await this._get<ProfileTargets>("/targets");
-            runInAction(() => {
-                this.me = me;
-                this.targets = targets;
-            });
-        } catch (err) {
-            console.error(err);
+
+        const [meResult, targetsResult, billingResult] = await Promise.allSettled([
+            this._get<UserSummary>("/me"),
+            this._get<ProfileTargets>("/targets"),
+            this._get<BillingStatus>("/billing/status"),
+        ]);
+
+        if (!this.token) {
+            return;
         }
+
+        runInAction(() => {
+            if (meResult.status === "fulfilled") {
+                this.me = meResult.value;
+            } else {
+                console.error("Failed to load /me", meResult.status === "rejected" ? meResult.reason : undefined);
+            }
+
+            if (targetsResult.status === "fulfilled") {
+                this.targets = targetsResult.value;
+            } else {
+                console.error("Failed to load /targets", targetsResult.status === "rejected" ? targetsResult.reason : undefined);
+            }
+
+            if (billingResult.status === "fulfilled") {
+                this.billing = billingResult.value;
+                this.billingError = null;
+            } else {
+                const reason = billingResult.status === "rejected" ? billingResult.reason : undefined;
+                console.error("Failed to load /billing/status", reason);
+                this.billingError = this.describeError(reason);
+                if (!this.billing) {
+                    this.billing = null;
+                }
+            }
+        });
+    }
+
+    updateProfileTargets(targets: ProfileTargets){
+        runInAction(() => {
+            this.targets = targets;
+        });
+    }
+
+    updateBilling(status: BillingStatus | null, error: string | null){
+        runInAction(() => {
+            this.billing = status;
+            this.billingError = error;
+        });
     }
 
     logout(){
         this.clearAuth();
     }
 
+    private describeError(reason: unknown): string {
+        if (reason instanceof Error && reason.message) {
+            if (/unknown column/i.test(reason.message) || /no such column/i.test(reason.message)) {
+                return "Биллинг недоступен: выполните миграции базы данных.";
+            }
+            return reason.message;
+        }
+        return "Не удалось загрузить данные тарифа.";
+    }
+
     private async _get<T>(path: string): Promise<T>{
         const r = await fetch(apiUrl(path), { headers: { Authorization: `Bearer ${this.token}` }});
-        const data = await r.json();
+        const raw = await r.text();
+        let data: unknown = null;
+        if (raw) {
+            try {
+                data = JSON.parse(raw);
+            } catch (err) {
+                if (r.ok) {
+                    console.error("Не удалось разобрать ответ", err);
+                    throw err;
+                }
+            }
+        }
+
         if (!r.ok) {
-            const message = (data as ApiError).error ?? "Ошибка запроса";
+            const message = ((data as ApiError)?.error ?? raw) || `Ошибка запроса (${r.status})`;
             if (r.status === 401) {
                 this.clearAuth();
             }
             throw new Error(message);
         }
+
         return data as T;
     }
 
@@ -133,6 +197,8 @@ export class UserStore {
             this.token = null;
             this.me = null;
             this.targets = null;
+            this.billing = null;
+            this.billingError = null;
         });
         this.persistToken();
     }

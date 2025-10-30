@@ -7,15 +7,15 @@ export const requestAssistantPrompt = async (
   if (!headers) {
     throw new Error("Необходимо войти в систему");
   }
-  const response = await fetch(apiUrl("/assistant/chat"), {
+  const response = await fetch(apiUrl("/advice/general"), {
     method: "POST",
     headers,
-    body: JSON.stringify({ message: prompt, history: [] })
+    body: JSON.stringify({ prompt })
   });
   const data = await response.json();
-  if (!response.ok || typeof data.reply !== "string") {
-    const message = typeof data.error === "string" ? data.error : "Не удалось получить ответ ассистента";
+  if (!response.ok || typeof data.advice !== "string") {
+    const message = typeof data.error === "string" ? data.error : "Не удалось получить рекомендации";
     throw new Error(message);
   }
-  return data.reply.trim();
+  return data.advice.trim();
 };

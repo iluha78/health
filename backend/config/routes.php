@@ -7,6 +7,7 @@ use App\Controllers\LipidController;
 use App\Controllers\DiaryController;
 use App\Controllers\FoodController;
 use App\Controllers\AdviceController;
+use App\Controllers\BillingController;
 use App\Controllers\AnalysisController;
 use App\Controllers\AssistantController;
 use App\Middleware\JwtMiddleware;
@@ -29,8 +30,13 @@ $app->get('/foods',                     [FoodController::class, 'search'])->add(
 $app->post('/foods',                    [FoodController::class, 'create'])->add(new JwtMiddleware());
 $app->get('/advice/nutrition/history',  [AdviceController::class, 'history'])->add(new JwtMiddleware());
 $app->post('/advice/nutrition',         [AdviceController::class, 'nutrition'])->add(new JwtMiddleware());
+$app->post('/advice/general',           [AdviceController::class, 'general'])->add(new JwtMiddleware());
 $app->get('/analysis/photo/history',    [AnalysisController::class, 'history'])->add(new JwtMiddleware());
 $app->post('/analysis/photo',           [AnalysisController::class, 'photo'])->add(new JwtMiddleware());
 $app->get('/assistant/history',         [AssistantController::class, 'history'])->add(new JwtMiddleware());
 $app->post('/assistant/chat',           [AssistantController::class, 'chat'])->add(new JwtMiddleware());
+
+$app->get('/billing/status',            [BillingController::class, 'status'])->add(new JwtMiddleware());
+$app->post('/billing/deposit',          [BillingController::class, 'deposit'])->add(new JwtMiddleware());
+$app->post('/billing/plan',             [BillingController::class, 'changePlan'])->add(new JwtMiddleware());
 

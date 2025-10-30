@@ -4,6 +4,9 @@ import type { SettingsFormState } from "../../types/forms";
 import { createEmptySettingsForm } from "../../types/forms";
 import type { UserStore } from "../../stores/user";
 import { apiUrl } from "../../lib/api";
+import { normalizeProfileTargets } from "../../types/api";
+
+export type SettingsTabKey = "profile" | "billing";
 
 export const useSettingsState = (
   userStore: UserStore,
@@ -14,16 +17,21 @@ export const useSettingsState = (
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
+  const [activeTab, setActiveTab] = useState<SettingsTabKey>("profile");
 
-  const prepareOpen = useCallback(() => {
+  const prepareOpen = useCallback((tab: SettingsTabKey) => {
     setError(null);
     setSuccess(false);
+    setActiveTab(tab);
   }, []);
 
   const openDialog = useCallback(
-    (event?: ReactMouseEvent<HTMLAnchorElement | HTMLButtonElement>) => {
+    (
+      event?: ReactMouseEvent<HTMLAnchorElement | HTMLButtonElement>,
+      tab: SettingsTabKey = "profile"
+    ) => {
       event?.preventDefault();
-      prepareOpen();
+      prepareOpen(tab);
       setOpen(true);
       if (typeof window !== "undefined" && window.location.hash !== "#settings") {
         const { pathname, search } = window.location;
@@ -47,6 +55,7 @@ export const useSettingsState = (
     setSaving(false);
     setError(null);
     setSuccess(false);
+    setActiveTab("profile");
   }, []);
 
   const handleFieldChange = useCallback(<TKey extends keyof SettingsFormState>(key: TKey, value: string) => {
@@ -84,8 +93,13 @@ export const useSettingsState = (
           const message = data && typeof data.error === "string" ? data.error : "Не удалось сохранить профиль";
           throw new Error(message);
         }
+        const profile = normalizeProfileTargets(data);
+        if (!profile) {
+          throw new Error("Сервер вернул неожиданный ответ");
+        }
+        userStore.updateProfileTargets(profile);
         setSuccess(true);
-        await userStore.refresh();
+        void userStore.refresh();
       } catch (err) {
         console.error(err);
         setError(err instanceof Error ? err.message : "Не удалось сохранить профиль");
@@ -127,12 +141,12 @@ export const useSettingsState = (
       return;
     }
     if (window.location.hash === "#settings") {
-      prepareOpen();
+      prepareOpen("profile");
       setOpen(true);
     }
     const handleHashChange = () => {
       if (window.location.hash === "#settings") {
-        prepareOpen();
+        prepareOpen("profile");
         setOpen(true);
       } else {
         setOpen(false);
@@ -176,10 +190,12 @@ export const useSettingsState = (
     saving,
     error,
     success,
+    activeTab,
     openDialog,
     closeDialog,
     handleFieldChange,
     submit,
-    reset
+    reset,
+    setActiveTab
   };
 };

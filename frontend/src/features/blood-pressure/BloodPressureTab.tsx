@@ -7,6 +7,8 @@ export type BloodPressureTabProps = {
   advice: string;
   loading: boolean;
   error: string | null;
+  disabled: boolean;
+  disabledReason: string | null;
   history: BloodPressureRecord[];
   onFieldChange: (key: keyof BloodPressureFormState, value: string) => void;
   onSubmit: (event: FormEvent<HTMLFormElement>) => void;
@@ -24,6 +26,8 @@ export const BloodPressureTab = ({
   advice,
   loading,
   error,
+  disabled,
+  disabledReason,
   history,
   onFieldChange,
   onSubmit,
@@ -32,6 +36,11 @@ export const BloodPressureTab = ({
   <div className="tab-panel tab-stack">
     <h2>Давление и пульс</h2>
     <form className="card form-card" onSubmit={onSubmit}>
+      {disabled && (
+        <p className="error">
+          {disabledReason ?? "Получение советов временно недоступно"}
+        </p>
+      )}
       <div className="metrics-grid">
         <label>
           Систолическое давление, мм рт. ст.
@@ -66,10 +75,10 @@ export const BloodPressureTab = ({
         <button type="button" className="ghost" onClick={onSave} disabled={loading}>
           Сохранить показатели
         </button>
-        <button type="submit" disabled={loading}>
+        <button type="submit" disabled={loading || disabled}>
           {loading ? "Запрашиваем рекомендации..." : "Получить советы"}
         </button>
-        {error && <p className="error">{error}</p>}
+        {!disabled && error && <p className="error">{error}</p>}
       </div>
     </form>
     {advice && (
