@@ -143,10 +143,14 @@ class AdviceController
             ], $photo['status']);
         }
 
-        /** @var array{contents: string} $photo */
+        /** @var array{contents: string, media_type: string} $photo */
         $imageBinary = $photo['contents'];
+        $mediaType = $photo['media_type'];
 
         $log(sprintf('photo size=%d bytes', strlen($imageBinary)));
+        if ($mediaType !== '') {
+            $log(sprintf('photo media_type=%s', $mediaType));
+        }
 
         $service = new OpenAiService();
         if (!$service->isConfigured()) {
@@ -156,6 +160,8 @@ class AdviceController
                 'debug' => $debug,
             ], 500);
         }
+
+        $dataUrl = 'data:' . $mediaType . ';base64,' . base64_encode($imageBinary);
 
         $messages = [
             [
@@ -167,13 +173,13 @@ class AdviceController
                 'role' => 'user',
                 'content' => [
                     [
-                        'type' => 'input_text',
+                        'type' => 'text',
                         'text' => 'Оцени примерную калорийность блюда на фото. ' .
                             'Если блюдо сложно распознать, опиши сомнения. Ответь только JSON.',
                     ],
                     [
-                        'type' => 'input_image',
-                        'image_base64' => base64_encode($imageBinary),
+                        'type' => 'image_url',
+                        'image_url' => ['url' => $dataUrl],
                     ],
                 ],
             ],
@@ -379,7 +385,7 @@ class AdviceController
     }
 
     /**
-     * @return array{contents: string}|array{error: string, status: int}
+     * @return array{contents: string, media_type: string}|array{error: string, status: int}
      */
     private function extractPhotoFile(?UploadedFileInterface $file): array
     {
@@ -412,6 +418,10 @@ class AdviceController
             return ['error' => 'Загруженный файл пустой', 'status' => 422];
         }
 
-        return ['contents' => $contents];
+        if ($mediaType === '') {
+            $mediaType = 'image/jpeg';
+        }
+
+        return ['contents' => $contents, 'media_type' => $mediaType];
     }
 }
