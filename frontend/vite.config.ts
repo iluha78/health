@@ -10,6 +10,14 @@ export default defineConfig({
       '^/(auth|me|profile|targets|foods|lipids|advice|analysis|assistant|uploads|billing)': {
         target: 'http://localhost:8180',
         changeOrigin: true,
+        bypass(req) {
+          const acceptHeader = req.headers.accept ?? '';
+          if (req.method === 'GET' && acceptHeader.includes('text/html')) {
+            // Пусть запросы HTML отдаются фронтендом, чтобы поддерживались прямые ссылки
+            return '/index.html';
+          }
+          return undefined;
+        },
       },
     },
   },
