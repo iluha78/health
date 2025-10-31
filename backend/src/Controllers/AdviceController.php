@@ -102,8 +102,15 @@ class AdviceController
     public function nutritionPhoto(Request $request, Response $response): Response
     {
         $user = Auth::user($request);
+        $variant = $request->getAttribute('variant');
+        $variantLabel = is_string($variant) && $variant !== '' ? $variant : 'default';
 
-        error_log(sprintf('[nutritionPhoto] user_id=%d start request', $user->id));
+        if ($variantLabel !== 'default' && $variantLabel !== 'analyze') {
+            error_log(sprintf('[nutritionPhoto] user_id=%d unknown variant=%s', $user->id, $variantLabel));
+            return ResponseHelper::json($response, ['error' => 'Not found.'], 404);
+        }
+
+        error_log(sprintf('[nutritionPhoto] user_id=%d start request variant=%s', $user->id, $variantLabel));
 
         try {
             SubscriptionService::ensureAdviceAccess($user);
