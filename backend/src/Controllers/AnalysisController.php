@@ -2,7 +2,6 @@
 namespace App\Controllers;
 
 use App\Models\PhotoAnalysis;
-use App\Services\OpenAiService;
 use App\Support\Auth;
 use App\Support\ResponseHelper;
 use Psr\Http\Message\ResponseInterface as Response;
@@ -35,65 +34,83 @@ class AnalysisController
         $base64 = base64_encode($content);
         $dataUrl = 'data:' . $mime . ';base64,' . $base64;
 
-        $service = new OpenAiService();
-        if (!$service->isConfigured()) {
+        $apiKey = getenv('OPENAI_API_KEY');
+        if (!$apiKey) {
             return ResponseHelper::json($response, [
                 'error' => 'AI-сервисы не настроены. Укажите ключ OPENAI_API_KEY.',
             ], 500);
         }
 
-        $schema = [
-            'name' => 'DishAssessment',
-            'schema' => [
-                'type' => 'object',
-                'required' => ['title', 'description', 'estimated_calories', 'healthiness', 'reasoning', 'tips'],
-                'properties' => [
-                    'title' => ['type' => 'string'],
-                    'description' => ['type' => 'string'],
-                    'estimated_calories' => ['type' => 'integer'],
-                    'healthiness' => ['type' => 'string', 'enum' => ['healthy', 'balanced', 'caution']],
-                    'reasoning' => ['type' => 'string'],
-                    'tips' => [
-                        'type' => 'array',
-                        'items' => ['type' => 'string'],
-                    ],
-                ],
-                'additionalProperties' => false,
-            ],
-        ];
-
-        try {
-            $resultJson = $service->respond([
+        // Прямой запрос к OpenAI Chat Completions API
+        $payload = [
+            'model' => 'gpt-4o-mini',
+            'messages' => [
                 [
                     'role' => 'system',
-                    'content' => [
-                        ['type' => 'text', 'text' => 'Ты нутрициолог. Оцени блюдо на фото, ориентируясь на калорийность, насыщенные жиры и клетчатку. Дай ответ в формате JSON по схеме.'],
-                    ],
+                    'content' => 'Ты нутрициолог. Оцени блюдо на фото, ориентируясь на калорийность, насыщенные жиры и клетчатку. Ответь строго в JSON формате с полями: title, description, estimated_calories, healthiness (healthy/balanced/caution), reasoning, tips (массив строк).'
                 ],
                 [
                     'role' => 'user',
                     'content' => [
-                        ['type' => 'text', 'text' => 'Проанализируй блюдо на фото. Оцени примерную калорийность порции и скажи, насколько оно полезно для снижения холестерина.'],
-                        ['type' => 'input_image', 'image_url' => ['url' => $dataUrl]],
+                        [
+                            'type' => 'text',
+                            'text' => 'Проанализируй блюдо на фото. Оцени примерную калорийность порции и скажи, насколько оно полезно для снижения холестерина.'
+                        ],
+                        [
+                            'type' => 'image_url',
+                            'image_url' => ['url' => $dataUrl]
+                        ],
                     ],
                 ],
-            ], [
-                'text' => [
-                    'format' => 'json_schema',
-                    'json_schema' => $schema,
+            ],
+            'temperature' => 0.7,
+        ];
+
+        try {
+            $ch = curl_init('https://api.openai.com/v1/chat/completions');
+            curl_setopt_array($ch, [
+                CURLOPT_RETURNTRANSFER => true,
+                CURLOPT_HTTPHEADER => [
+                    'Content-Type: application/json',
+                    'Authorization: Bearer ' . $apiKey,
                 ],
-                'max_output_tokens' => 900,
+                CURLOPT_POST => true,
+                CURLOPT_POSTFIELDS => json_encode($payload),
+                CURLOPT_TIMEOUT => 60,
             ]);
+
+            $raw = curl_exec($ch);
+            $httpCode = curl_getinfo($ch, CURLINFO_RESPONSE_CODE);
+            $curlError = curl_error($ch);
+            curl_close($ch);
+
+            if ($curlError) {
+                throw new \Exception('cURL Error: ' . $curlError);
+            }
+
+            $apiResponse = json_decode($raw, true);
+
+            if ($httpCode >= 400) {
+                $errorMsg = $apiResponse['error']['message'] ?? $raw;
+                throw new \Exception('OpenAI Error: ' . $errorMsg);
+            }
+
+            $resultText = $apiResponse['choices'][0]['message']['content'] ?? null;
+            if (!$resultText) {
+                throw new \Exception('Пустой ответ от OpenAI');
+            }
+
+            // Убираем markdown обертку если есть
+            $resultText = preg_replace('/^```json\s*|\s*```$/m', '', trim($resultText));
+            $parsed = json_decode($resultText, true);
+
+            if (!is_array($parsed)) {
+                throw new \Exception('Не удалось распарсить JSON: ' . $resultText);
+            }
+
         } catch (\Throwable $e) {
             return ResponseHelper::json($response, [
                 'error' => 'Не удалось проанализировать фото: ' . $e->getMessage(),
-            ], 500);
-        }
-
-        $parsed = json_decode($resultJson, true);
-        if (!is_array($parsed)) {
-            return ResponseHelper::json($response, [
-                'error' => 'Модель вернула неожиданный формат ответа',
             ], 500);
         }
 
@@ -128,8 +145,8 @@ class AnalysisController
         $record->refresh();
 
         return ResponseHelper::json($response, $result + [
-            'history' => $this->serializeHistory([$record]),
-        ]);
+                'history' => $this->serializeHistory([$record]),
+            ]);
     }
 
     public function history(Request $request, Response $response): Response
