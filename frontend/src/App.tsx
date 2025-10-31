@@ -21,6 +21,23 @@ import { requestAssistantPrompt } from "./lib/assistant";
 import { LanguageSelector } from "./components/LanguageSelector";
 import "./App.css";
 
+type BeforeInstallPromptEvent = Event & {
+  readonly platforms: string[];
+  prompt: () => Promise<void>;
+  userChoice: Promise<{ outcome: "accepted" | "dismissed"; platform: string }>;
+};
+
+type NavigatorWithStandalone = Navigator & {
+  standalone?: boolean;
+};
+
+type NavigatorWithUAData = NavigatorWithStandalone & {
+  userAgentData?: {
+    mobile?: boolean;
+    platform?: string;
+  };
+};
+
 const SettingsIcon = (props: SVGProps<SVGSVGElement>) => (
   <svg
     aria-hidden="true"
@@ -59,6 +76,9 @@ const App = observer(() => {
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [activeTab, setActiveTab] = useState<TabKey>("bp");
+  const [installPromptEvent, setInstallPromptEvent] = useState<BeforeInstallPromptEvent | null>(null);
+  const [showInstallPrompt, setShowInstallPrompt] = useState(false);
+  const [canShowInstallPrompt, setCanShowInstallPrompt] = useState(false);
   const { t } = useTranslation();
 
   const tabItems: TabItem[] = useMemo(
@@ -279,6 +299,79 @@ const App = observer(() => {
   }, []);
 
   useEffect(() => {
+    if (typeof window === "undefined") {
+      return;
+    }
+
+    const navigatorWithUAData = window.navigator as NavigatorWithUAData;
+    const ua = navigatorWithUAData.userAgent ?? "";
+    const isAndroid = navigatorWithUAData.userAgentData?.platform === "Android" || /Android/i.test(ua);
+    const isIos = /iPhone|iPad|iPod/i.test(ua);
+    const mobileHint = navigatorWithUAData.userAgentData?.mobile;
+    const isMobileDevice = typeof mobileHint === "boolean" ? mobileHint : isAndroid || isIos;
+
+    if (!isMobileDevice) {
+      return;
+    }
+
+    const isStandalone = Boolean(
+      (typeof window.matchMedia === "function" && window.matchMedia("(display-mode: standalone)").matches) ||
+        navigatorWithUAData.standalone,
+    );
+
+    if (isStandalone) {
+      return;
+    }
+
+    setCanShowInstallPrompt(true);
+
+    const handleBeforeInstallPrompt = (event: Event) => {
+      event.preventDefault();
+      setInstallPromptEvent(event as BeforeInstallPromptEvent);
+    };
+
+    const handleAppInstalled = () => {
+      setInstallPromptEvent(null);
+      setShowInstallPrompt(false);
+      setCanShowInstallPrompt(false);
+    };
+
+    window.addEventListener("beforeinstallprompt", handleBeforeInstallPrompt);
+    window.addEventListener("appinstalled", handleAppInstalled);
+
+    return () => {
+      window.removeEventListener("beforeinstallprompt", handleBeforeInstallPrompt);
+      window.removeEventListener("appinstalled", handleAppInstalled);
+    };
+  }, []);
+
+  useEffect(() => {
+    if (!canShowInstallPrompt || !installPromptEvent) {
+      return;
+    }
+
+    setShowInstallPrompt(true);
+  }, [canShowInstallPrompt, installPromptEvent]);
+
+  const handleInstallConfirm = useCallback(async () => {
+    if (!installPromptEvent) {
+      return;
+    }
+    try {
+      await installPromptEvent.prompt();
+      await installPromptEvent.userChoice;
+    } finally {
+      setShowInstallPrompt(false);
+      setInstallPromptEvent(null);
+    }
+  }, [installPromptEvent]);
+
+  const handleInstallDismiss = useCallback(() => {
+    setShowInstallPrompt(false);
+    setInstallPromptEvent(null);
+  }, []);
+
+  useEffect(() => {
     if (userStore.token) {
       setActiveTab("bp");
     } else {
@@ -305,25 +398,49 @@ const App = observer(() => {
     }
   };
 
+  const installPromptBanner =
+    showInstallPrompt && installPromptEvent ? (
+      <div className="install-banner" role="dialog" aria-labelledby="install-app-title" aria-modal="false">
+        <div className="install-banner-text">
+          <h2 id="install-app-title" className="install-banner-title">
+            {t("common.installPrompt.title")}
+          </h2>
+          <p className="install-banner-description">{t("common.installPrompt.description")}</p>
+        </div>
+        <div className="install-banner-actions">
+          <button type="button" className="button ghost" onClick={handleInstallDismiss}>
+            {t("common.installPrompt.later")}
+          </button>
+          <button type="button" className="button" onClick={handleInstallConfirm}>
+            {t("common.installPrompt.install")}
+          </button>
+        </div>
+      </div>
+    ) : null;
+
   if (!userStore.token) {
     return (
-      <AuthPanel
-        mode={mode}
-        email={email}
-        password={password}
-        showPassword={showPassword}
-        error={userStore.error}
-        onEmailChange={setEmail}
-        onPasswordChange={setPassword}
-        onTogglePassword={() => setShowPassword(prev => !prev)}
-        onSwitchMode={() => setMode(prev => (prev === "login" ? "register" : "login"))}
-        onSubmit={handleAuthSubmit}
-      />
+      <>
+        <AuthPanel
+          mode={mode}
+          email={email}
+          password={password}
+          showPassword={showPassword}
+          error={userStore.error}
+          onEmailChange={setEmail}
+          onPasswordChange={setPassword}
+          onTogglePassword={() => setShowPassword(prev => !prev)}
+          onSwitchMode={() => setMode(prev => (prev === "login" ? "register" : "login"))}
+          onSubmit={handleAuthSubmit}
+        />
+        {installPromptBanner}
+      </>
     );
   }
 
   return (
     <div className="app-shell text-slate-900">
+      {installPromptBanner}
       <header className="topbar content rounded-2xl bg-white/70 px-4 py-3 shadow-sm backdrop-blur md:px-6 md:py-4">
         <div className="brand">
           <h1>CholestoFit</h1>
