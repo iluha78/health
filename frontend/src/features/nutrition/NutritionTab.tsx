@@ -2,6 +2,7 @@ import type { ChangeEvent, FormEvent } from "react";
 import { useTranslation } from "../../i18n";
 import { formatDateTime } from "../../lib/datetime";
 import type { NutritionFormState, NutritionRecord } from "../../types/forms";
+import type { NutritionPhotoAnalysis } from "../../lib/nutrition";
 
 export type NutritionTabProps = {
   form: NutritionFormState;
@@ -13,6 +14,14 @@ export type NutritionTabProps = {
   history: NutritionRecord[];
   onFieldChange: (key: keyof NutritionFormState, value: string) => void;
   onSubmit: (event: FormEvent<HTMLFormElement>) => void;
+  photoFile: File | null;
+  photoPreview: string | null;
+  photoResult: NutritionPhotoAnalysis | null;
+  photoError: string | null;
+  photoLoading: boolean;
+  onPhotoChange: (file: File | null) => void;
+  onPhotoClear: () => void;
+  onPhotoAnalyze: () => void;
 };
 
 const handleChange = (key: keyof NutritionFormState, handler: NutritionTabProps["onFieldChange"]) =>
@@ -27,9 +36,27 @@ export const NutritionTab = ({
   disabledReason,
   history,
   onFieldChange,
-  onSubmit
+  onSubmit,
+  photoFile,
+  photoPreview,
+  photoResult,
+  photoError,
+  photoLoading,
+  onPhotoChange,
+  onPhotoClear,
+  onPhotoAnalyze
 }: NutritionTabProps) => {
   const { t } = useTranslation();
+
+  const handlePhotoInput = (event: ChangeEvent<HTMLInputElement>) => {
+    const nextFile = event.target.files?.[0] ?? null;
+    onPhotoChange(nextFile);
+    event.target.value = "";
+  };
+
+  const caloriesText = photoResult?.calories != null
+    ? t("nutrition.photo.calories", { value: Math.round(photoResult.calories) })
+    : null;
 
   return (
     <div className="tab-panel tab-stack">
@@ -87,6 +114,70 @@ export const NutritionTab = ({
           {!disabled && error && <p className="error">{error}</p>}
         </div>
       </form>
+      <section className="card form-card nutrition-photo-card">
+        <h3>{t("nutrition.photo.title")}</h3>
+        <p className="muted">{t("nutrition.photo.subtitle")}</p>
+        <label className="photo-upload">
+          {t("nutrition.photo.uploadLabel")}
+          <input
+            type="file"
+            accept="image/*"
+            onChange={handlePhotoInput}
+            disabled={disabled || photoLoading}
+          />
+          <span className="photo-hint">{t("nutrition.photo.hint")}</span>
+        </label>
+        {photoPreview && (
+          <div className="photo-preview-wrapper">
+            <img src={photoPreview} alt={t("nutrition.photo.previewAlt")} className="photo-preview" />
+            <div className="photo-meta">
+              {photoFile && <p className="photo-name">{photoFile.name}</p>}
+              <button
+                type="button"
+                className="ghost small"
+                onClick={onPhotoClear}
+                disabled={photoLoading}
+              >
+                {t("nutrition.photo.remove")}
+              </button>
+            </div>
+          </div>
+        )}
+        <div className="photo-actions">
+          <button
+            type="button"
+            onClick={onPhotoAnalyze}
+            disabled={disabled || photoLoading || !photoFile}
+          >
+            {photoLoading ? t("nutrition.photo.analyzing") : t("nutrition.photo.analyze")}
+          </button>
+        </div>
+        {photoError && <p className="error">{photoError}</p>}
+        {photoResult && (
+          <div className="photo-result">
+            {caloriesText && <p className="photo-calories">{caloriesText}</p>}
+            {photoResult.confidence && (
+              <p className="photo-confidence">{t("nutrition.photo.confidence", { value: photoResult.confidence })}</p>
+            )}
+            {photoResult.notes && (
+              <div className="photo-notes">
+                <h4>{t("nutrition.photo.notesTitle")}</h4>
+                <p>{photoResult.notes}</p>
+              </div>
+            )}
+            {photoResult.ingredients.length > 0 && (
+              <div className="photo-ingredients">
+                <h4>{t("nutrition.photo.ingredientsTitle")}</h4>
+                <ul>
+                  {photoResult.ingredients.map(item => (
+                    <li key={item}>{item}</li>
+                  ))}
+                </ul>
+              </div>
+            )}
+          </div>
+        )}
+      </section>
       {advice && (
         <article className="card advice-result form-card">
           <h3>{t("nutrition.adviceTitle")}</h3>

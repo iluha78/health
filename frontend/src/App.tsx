@@ -18,6 +18,7 @@ import { SettingsDialog } from "./features/settings/SettingsDialog";
 import { useSettingsState, type SettingsTabKey } from "./features/settings/useSettingsState";
 import { useBillingControls } from "./features/settings/useBillingControls";
 import { requestAssistantPrompt } from "./lib/assistant";
+import { requestNutritionPhotoCalories } from "./lib/nutrition";
 import { LanguageSelector } from "./components/LanguageSelector";
 import "./App.css";
 
@@ -53,12 +54,23 @@ const LogoutIcon = (props: SVGProps<SVGSVGElement>) => (
   </svg>
 );
 
+const initialTabFromPath = (): TabKey => {
+  if (typeof window === "undefined") {
+    return "bp";
+  }
+  const path = window.location.pathname;
+  if (path.startsWith("/advice/nutrition")) {
+    return "nutrition";
+  }
+  return "bp";
+};
+
 const App = observer(() => {
   const [mode, setMode] = useState<"login" | "register">("login");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
-  const [activeTab, setActiveTab] = useState<TabKey>("bp");
+  const [activeTab, setActiveTab] = useState<TabKey>(() => initialTabFromPath());
   const { t } = useTranslation();
 
   const tabItems: TabItem[] = useMemo(
@@ -76,6 +88,13 @@ const App = observer(() => {
     return {
       Authorization: `Bearer ${userStore.token}`,
       "Content-Type": "application/json"
+    } as Record<string, string>;
+  }, [userStore.token]);
+
+  const authHeaders = useMemo(() => {
+    if (!userStore.token) return undefined;
+    return {
+      Authorization: `Bearer ${userStore.token}`
     } as Record<string, string>;
   }, [userStore.token]);
 
@@ -178,6 +197,21 @@ const App = observer(() => {
     ]
   );
 
+  const analyzeNutritionPhoto = useCallback(
+    async (file: File) => {
+      if (!authHeaders) {
+        throw new Error(t("common.loginRequired"));
+      }
+      if (!adviceEnabled) {
+        throw new Error(adviceDisabledReason ?? t("common.aiAdviceUnavailable"));
+      }
+      const result = await requestNutritionPhotoCalories(authHeaders, file);
+      await userStore.refresh();
+      return result;
+    },
+    [adviceDisabledReason, adviceEnabled, authHeaders, t, userStore]
+  );
+
   const {
     form: nutritionForm,
     advice: nutritionAdvice,
@@ -186,8 +220,16 @@ const App = observer(() => {
     history: nutritionHistory,
     updateField: updateNutritionField,
     submit: submitNutrition,
-    reset: resetNutrition
-  } = useNutritionFeature(userId, requestAdvice, nutritionDefaults);
+    reset: resetNutrition,
+    photoFile: nutritionPhotoFile,
+    photoPreview: nutritionPhotoPreview,
+    photoResult: nutritionPhotoResult,
+    photoError: nutritionPhotoError,
+    photoLoading: nutritionPhotoLoading,
+    selectPhoto: selectNutritionPhoto,
+    clearPhoto: clearNutritionPhoto,
+    analyzePhoto: analyzeNutritionPhotoRequest
+  } = useNutritionFeature(userId, requestAdvice, nutritionDefaults, analyzeNutritionPhoto);
 
   const {
     messages: assistantMessages,
@@ -279,12 +321,20 @@ const App = observer(() => {
   }, []);
 
   useEffect(() => {
-    if (userStore.token) {
-      setActiveTab("bp");
-    } else {
+    if (!userStore.token) {
       resetAll();
     }
   }, [resetAll, userStore.token]);
+
+  useEffect(() => {
+    if (typeof window === "undefined") {
+      return;
+    }
+    const targetPath = activeTab === "nutrition" ? "/advice/nutrition/photo" : "/";
+    if (window.location.pathname !== targetPath) {
+      window.history.replaceState(null, "", targetPath);
+    }
+  }, [activeTab]);
 
   useEffect(() => {
     if (userStore.token && !userStore.me) {
@@ -388,17 +438,25 @@ const App = observer(() => {
             />
           )}
           {activeTab === "nutrition" && (
-            <NutritionTab
-              form={nutritionForm}
-              advice={nutritionAdvice}
-              loading={nutritionLoading}
-              error={nutritionError}
-              disabled={!adviceEnabled}
-              disabledReason={adviceDisabledReason}
-              history={nutritionHistory}
-              onFieldChange={updateNutritionField}
-              onSubmit={submitNutrition}
-            />
+        <NutritionTab
+          form={nutritionForm}
+          advice={nutritionAdvice}
+          loading={nutritionLoading}
+          error={nutritionError}
+          disabled={!adviceEnabled}
+          disabledReason={adviceDisabledReason}
+          history={nutritionHistory}
+          onFieldChange={updateNutritionField}
+          onSubmit={submitNutrition}
+          photoFile={nutritionPhotoFile}
+          photoPreview={nutritionPhotoPreview}
+          photoResult={nutritionPhotoResult}
+          photoError={nutritionPhotoError}
+          photoLoading={nutritionPhotoLoading}
+          onPhotoChange={selectNutritionPhoto}
+          onPhotoClear={clearNutritionPhoto}
+          onPhotoAnalyze={analyzeNutritionPhotoRequest}
+        />
           )}
           {activeTab === "assistant" && (
             <AssistantTab
