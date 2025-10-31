@@ -103,9 +103,12 @@ class AdviceController
     {
         $user = Auth::user($request);
 
+        error_log(sprintf('[nutritionPhoto] user_id=%d start request', $user->id));
+
         try {
             SubscriptionService::ensureAdviceAccess($user);
         } catch (SubscriptionException $e) {
+            error_log(sprintf('[nutritionPhoto] user_id=%d subscription error: %s', $user->id, $e->getMessage()));
             return ResponseHelper::json($response, ['error' => $e->getMessage()], $e->getStatus());
         }
 
@@ -113,14 +116,18 @@ class AdviceController
         $photo = $this->extractPhotoFile($files['photo'] ?? null);
         if (isset($photo['error'])) {
             /** @var array{error: string, status: int} $photo */
+            error_log(sprintf('[nutritionPhoto] user_id=%d photo validation failed: %s', $user->id, $photo['error']));
             return ResponseHelper::json($response, ['error' => $photo['error']], $photo['status']);
         }
 
         /** @var array{contents: string} $photo */
         $imageBinary = $photo['contents'];
 
+        error_log(sprintf('[nutritionPhoto] user_id=%d photo size=%d bytes', $user->id, strlen($imageBinary)));
+
         $service = new OpenAiService();
         if (!$service->isConfigured()) {
+            error_log(sprintf('[nutritionPhoto] user_id=%d openai not configured', $user->id));
             return ResponseHelper::json($response, [
                 'error' => 'AI-сервисы не настроены. Укажите ключ OPENAI_API_KEY.',
             ], 500);
@@ -186,6 +193,7 @@ class AdviceController
                 ],
             ]);
         } catch (\Throwable $e) {
+            error_log(sprintf('[nutritionPhoto] user_id=%d openai error: %s', $user->id, $e->getMessage()));
             return ResponseHelper::json($response, [
                 'error' => 'Не удалось получить рекомендации: ' . $e->getMessage(),
             ], 500);
@@ -193,6 +201,7 @@ class AdviceController
 
         $decoded = json_decode($raw, true);
         if (!is_array($decoded)) {
+            error_log(sprintf('[nutritionPhoto] user_id=%d failed to decode response: %s', $user->id, substr($raw, 0, 200)));
             return ResponseHelper::json($response, [
                 'error' => 'Не удалось обработать ответ модели',
             ], 500);
@@ -226,6 +235,13 @@ class AdviceController
         }
 
         SubscriptionService::recordAdviceUsage($user);
+
+        error_log(sprintf('[nutritionPhoto] user_id=%d success calories=%s confidence=%s ingredients=%d',
+            $user->id,
+            $calories === null ? 'null' : (string) $calories,
+            $confidence ?? 'null',
+            count($ingredients)
+        ));
 
         return ResponseHelper::json($response, [
             'calories' => $calories,
