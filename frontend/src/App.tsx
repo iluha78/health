@@ -31,6 +31,13 @@ type NavigatorWithStandalone = Navigator & {
   standalone?: boolean;
 };
 
+type NavigatorWithUAData = NavigatorWithStandalone & {
+  userAgentData?: {
+    mobile?: boolean;
+    platform?: string;
+  };
+};
+
 const SettingsIcon = (props: SVGProps<SVGSVGElement>) => (
   <svg
     aria-hidden="true"
@@ -71,6 +78,7 @@ const App = observer(() => {
   const [activeTab, setActiveTab] = useState<TabKey>("bp");
   const [installPromptEvent, setInstallPromptEvent] = useState<BeforeInstallPromptEvent | null>(null);
   const [showInstallPrompt, setShowInstallPrompt] = useState(false);
+  const [canShowInstallPrompt, setCanShowInstallPrompt] = useState(false);
   const { t } = useTranslation();
 
   const tabItems: TabItem[] = useMemo(
@@ -295,29 +303,37 @@ const App = observer(() => {
       return;
     }
 
+    const navigatorWithUAData = window.navigator as NavigatorWithUAData;
+    const ua = navigatorWithUAData.userAgent ?? "";
+    const isAndroid = navigatorWithUAData.userAgentData?.platform === "Android" || /Android/i.test(ua);
+    const isIos = /iPhone|iPad|iPod/i.test(ua);
+    const mobileHint = navigatorWithUAData.userAgentData?.mobile;
+    const isMobileDevice = typeof mobileHint === "boolean" ? mobileHint : isAndroid || isIos;
+
+    if (!isMobileDevice) {
+      return;
+    }
+
     const isStandalone = Boolean(
       (typeof window.matchMedia === "function" && window.matchMedia("(display-mode: standalone)").matches) ||
-        (window.navigator as NavigatorWithStandalone).standalone,
+        navigatorWithUAData.standalone,
     );
 
     if (isStandalone) {
       return;
     }
 
-    const handleBeforeInstallPrompt = (event: Event) => {
-      const isMobile = /Android|iPhone|iPad|iPod|Windows Phone/i.test(window.navigator.userAgent);
-      if (!isMobile) {
-        return;
-      }
+    setCanShowInstallPrompt(true);
 
+    const handleBeforeInstallPrompt = (event: Event) => {
       event.preventDefault();
       setInstallPromptEvent(event as BeforeInstallPromptEvent);
-      setShowInstallPrompt(true);
     };
 
     const handleAppInstalled = () => {
       setInstallPromptEvent(null);
       setShowInstallPrompt(false);
+      setCanShowInstallPrompt(false);
     };
 
     window.addEventListener("beforeinstallprompt", handleBeforeInstallPrompt);
@@ -328,6 +344,14 @@ const App = observer(() => {
       window.removeEventListener("appinstalled", handleAppInstalled);
     };
   }, []);
+
+  useEffect(() => {
+    if (!canShowInstallPrompt || !installPromptEvent) {
+      return;
+    }
+
+    setShowInstallPrompt(true);
+  }, [canShowInstallPrompt, installPromptEvent]);
 
   const handleInstallConfirm = useCallback(async () => {
     if (!installPromptEvent) {
