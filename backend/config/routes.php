@@ -30,7 +30,8 @@ $app->get('/foods',                     [FoodController::class, 'search'])->add(
 $app->post('/foods',                    [FoodController::class, 'create'])->add(new JwtMiddleware());
 $app->get('/advice/nutrition/history',  [AdviceController::class, 'history'])->add(new JwtMiddleware());
 $app->post('/advice/nutrition',         [AdviceController::class, 'nutrition'])->add(new JwtMiddleware());
-$app->post('/advice/nutrition/photo',   [AdviceController::class, 'nutritionPhoto'])->add(new JwtMiddleware());
+$app->post('/advice/nutrition/photo',         [AdviceController::class, 'nutritionPhoto'])->add(new JwtMiddleware());
+$app->post('/advice/nutrition/photo/analyze', [AdviceController::class, 'nutritionPhoto'])->add(new JwtMiddleware());
 $app->post('/advice/general',           [AdviceController::class, 'general'])->add(new JwtMiddleware());
 $app->get('/analysis/photo/history',    [AnalysisController::class, 'history'])->add(new JwtMiddleware());
 $app->post('/analysis/photo',           [AnalysisController::class, 'photo'])->add(new JwtMiddleware());

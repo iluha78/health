@@ -19,7 +19,7 @@ export const requestNutritionPhotoCalories = async (
   const formData = new FormData();
   formData.append("photo", file);
 
-  const response = await fetch(apiUrl("/advice/nutrition/photo"), {
+  const response = await fetch(apiUrl("/advice/nutrition/photo/analyze"), {
     method: "POST",
     headers,
     body: formData
