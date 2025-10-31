@@ -8,6 +8,41 @@ export type NutritionPhotoAnalysis = {
   ingredients: string[];
 };
 
+const parseJsonSafely = async (response: Response): Promise<unknown> => {
+  try {
+    return await response.json();
+  } catch (error) {
+    if (error instanceof SyntaxError) {
+      return null;
+    }
+    throw error;
+  }
+};
+
+const buildFormData = (file: File): FormData => {
+  const formData = new FormData();
+  formData.append("photo", file);
+  return formData;
+};
+
+type PhotoEndpoint = "/advice/nutrition/photo" | "/advice/nutrition/photo/analyze";
+
+const postPhoto = async (
+  endpoint: PhotoEndpoint,
+  headers: Record<string, string>,
+  file: File
+): Promise<{ response: Response; data: unknown }> => {
+  const response = await fetch(apiUrl(endpoint), {
+    method: "POST",
+    headers,
+    body: buildFormData(file)
+  });
+
+  const data = await parseJsonSafely(response);
+
+  return { response, data };
+};
+
 export const requestNutritionPhotoCalories = async (
   headers: Record<string, string> | undefined,
   file: File
@@ -16,26 +51,30 @@ export const requestNutritionPhotoCalories = async (
     throw new Error(i18n.t("common.loginRequired"));
   }
 
-  const formData = new FormData();
-  formData.append("photo", file);
+  const primary = await postPhoto("/advice/nutrition/photo/analyze", headers, file);
 
-  const response = await fetch(apiUrl("/advice/nutrition/photo/analyze"), {
-    method: "POST",
-    headers,
-    body: formData
-  });
+  const { response: primaryResponse } = primary;
 
-  const data = await response.json();
+  const { response, data } =
+    primaryResponse.status === 404
+      ? await postPhoto("/advice/nutrition/photo", headers, file)
+      : primary;
+
   if (!response.ok) {
-    const message = typeof data.error === "string" ? data.error : i18n.t("common.adviceRequestFailed");
+    const message =
+      data && typeof data === "object" && "error" in data && typeof (data as { error: unknown }).error === "string"
+        ? (data as { error: string }).error
+        : i18n.t("common.adviceRequestFailed");
     throw new Error(message);
   }
 
-  const calories = typeof data.calories === "number" ? data.calories : null;
-  const confidence = typeof data.confidence === "string" ? data.confidence : null;
-  const notes = typeof data.notes === "string" ? data.notes : "";
-  const ingredients = Array.isArray(data.ingredients)
-    ? data.ingredients.filter((item: unknown): item is string => typeof item === "string")
+  const payload = (data ?? {}) as Record<string, unknown>;
+
+  const calories = typeof payload.calories === "number" ? payload.calories : null;
+  const confidence = typeof payload.confidence === "string" ? payload.confidence : null;
+  const notes = typeof payload.notes === "string" ? payload.notes : "";
+  const ingredients = Array.isArray(payload.ingredients)
+    ? payload.ingredients.filter((item: unknown): item is string => typeof item === "string")
     : [];
 
   return { calories, confidence, notes, ingredients };
