@@ -13,8 +13,8 @@ export default defineConfig({
         bypass(req) {
           const acceptHeader = req.headers.accept ?? '';
           if (req.method === 'GET' && acceptHeader.includes('text/html')) {
-            // Пусть запросы HTML отдаются фронтендом, чтобы поддерживались прямые ссылки
-            return '/index.html';
+            // Пусть запросы HTML обслуживаются самим Vite, чтобы SPA-маршруты работали при прямых заходах
+            return false;
           }
           return undefined;
         },
