@@ -54,9 +54,18 @@ const LogoutIcon = (props: SVGProps<SVGSVGElement>) => (
   </svg>
 );
 
-const initialTabFromPath = (): TabKey => {
+const TAB_STORAGE_KEY = "cholestofit_active_tab";
+
+const isTabKey = (value: string | null): value is TabKey =>
+  value === "bp" || value === "lipid" || value === "nutrition" || value === "assistant";
+
+const initialTabFromStorage = (): TabKey => {
   if (typeof window === "undefined") {
     return "bp";
+  }
+  const saved = window.localStorage.getItem(TAB_STORAGE_KEY);
+  if (isTabKey(saved)) {
+    return saved;
   }
   const path = window.location.pathname;
   if (path.startsWith("/advice/nutrition")) {
@@ -70,7 +79,7 @@ const App = observer(() => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
-  const [activeTab, setActiveTab] = useState<TabKey>(() => initialTabFromPath());
+  const [activeTab, setActiveTab] = useState<TabKey>(() => initialTabFromStorage());
   const { t } = useTranslation();
 
   const tabItems: TabItem[] = useMemo(
@@ -333,11 +342,17 @@ const App = observer(() => {
     if (typeof window === "undefined") {
       return;
     }
-    const targetPath = activeTab === "nutrition" ? "/advice/nutrition" : "/";
-    if (window.location.pathname !== targetPath) {
-      window.history.replaceState(null, "", targetPath);
-    }
+    window.localStorage.setItem(TAB_STORAGE_KEY, activeTab);
   }, [activeTab]);
+
+  useEffect(() => {
+    if (typeof window === "undefined") {
+      return;
+    }
+    if (window.location.pathname.startsWith("/advice/")) {
+      window.history.replaceState(null, "", "/");
+    }
+  }, []);
 
   useEffect(() => {
     if (userStore.token && !userStore.me) {
