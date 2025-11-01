@@ -1,7 +1,12 @@
+import { useId } from "react";
 import type { ChangeEvent, FormEvent } from "react";
 import { useTranslation } from "../../i18n";
 import { formatDateTime } from "../../lib/datetime";
-import type { NutritionFormState, NutritionRecord } from "../../types/forms";
+import type {
+  NutritionFormState,
+  NutritionPhotoRecord,
+  NutritionRecord
+} from "../../types/forms";
 import type { NutritionPhotoAnalysis } from "../../lib/nutrition";
 
 export type NutritionTabProps = {
@@ -12,6 +17,7 @@ export type NutritionTabProps = {
   disabled: boolean;
   disabledReason: string | null;
   history: NutritionRecord[];
+  photoHistory: NutritionPhotoRecord[];
   onFieldChange: (key: keyof NutritionFormState, value: string) => void;
   onSubmit: (event: FormEvent<HTMLFormElement>) => void;
   photoFile: File | null;
@@ -23,6 +29,7 @@ export type NutritionTabProps = {
   onPhotoChange: (file: File | null) => void;
   onPhotoClear: () => void;
   onPhotoAnalyze: () => void;
+  onPhotoHistoryRemove: (id: string) => void;
 };
 
 const handleChange = (key: keyof NutritionFormState, handler: NutritionTabProps["onFieldChange"]) =>
@@ -36,6 +43,7 @@ export const NutritionTab = ({
   disabled,
   disabledReason,
   history,
+  photoHistory,
   onFieldChange,
   onSubmit,
   photoFile,
@@ -46,9 +54,12 @@ export const NutritionTab = ({
   photoDebug,
   onPhotoChange,
   onPhotoClear,
-  onPhotoAnalyze
+  onPhotoAnalyze,
+  onPhotoHistoryRemove
 }: NutritionTabProps) => {
   const { t } = useTranslation();
+  const photoInputId = useId();
+  const uploadDisabled = disabled || photoLoading;
 
   const handlePhotoInput = (event: ChangeEvent<HTMLInputElement>) => {
     const nextFile = event.target.files?.[0] ?? null;
@@ -119,16 +130,23 @@ export const NutritionTab = ({
       <section className="card form-card nutrition-photo-card">
         <h3>{t("nutrition.photo.title")}</h3>
         <p className="muted">{t("nutrition.photo.subtitle")}</p>
-        <label className="photo-upload">
-          {t("nutrition.photo.uploadLabel")}
+        <div className="photo-upload">
+          <label
+            htmlFor={photoInputId}
+            className={`photo-upload-button${uploadDisabled ? " disabled" : ""}`}
+            aria-disabled={uploadDisabled}
+          >
+            {t("nutrition.photo.uploadLabel")}
+          </label>
           <input
+            id={photoInputId}
             type="file"
             accept="image/*"
             onChange={handlePhotoInput}
-            disabled={disabled || photoLoading}
+            disabled={uploadDisabled}
           />
           <span className="photo-hint">{t("nutrition.photo.hint")}</span>
-        </label>
+        </div>
         {photoPreview && (
           <div className="photo-preview-wrapper">
             <img src={photoPreview} alt={t("nutrition.photo.previewAlt")} className="photo-preview" />
@@ -192,6 +210,58 @@ export const NutritionTab = ({
           </div>
         )}
       </section>
+      {photoHistory.length > 0 && (
+        <details className="card form-card photo-history" open>
+          <summary>{t("nutrition.photo.historyTitle")}</summary>
+          <ul className="photo-history-list">
+            {photoHistory.map(entry => {
+              const calories =
+                entry.calories != null
+                  ? t("nutrition.photo.calories", { value: Math.round(entry.calories) })
+                  : t("nutrition.photo.caloriesUnknown");
+              return (
+                <li key={entry.id} className="photo-history-item">
+                  <header className="photo-history-header">
+                    <div className="photo-history-meta">
+                      <span className="history-tag">{formatDateTime(entry.createdAt)}</span>
+                      {entry.fileName && <span className="photo-history-name">{entry.fileName}</span>}
+                    </div>
+                    <button
+                      type="button"
+                      className="ghost small"
+                      onClick={() => onPhotoHistoryRemove(entry.id)}
+                    >
+                      {t("nutrition.photo.historyRemove")}
+                    </button>
+                  </header>
+                  <p className="photo-history-calories">{calories}</p>
+                  {entry.confidence && (
+                    <p className="photo-history-confidence">
+                      {t("nutrition.photo.confidence", { value: entry.confidence })}
+                    </p>
+                  )}
+                  {entry.notes && (
+                    <div className="photo-history-notes">
+                      <h4>{t("nutrition.photo.notesTitle")}</h4>
+                      <p>{entry.notes}</p>
+                    </div>
+                  )}
+                  {entry.ingredients.length > 0 && (
+                    <div className="photo-history-ingredients">
+                      <h4>{t("nutrition.photo.ingredientsTitle")}</h4>
+                      <ul>
+                        {entry.ingredients.map(item => (
+                          <li key={item}>{item}</li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
+                </li>
+              );
+            })}
+          </ul>
+        </details>
+      )}
       {advice && (
         <article className="card advice-result form-card">
           <h3>{t("nutrition.adviceTitle")}</h3>
