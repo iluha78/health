@@ -6,12 +6,9 @@ use App\Models\User;
 class SubscriptionService
 {
     public const PLAN_FREE = 'free';
-    public const PLAN_ADVISOR = 'advisor';
     public const PLAN_PREMIUM = 'premium';
 
-    public const MONTHLY_BUDGET_CENTS = 500; // $5
-    public const COST_ADVICE_CENTS = 100; // $1 per advice request
-    public const COST_ASSISTANT_CENTS = 150; // $1.50 per assistant chat
+    public const MONTHLY_REQUEST_LIMIT = 100;
 
     /**
      * @var array<string, array<string, mixed>>
@@ -23,17 +20,12 @@ class SubscriptionService
             'allows_advice' => false,
             'allows_assistant' => false,
         ],
-        self::PLAN_ADVISOR => [
-            'label' => 'Советы',
+        self::PLAN_PREMIUM => [
+            'label' => 'AI на месяц',
             'monthly_fee_cents' => 1000,
             'allows_advice' => true,
-            'allows_assistant' => false,
-        ],
-        self::PLAN_PREMIUM => [
-            'label' => 'Премиум',
-            'monthly_fee_cents' => 2000,
-            'allows_advice' => true,
             'allows_assistant' => true,
+            'request_limit' => self::MONTHLY_REQUEST_LIMIT,
         ],
     ];
 
@@ -89,22 +81,14 @@ class SubscriptionService
             throw new SubscriptionException('Ваш тариф не включает AI-советы. Обновите тариф, чтобы продолжить.', 403);
         }
 
-        $cost = self::COST_ADVICE_CENTS;
-        if ($user->balance_cents < $cost) {
-            throw new SubscriptionException('Недостаточно средств на балансе. Пополните счёт, чтобы получить совет.', 402);
-        }
-
-        if ($user->ai_cycle_spent_cents + $cost > self::MONTHLY_BUDGET_CENTS) {
-            throw new SubscriptionException('Достигнут месячный лимит расходов на AI. Попробуйте в следующем месяце.', 429);
+        if ($user->ai_cycle_requests >= self::MONTHLY_REQUEST_LIMIT) {
+            throw new SubscriptionException('Достигнут месячный лимит AI-запросов. Попробуйте в следующем месяце.', 429);
         }
     }
 
     public static function recordAdviceUsage(User $user): void
     {
         self::prepareCycle($user);
-        $cost = self::COST_ADVICE_CENTS;
-        $user->balance_cents -= $cost;
-        $user->ai_cycle_spent_cents += $cost;
         $user->ai_cycle_requests += 1;
         $user->ai_cycle_advice_requests += 1;
         $user->save();
@@ -118,22 +102,14 @@ class SubscriptionService
             throw new SubscriptionException('Ваш тариф не включает AI-ассистента. Обновите тариф, чтобы продолжить.', 403);
         }
 
-        $cost = self::COST_ASSISTANT_CENTS;
-        if ($user->balance_cents < $cost) {
-            throw new SubscriptionException('Недостаточно средств на балансе для запроса к ассистенту.', 402);
-        }
-
-        if ($user->ai_cycle_spent_cents + $cost > self::MONTHLY_BUDGET_CENTS) {
-            throw new SubscriptionException('Достигнут месячный лимит расходов на AI. Попробуйте в следующем месяце.', 429);
+        if ($user->ai_cycle_requests >= self::MONTHLY_REQUEST_LIMIT) {
+            throw new SubscriptionException('Достигнут месячный лимит AI-запросов. Попробуйте в следующем месяце.', 429);
         }
     }
 
     public static function recordAssistantUsage(User $user): void
     {
         self::prepareCycle($user);
-        $cost = self::COST_ASSISTANT_CENTS;
-        $user->balance_cents -= $cost;
-        $user->ai_cycle_spent_cents += $cost;
         $user->ai_cycle_requests += 1;
         $user->ai_cycle_assistant_requests += 1;
         $user->save();
@@ -187,8 +163,9 @@ class SubscriptionService
         self::prepareCycle($user);
         $plan = self::planInfo($user->plan ?? self::PLAN_FREE);
         $balanceCents = (int) $user->balance_cents;
-        $spent = (int) $user->ai_cycle_spent_cents;
-        $remaining = self::MONTHLY_BUDGET_CENTS - $spent;
+        $requests = (int) $user->ai_cycle_requests;
+        $limit = $plan['request_limit'] ?? self::MONTHLY_REQUEST_LIMIT;
+        $remainingRequests = max(0, $limit - $requests);
 
         $availablePlans = [];
         foreach (self::PLANS as $code => $data) {
@@ -218,16 +195,12 @@ class SubscriptionService
                 'month_started_at' => $user->ai_cycle_started_at instanceof \DateTimeInterface
                     ? $user->ai_cycle_started_at->format('Y-m-01')
                     : ($user->ai_cycle_started_at ? (new \DateTimeImmutable((string) $user->ai_cycle_started_at))->format('Y-m-01') : null),
-                'budget_cents' => self::MONTHLY_BUDGET_CENTS,
-                'spent_cents' => $spent,
-                'remaining_cents' => max(0, $remaining),
-                'requests' => (int) $user->ai_cycle_requests,
+                'limit_requests' => $limit,
+                'used_requests' => $requests,
+                'remaining_requests' => $remainingRequests,
+                'requests' => $requests,
                 'advice_requests' => (int) $user->ai_cycle_advice_requests,
                 'assistant_requests' => (int) $user->ai_cycle_assistant_requests,
-            ],
-            'costs' => [
-                'advice_cents' => self::COST_ADVICE_CENTS,
-                'assistant_cents' => self::COST_ASSISTANT_CENTS,
             ],
             'plans' => $availablePlans,
         ];

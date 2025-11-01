@@ -137,16 +137,12 @@ export interface BillingStatus {
   };
   ai_usage: {
     month_started_at: string | null;
-    budget_cents: number;
-    spent_cents: number;
-    remaining_cents: number;
+    limit_requests: number;
+    used_requests: number;
+    remaining_requests: number;
     requests: number;
     advice_requests: number;
     assistant_requests: number;
-  };
-  costs: {
-    advice_cents: number;
-    assistant_cents: number;
   };
   plans: BillingPlan[];
 }

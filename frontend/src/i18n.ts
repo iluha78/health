@@ -47,12 +47,12 @@ const resources = {
         adviceNotIncluded: "Ваш тариф не включает AI-советы.",
         assistantNotIncluded: "Ваш тариф не включает AI-ассистента.",
         insufficientBalance: "Недостаточно средств на балансе.",
-        monthlyLimitReached: "Достигнут месячный лимит расходов на AI.",
+        monthlyLimitReached: "Достигнут месячный лимит AI-запросов.",
         infoLoading: "Информация о тарифе загружается...",
         unavailable: "Биллинг недоступен: выполните миграции базы данных.",
         failed: "Не удалось загрузить данные тарифа.",
-        aiCosts: "Лимит расходов на AI — {{budget}} в месяц. Один совет стоит {{advice}}, обращение к ассистенту — {{assistant}}.",
-        aiSpent: "Расходы AI в этом месяце: {{spent}} из {{budget}}"
+        aiCosts: "Платный тариф включает до {{limit}} AI-запросов в месяц.",
+        aiSpent: "AI-запросы в этом месяце: {{used}} из {{limit}}"
       },
       auth: {
         subtitle: "Войдите, чтобы получить рекомендации ассистента",
@@ -333,12 +333,12 @@ const resources = {
         adviceNotIncluded: "Your plan does not include AI advice.",
         assistantNotIncluded: "Your plan does not include the AI assistant.",
         insufficientBalance: "Insufficient balance.",
-        monthlyLimitReached: "Monthly AI spending limit reached.",
+        monthlyLimitReached: "Monthly AI request limit reached.",
         infoLoading: "Billing information is loading...",
         unavailable: "Billing is unavailable: run database migrations.",
         failed: "Failed to load billing data.",
-        aiCosts: "AI spending limit is {{budget}} per month. One advice costs {{advice}}, assistant access costs {{assistant}}.",
-        aiSpent: "AI spending this month: {{spent}} of {{budget}}"
+        aiCosts: "The paid plan includes up to {{limit}} AI requests per month.",
+        aiSpent: "AI requests this month: {{used}} of {{limit}}"
       },
       auth: {
         subtitle: "Sign in to receive assistant recommendations",
@@ -619,12 +619,12 @@ const resources = {
         adviceNotIncluded: "Ihr Tarif enthält keine KI-Ratschläge.",
         assistantNotIncluded: "Ihr Tarif enthält keinen KI-Assistenten.",
         insufficientBalance: "Unzureichendes Guthaben.",
-        monthlyLimitReached: "Monatliches KI-Budget ausgeschöpft.",
+        monthlyLimitReached: "Monatliches KI-Anfragekontingent ausgeschöpft.",
         infoLoading: "Tarifinformationen werden geladen...",
         unavailable: "Abrechnung nicht verfügbar: Datenbankmigrationen ausführen.",
         failed: "Tarifdaten konnten nicht geladen werden.",
-        aiCosts: "KI-Budget: {{budget}} pro Monat. Ein Rat kostet {{advice}}, der Assistent {{assistant}}.",
-        aiSpent: "KI-Ausgaben in diesem Monat: {{spent}} von {{budget}}"
+        aiCosts: "Der kostenpflichtige Tarif enthält bis zu {{limit}} KI-Anfragen pro Monat.",
+        aiSpent: "KI-Anfragen in diesem Monat: {{used}} von {{limit}}"
       },
       auth: {
         subtitle: "Melden Sie sich an, um Empfehlungen zu erhalten",
@@ -905,12 +905,12 @@ const resources = {
         adviceNotIncluded: "Tu plan no incluye asesoría de IA.",
         assistantNotIncluded: "Tu plan no incluye el asistente de IA.",
         insufficientBalance: "Saldo insuficiente.",
-        monthlyLimitReached: "Se alcanzó el límite mensual de IA.",
+        monthlyLimitReached: "Se alcanzó el límite mensual de solicitudes de IA.",
         infoLoading: "La información del plan se está cargando...",
         unavailable: "Facturación no disponible: ejecuta las migraciones de la base de datos.",
         failed: "No se pudieron cargar los datos del plan.",
-        aiCosts: "El límite mensual de IA es {{budget}}. Cada consejo cuesta {{advice}}, el asistente cuesta {{assistant}}.",
-        aiSpent: "Gasto de IA este mes: {{spent}} de {{budget}}"
+        aiCosts: "El plan de pago incluye hasta {{limit}} solicitudes de IA al mes.",
+        aiSpent: "Solicitudes de IA este mes: {{used}} de {{limit}}"
       },
       auth: {
         subtitle: "Inicia sesión para recibir recomendaciones",
