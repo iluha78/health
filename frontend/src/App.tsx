@@ -54,23 +54,12 @@ const LogoutIcon = (props: SVGProps<SVGSVGElement>) => (
   </svg>
 );
 
-const initialTabFromPath = (): TabKey => {
-  if (typeof window === "undefined") {
-    return "bp";
-  }
-  const path = window.location.pathname;
-  if (path.startsWith("/advice/nutrition")) {
-    return "nutrition";
-  }
-  return "bp";
-};
-
 const App = observer(() => {
   const [mode, setMode] = useState<"login" | "register">("login");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
-  const [activeTab, setActiveTab] = useState<TabKey>(() => initialTabFromPath());
+  const [activeTab, setActiveTab] = useState<TabKey>("bp");
   const { t } = useTranslation();
 
   const tabItems: TabItem[] = useMemo(
@@ -328,16 +317,6 @@ const App = observer(() => {
       resetAll();
     }
   }, [resetAll, userStore.token]);
-
-  useEffect(() => {
-    if (typeof window === "undefined") {
-      return;
-    }
-    const targetPath = activeTab === "nutrition" ? "/advice/nutrition" : "/";
-    if (window.location.pathname !== targetPath) {
-      window.history.replaceState(null, "", targetPath);
-    }
-  }, [activeTab]);
 
   useEffect(() => {
     if (userStore.token && !userStore.me) {
