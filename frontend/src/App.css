@@ -1345,6 +1345,9 @@ details summary {
   justify-content: center;
   padding: 2rem 1.5rem;
   z-index: 100;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
 }
 
 .settings-card {
@@ -1352,6 +1355,7 @@ details summary {
   background: #fff;
   gap: 1.6rem;
   padding: 2rem 2.25rem;
+  flex: 0 0 auto;
 }
 
 .settings-header {
