@@ -67,6 +67,16 @@ export type NutritionRecord = {
   advice: string;
 };
 
+export type NutritionPhotoRecord = {
+  id: string;
+  createdAt: string;
+  fileName: string;
+  calories: number | null;
+  confidence: string | null;
+  notes: string;
+  ingredients: string[];
+};
+
 export type SettingsFormState = {
   sex: string;
   age: string;

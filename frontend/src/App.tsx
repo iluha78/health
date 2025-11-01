@@ -227,9 +227,11 @@ const App = observer(() => {
     photoError: nutritionPhotoError,
     photoLoading: nutritionPhotoLoading,
     photoDebug: nutritionPhotoDebug,
+    photoHistory: nutritionPhotoHistory,
     selectPhoto: selectNutritionPhoto,
     clearPhoto: clearNutritionPhoto,
-    analyzePhoto: analyzeNutritionPhotoRequest
+    analyzePhoto: analyzeNutritionPhotoRequest,
+    removePhotoHistoryEntry: removeNutritionPhotoHistoryEntry
   } = useNutritionFeature(userId, requestAdvice, nutritionDefaults, analyzeNutritionPhoto);
 
   const {
@@ -331,7 +333,7 @@ const App = observer(() => {
     if (typeof window === "undefined") {
       return;
     }
-    const targetPath = activeTab === "nutrition" ? "/advice/nutrition/photo" : "/";
+    const targetPath = activeTab === "nutrition" ? "/advice/nutrition" : "/";
     if (window.location.pathname !== targetPath) {
       window.history.replaceState(null, "", targetPath);
     }
@@ -439,26 +441,28 @@ const App = observer(() => {
             />
           )}
           {activeTab === "nutrition" && (
-        <NutritionTab
-          form={nutritionForm}
-          advice={nutritionAdvice}
-          loading={nutritionLoading}
-          error={nutritionError}
-          disabled={!adviceEnabled}
-          disabledReason={adviceDisabledReason}
-          history={nutritionHistory}
-          onFieldChange={updateNutritionField}
-          onSubmit={submitNutrition}
-          photoFile={nutritionPhotoFile}
-          photoPreview={nutritionPhotoPreview}
-          photoResult={nutritionPhotoResult}
-          photoError={nutritionPhotoError}
-          photoLoading={nutritionPhotoLoading}
-          photoDebug={nutritionPhotoDebug}
-          onPhotoChange={selectNutritionPhoto}
-          onPhotoClear={clearNutritionPhoto}
-          onPhotoAnalyze={analyzeNutritionPhotoRequest}
-        />
+            <NutritionTab
+              form={nutritionForm}
+              advice={nutritionAdvice}
+              loading={nutritionLoading}
+              error={nutritionError}
+              disabled={!adviceEnabled}
+              disabledReason={adviceDisabledReason}
+              history={nutritionHistory}
+              photoHistory={nutritionPhotoHistory}
+              onFieldChange={updateNutritionField}
+              onSubmit={submitNutrition}
+              photoFile={nutritionPhotoFile}
+              photoPreview={nutritionPhotoPreview}
+              photoResult={nutritionPhotoResult}
+              photoError={nutritionPhotoError}
+              photoLoading={nutritionPhotoLoading}
+              photoDebug={nutritionPhotoDebug}
+              onPhotoChange={selectNutritionPhoto}
+              onPhotoClear={clearNutritionPhoto}
+              onPhotoAnalyze={analyzeNutritionPhotoRequest}
+              onPhotoHistoryRemove={removeNutritionPhotoHistoryEntry}
+            />
           )}
           {activeTab === "assistant" && (
             <AssistantTab

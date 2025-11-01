@@ -192,20 +192,24 @@ const resources = {
         disabledReasonFallback: "Получение советов недоступно",
         photo: {
           title: "Оценка калорий по фото",
-          subtitle: "Загрузите фото блюда, чтобы получить примерную калорийность порции.",
-          uploadLabel: "Фото блюда",
+          subtitle:
+            "Загрузите фото блюда, чтобы получить примерную калорийность на порцию или на 100 г. Укажите желаемый формат в комментарии.",
+          uploadLabel: "Выбрать файл",
           hint: "Поддерживаются JPG, PNG, HEIC до 5 МБ.",
           previewAlt: "Фото блюда для оценки калорийности",
           remove: "Удалить фото",
           analyze: "Оценить калорийность",
           analyzing: "Анализируем фото...",
           calories: "Оценка: около {{value}} ккал",
+          caloriesUnknown: "Оценка калорийности не получена",
           confidence: "Уверенность: {{value}}",
           notesTitle: "Комментарий",
           ingredientsTitle: "Предполагаемые ингредиенты",
           missing: "Сначала выберите фото.",
           error: "Не удалось проанализировать фото",
-          debugTitle: "Диагностика запроса"
+          debugTitle: "Диагностика запроса",
+          historyTitle: "История оценок калорийности",
+          historyRemove: "Удалить запись"
         }
       },
       nutritionPrompt: {
@@ -474,20 +478,24 @@ const resources = {
         disabledReasonFallback: "Advice is unavailable",
         photo: {
           title: "Calorie estimate from photo",
-          subtitle: "Upload a meal photo to get an approximate calorie count for the portion.",
-          uploadLabel: "Meal photo",
+          subtitle:
+            "Upload a meal photo to get an approximate calorie value per serving or per 100 g. Mention the format you need in the comment.",
+          uploadLabel: "Choose file",
           hint: "Supports JPG, PNG, HEIC up to 5 MB.",
           previewAlt: "Meal photo for calorie estimation",
           remove: "Remove photo",
           analyze: "Estimate calories",
           analyzing: "Analyzing photo...",
           calories: "Estimate: about {{value}} kcal",
+          caloriesUnknown: "No calorie estimate available",
           confidence: "Confidence: {{value}}",
           notesTitle: "Notes",
           ingredientsTitle: "Likely ingredients",
           missing: "Please choose a photo first.",
           error: "Failed to analyze the photo",
-          debugTitle: "Request diagnostics"
+          debugTitle: "Request diagnostics",
+          historyTitle: "Calorie estimation history",
+          historyRemove: "Remove entry"
         }
       },
       nutritionPrompt: {
@@ -756,20 +764,24 @@ const resources = {
         disabledReasonFallback: "Ratschläge sind nicht verfügbar",
         photo: {
           title: "Kalorienabschätzung per Foto",
-          subtitle: "Laden Sie ein Foto Ihres Gerichts hoch, um eine ungefähre Kalorienzahl für die Portion zu erhalten.",
-          uploadLabel: "Essensfoto",
+          subtitle:
+            "Laden Sie ein Essensfoto hoch, um eine ungefähre Kalorienzahl pro Portion oder pro 100 g zu erhalten. Geben Sie im Kommentar an, welches Format Sie brauchen.",
+          uploadLabel: "Datei auswählen",
           hint: "Unterstützt JPG, PNG, HEIC bis 5 MB.",
           previewAlt: "Essensfoto zur Kalorienabschätzung",
           remove: "Foto entfernen",
           analyze: "Kalorien schätzen",
           analyzing: "Foto wird analysiert...",
           calories: "Schätzung: ca. {{value}} kcal",
+          caloriesUnknown: "Keine Kalorienschätzung verfügbar",
           confidence: "Vertrauen: {{value}}",
           notesTitle: "Kommentar",
           ingredientsTitle: "Vermutete Zutaten",
           missing: "Bitte wählen Sie zuerst ein Foto.",
           error: "Fotoanalyse fehlgeschlagen",
-          debugTitle: "Diagnoseprotokoll"
+          debugTitle: "Diagnoseprotokoll",
+          historyTitle: "Verlauf der Kalorienschätzungen",
+          historyRemove: "Eintrag löschen"
         }
       },
       nutritionPrompt: {
@@ -1038,20 +1050,24 @@ const resources = {
         disabledReasonFallback: "La asesoría no está disponible",
         photo: {
           title: "Estimación de calorías por foto",
-          subtitle: "Sube una foto del plato para obtener un cálculo aproximado de calorías de la porción.",
-          uploadLabel: "Foto del plato",
+          subtitle:
+            "Sube una foto del plato para obtener una estimación aproximada por porción o por 100 g. Indica en el comentario el formato que necesitas.",
+          uploadLabel: "Elegir archivo",
           hint: "Compatible con JPG, PNG, HEIC de hasta 5 MB.",
           previewAlt: "Foto del plato para estimar calorías",
           remove: "Eliminar foto",
           analyze: "Calcular calorías",
           analyzing: "Analizando foto...",
           calories: "Estimación: unas {{value}} kcal",
+          caloriesUnknown: "No se obtuvo estimación de calorías",
           confidence: "Confianza: {{value}}",
           notesTitle: "Comentario",
           ingredientsTitle: "Ingredientes estimados",
           missing: "Selecciona primero una foto.",
           error: "No se pudo analizar la foto",
-          debugTitle: "Diagnóstico de la solicitud"
+          debugTitle: "Diagnóstico de la solicitud",
+          historyTitle: "Historial de estimaciones de calorías",
+          historyRemove: "Eliminar entrada"
         }
       },
       nutritionPrompt: {

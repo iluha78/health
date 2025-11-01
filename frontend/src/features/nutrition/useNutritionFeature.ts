@@ -3,7 +3,7 @@ import type { FormEvent } from "react";
 import { useTranslation } from "../../i18n";
 import { createRecordId } from "../../lib/ids";
 import { readArchive, writeArchive } from "../../lib/storage";
-import type { NutritionFormState, NutritionRecord } from "../../types/forms";
+import type { NutritionFormState, NutritionPhotoRecord, NutritionRecord } from "../../types/forms";
 import type { NutritionPhotoAnalysis, NutritionPhotoError } from "../../lib/nutrition";
 
 const DEFAULT_FORM: NutritionFormState = {
@@ -25,6 +25,18 @@ const normalizeRecord = (input: Partial<NutritionRecord>): NutritionRecord => ({
   question: input.question ?? "",
   comment: input.comment ?? "",
   advice: input.advice ?? ""
+});
+
+const normalizePhotoRecord = (input: Partial<NutritionPhotoRecord>): NutritionPhotoRecord => ({
+  id: input.id ?? createRecordId(),
+  createdAt: input.createdAt ?? new Date().toISOString(),
+  fileName: input.fileName ?? "",
+  calories: typeof input.calories === "number" ? input.calories : null,
+  confidence: typeof input.confidence === "string" ? input.confidence : null,
+  notes: input.notes ?? "",
+  ingredients: Array.isArray(input.ingredients)
+    ? input.ingredients.filter((item): item is string => typeof item === "string")
+    : []
 });
 
 type NutritionDefaults = {
@@ -52,6 +64,7 @@ export const useNutritionFeature = (
   const [photoError, setPhotoError] = useState<string | null>(null);
   const [photoLoading, setPhotoLoading] = useState(false);
   const [photoDebug, setPhotoDebug] = useState<string[]>([]);
+  const [photoHistory, setPhotoHistory] = useState<NutritionPhotoRecord[]>([]);
 
   useEffect(() => {
     if (!photoFile) {
@@ -82,6 +95,19 @@ export const useNutritionFeature = (
   useEffect(() => {
     writeArchive("nutrition", userId, history);
   }, [history, userId]);
+
+  useEffect(() => {
+    const data = readArchive("nutrition_photo", userId) as Partial<NutritionPhotoRecord>[] | null;
+    if (data && data.length > 0) {
+      setPhotoHistory(data.map(normalizePhotoRecord));
+    } else {
+      setPhotoHistory([]);
+    }
+  }, [userId]);
+
+  useEffect(() => {
+    writeArchive("nutrition_photo", userId, photoHistory);
+  }, [photoHistory, userId]);
 
   useEffect(() => {
     setForm(prev => {
@@ -123,6 +149,7 @@ export const useNutritionFeature = (
     setPhotoError(null);
     setPhotoLoading(false);
     setPhotoDebug([]);
+    setPhotoHistory([]);
   }, []);
 
   const selectPhoto = useCallback((file: File | null) => {
@@ -150,6 +177,16 @@ export const useNutritionFeature = (
       const result = await analyzePhoto(photoFile);
       setPhotoResult(result);
       setPhotoDebug(result.debug ?? []);
+      const record: NutritionPhotoRecord = {
+        id: createRecordId(),
+        createdAt: new Date().toISOString(),
+        fileName: photoFile.name,
+        calories: result.calories,
+        confidence: result.confidence,
+        notes: result.notes,
+        ingredients: result.ingredients
+      };
+      setPhotoHistory(prev => [record, ...prev]);
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : t("nutrition.photo.error");
       const debug = err && typeof err === "object" && err !== null && "debug" in err
@@ -162,6 +199,10 @@ export const useNutritionFeature = (
       setPhotoLoading(false);
     }
   }, [analyzePhoto, photoFile, t]);
+
+  const removePhotoHistoryEntry = useCallback((id: string) => {
+    setPhotoHistory(prev => prev.filter(entry => entry.id !== id));
+  }, []);
 
   const submit = useCallback(
     async (event: FormEvent<HTMLFormElement>) => {
@@ -224,8 +265,10 @@ export const useNutritionFeature = (
     photoError,
     photoLoading,
     photoDebug,
+    photoHistory,
     selectPhoto,
     clearPhoto,
-    analyzePhoto: analyzeSelectedPhoto
+    analyzePhoto: analyzeSelectedPhoto,
+    removePhotoHistoryEntry
   };
 };
