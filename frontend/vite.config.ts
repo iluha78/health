@@ -14,7 +14,7 @@ export default defineConfig({
           const acceptHeader = req.headers.accept ?? '';
           if (req.method === 'GET' && acceptHeader.includes('text/html')) {
             // Пусть запросы HTML обслуживаются самим Vite, чтобы SPA-маршруты работали при прямых заходах
-            return false;
+            return '/index.html';
           }
           return undefined;
         },
