@@ -1,0 +1,27 @@
+{
+  "expo": {
+    "name": "CholestoFit",
+    "slug": "cholestofit",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "updates": {
+      "fallbackToCacheTimeout": 0
+    },
+    "assetBundlePatterns": ["**/*"],
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.cholestofit.app"
+    },
+    "android": {
+      "package": "com.cholestofit.app",
+      "adaptiveIcon": {
+        "backgroundColor": "#0f172a"
+      },
+      "permissions": []
+    },
+    "web": {},
+    "extra": {
+      "apiBaseUrl": "${EXPO_PUBLIC_API_BASE_URL:-http://localhost:8180}"
+    }
+  }
+}
