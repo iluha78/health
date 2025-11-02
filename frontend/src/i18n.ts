@@ -92,6 +92,8 @@ const resources = {
         loading: "Запрашиваем рекомендации...",
         adviceTitle: "Рекомендации",
         historyTitle: "Архив давления и пульса",
+        saveError: "Укажите хотя бы одно значение, чтобы сохранить запись",
+        submitError: "Не удалось получить рекомендации",
         metrics: {
           systolic: "Систолическое: {{value}}",
           diastolic: "Диастолическое: {{value}}",

@@ -2,6 +2,7 @@
 namespace App\Controllers;
 
 use App\Models\AssistantInteraction;
+use App\Models\Profile;
 use App\Services\OpenAiService;
 use App\Services\SubscriptionException;
 use App\Services\SubscriptionService;
@@ -56,10 +57,17 @@ class AssistantController
             ], 500);
         }
 
+        $profile = Profile::find($user->id);
+        $profileSummary = $this->profileSummary($profile);
+
         $messages = array_merge([
             [
                 'role' => 'system',
                 'content' => 'Ты — заботливый русскоязычный ассистент по здоровью сердца. Отвечай конкретно, опираясь на доказательную медицину. Если вопрос вне компетенции, предложи обратиться к врачу.',
+            ],
+            [
+                'role' => 'system',
+                'content' => 'Данные профиля пользователя: ' . $profileSummary,
             ],
         ], $history, [
             [
@@ -121,5 +129,36 @@ class AssistantController
                     : ($interaction->created_at ?: null),
             ];
         }, $records);
+    }
+
+    private function profileSummary(?Profile $profile): string
+    {
+        if ($profile === null) {
+            return 'не заполнены';
+        }
+
+        return sprintf(
+            'пол: %s; возраст: %s; рост: %s см; вес: %s кг; активность: %s; цель по калориям: %s ккал; лимит насыщенных жиров: %s г; цель по клетчатке: %s г',
+            $profile->sex ?: 'не указан',
+            $profile->age !== null ? (int) $profile->age : 'не указан',
+            $profile->height_cm !== null ? (int) $profile->height_cm : 'не указан',
+            $profile->weight_kg !== null ? (float) $profile->weight_kg : 'не указан',
+            $this->activityLabel($profile->activity),
+            $profile->kcal_goal !== null ? (int) $profile->kcal_goal : 'не указана',
+            $profile->sfa_limit_g !== null ? (int) $profile->sfa_limit_g : 'не указан',
+            $profile->fiber_goal_g !== null ? (int) $profile->fiber_goal_g : 'не указана'
+        );
+    }
+
+    private function activityLabel(?string $activity): string
+    {
+        return match ($activity) {
+            'sed' => 'минимальная',
+            'light' => 'лёгкая',
+            'mod' => 'средняя',
+            'high' => 'высокая',
+            'ath' => 'спорт',
+            default => 'не указана',
+        };
     }
 }

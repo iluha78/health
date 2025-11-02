@@ -5,6 +5,7 @@ use App\Controllers\MeController;
 use App\Controllers\ProfileController;
 use App\Controllers\LipidController;
 use App\Controllers\DiaryController;
+use App\Controllers\BloodPressureController;
 use App\Controllers\FoodController;
 use App\Controllers\AdviceController;
 use App\Controllers\BillingController;
@@ -32,6 +33,9 @@ $app->get('/advice/nutrition/history',  [AdviceController::class, 'history'])->a
 $app->post('/advice/nutrition',         [AdviceController::class, 'nutrition'])->add(new JwtMiddleware());
 $app->post('/advice/nutrition/photo[/{variant:.*}]', [AdviceController::class, 'nutritionPhoto'])->add(new JwtMiddleware());
 $app->post('/advice/general',           [AdviceController::class, 'general'])->add(new JwtMiddleware());
+$app->get('/blood-pressure/history',    [BloodPressureController::class, 'history'])->add(new JwtMiddleware());
+$app->post('/blood-pressure/records',   [BloodPressureController::class, 'create'])->add(new JwtMiddleware());
+$app->post('/blood-pressure/advice',    [BloodPressureController::class, 'advice'])->add(new JwtMiddleware());
 $app->get('/analysis/photo/history',    [AnalysisController::class, 'history'])->add(new JwtMiddleware());
 $app->post('/analysis/photo',           [AnalysisController::class, 'photo'])->add(new JwtMiddleware());
 $app->get('/assistant/history',         [AssistantController::class, 'history'])->add(new JwtMiddleware());

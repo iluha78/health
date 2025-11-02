@@ -170,7 +170,9 @@ const App = observer(() => {
     saveRecord: saveBpRecord,
     submit: submitBp,
     reset: resetBp
-  } = useBloodPressureFeature(userId, requestAdvice);
+  } = useBloodPressureFeature(jsonHeaders, adviceEnabled, adviceDisabledReason, async () => {
+    await userStore.refresh();
+  });
 
   const {
     form: lipidForm,

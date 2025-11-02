@@ -114,6 +114,21 @@ export interface AssistantReply {
   [key: string]: unknown;
 }
 
+export interface BloodPressureHistoryItem {
+  id: number;
+  systolic: number | null;
+  diastolic: number | null;
+  pulse: number | null;
+  question: string | null;
+  comment: string | null;
+  advice: string | null;
+  created_at: string | null;
+}
+
+export interface BloodPressureRecordResponse {
+  record: BloodPressureHistoryItem | null;
+}
+
 export interface BillingPlan {
   code: string;
   label: string;
@@ -382,4 +397,31 @@ export function normalizeAssistantHistory(value: unknown): AssistantHistoryItem[
       } satisfies AssistantHistoryItem;
     })
     .filter((item): item is AssistantHistoryItem => item !== null);
+}
+
+export function normalizeBloodPressureHistory(value: unknown): BloodPressureHistoryItem[] {
+  if (!Array.isArray(value)) {
+    return [];
+  }
+  return value
+    .map(item => {
+      if (!isRecord(item)) {
+        return null;
+      }
+      const id = toNumberOrNull(item.id);
+      if (id === null) {
+        return null;
+      }
+      return {
+        id,
+        systolic: toNumberOrNull(item.systolic),
+        diastolic: toNumberOrNull(item.diastolic),
+        pulse: toNumberOrNull(item.pulse),
+        question: toStringOrNull(item.question),
+        comment: toStringOrNull(item.comment),
+        advice: toStringOrNull(item.advice),
+        created_at: toStringOrNull(item.created_at),
+      } satisfies BloodPressureHistoryItem;
+    })
+    .filter((item): item is BloodPressureHistoryItem => item !== null);
 }

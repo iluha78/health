@@ -94,7 +94,9 @@ export const BloodPressureTab = ({
             {history.map(entry => (
               <li key={entry.id} className="history-item">
                 <div className="history-meta">
-                  <span className="history-tag">{formatDateTime(entry.createdAt)}</span>
+                  <span className="history-tag">
+                    {entry.createdAt ? formatDateTime(entry.createdAt) : t("common.notSpecified")}
+                  </span>
                   <div className="metric-tags">
                     {entry.systolic && <span className="metric-tag">{t("bp.metrics.systolic", { value: entry.systolic })}</span>}
                     {entry.diastolic && <span className="metric-tag">{t("bp.metrics.diastolic", { value: entry.diastolic })}</span>}
