@@ -7,6 +7,7 @@ export type LipidTabProps = {
   form: LipidFormState;
   advice: string;
   loading: boolean;
+  pending: boolean;
   error: string | null;
   disabled: boolean;
   disabledReason: string | null;
@@ -23,6 +24,7 @@ export const LipidTab = ({
   form,
   advice,
   loading,
+  pending,
   error,
   disabled,
   disabledReason,
@@ -111,10 +113,10 @@ export const LipidTab = ({
           />
         </label>
         <div className="form-actions">
-          <button type="button" className="ghost" onClick={onSave} disabled={loading}>
+          <button type="button" className="ghost" onClick={onSave} disabled={pending}>
             {t("lipid.save")}
           </button>
-          <button type="submit" disabled={loading || disabled}>
+          <button type="submit" disabled={pending || disabled}>
             {loading ? t("lipid.loading") : t("lipid.submit")}
           </button>
           {!disabled && error && <p className="error">{error}</p>}

@@ -1,8 +1,8 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import type { FormEvent } from "react";
 import { useTranslation } from "../../i18n";
 import { createRecordId } from "../../lib/ids";
-import { readArchive, writeArchive } from "../../lib/storage";
+import { apiUrl } from "../../lib/api";
 import type { BloodPressureFormState, BloodPressureRecord } from "../../types/forms";
 
 const DEFAULT_FORM: BloodPressureFormState = {
@@ -24,29 +24,132 @@ const normalizeRecord = (input: Partial<BloodPressureRecord>): BloodPressureReco
   advice: input.advice ?? ""
 });
 
+type ApiBloodPressure = {
+  id?: number | string | null;
+  systolic?: number | string | null;
+  diastolic?: number | string | null;
+  pulse?: number | string | null;
+  question?: string | null;
+  comment?: string | null;
+  advice?: string | null;
+  created_at?: string | null;
+};
+
+const toMetricString = (value: unknown): string => {
+  if (value === null || value === undefined) {
+    return "";
+  }
+  if (typeof value === "number" && Number.isFinite(value)) {
+    return String(value);
+  }
+  if (typeof value === "string") {
+    return value;
+  }
+  return String(value);
+};
+
+const toText = (value: unknown): string => {
+  if (typeof value === "string") {
+    return value;
+  }
+  return value == null ? "" : String(value);
+};
+
+const convertApiRecord = (input: unknown): BloodPressureRecord => {
+  if (!input || typeof input !== "object") {
+    return normalizeRecord({});
+  }
+  const value = input as ApiBloodPressure;
+  const idValue = value.id;
+  const id =
+    (typeof idValue === "number" && Number.isFinite(idValue)) ||
+    (typeof idValue === "string" && idValue.trim() !== "")
+      ? String(idValue)
+      : createRecordId();
+  const createdAt = typeof value.created_at === "string" && value.created_at
+    ? value.created_at
+    : new Date().toISOString();
+
+  return {
+    id,
+    createdAt,
+    systolic: toMetricString(value.systolic),
+    diastolic: toMetricString(value.diastolic),
+    pulse: toMetricString(value.pulse),
+    question: toText(value.question).trim(),
+    comment: toText(value.comment).trim(),
+    advice: toText(value.advice)
+  } satisfies BloodPressureRecord;
+};
+
+const toIntOrNull = (value: string): number | null => {
+  const trimmed = value.trim();
+  if (trimmed === "") {
+    return null;
+  }
+  const parsed = Number.parseInt(trimmed, 10);
+  return Number.isNaN(parsed) ? null : parsed;
+};
+
+const buildPayload = (state: BloodPressureFormState, advice: string) => ({
+  systolic: toIntOrNull(state.systolic),
+  diastolic: toIntOrNull(state.diastolic),
+  pulse: toIntOrNull(state.pulse),
+  question: state.question.trim() || null,
+  comment: state.comment.trim() || null,
+  advice: advice.trim() || null
+});
+
 export const useBloodPressureFeature = (
   userId: number | null,
+  authHeaders: Record<string, string> | undefined,
   requestAdvice: (prompt: string) => Promise<string>
 ) => {
   const { t } = useTranslation();
   const [form, setForm] = useState<BloodPressureFormState>(DEFAULT_FORM);
   const [advice, setAdvice] = useState("");
   const [loading, setLoading] = useState(false);
+  const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [history, setHistory] = useState<BloodPressureRecord[]>([]);
 
   useEffect(() => {
-    const data = readArchive("bp", userId) as Partial<BloodPressureRecord>[] | null;
-    if (data && data.length > 0) {
-      setHistory(data.map(normalizeRecord));
-    } else {
+    let cancelled = false;
+    if (!authHeaders || userId === null) {
       setHistory([]);
+      return () => {
+        cancelled = true;
+      };
     }
-  }, [userId]);
 
-  useEffect(() => {
-    writeArchive("bp", userId, history);
-  }, [history, userId]);
+    const loadHistory = async () => {
+      try {
+        const response = await fetch(apiUrl("/blood-pressures"), {
+          headers: authHeaders
+        });
+        if (!response.ok) {
+          throw new Error(t("common.requestError", { status: response.status }));
+        }
+        const payload = await response.json();
+        if (!Array.isArray(payload)) {
+          throw new Error(t("common.parseError"));
+        }
+        if (cancelled) return;
+        setHistory(payload.map(convertApiRecord));
+      } catch (err) {
+        console.error("Failed to load blood pressure history", err);
+        if (cancelled) return;
+        setError(err instanceof Error ? err.message : t("common.networkError", { message: "unknown" }));
+        setHistory([]);
+      }
+    };
+
+    void loadHistory();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [authHeaders, t, userId]);
 
   const updateField = useCallback(<TKey extends keyof BloodPressureFormState>(key: TKey, value: string) => {
     setForm(prev => ({ ...prev, [key]: value }));
@@ -56,29 +159,59 @@ export const useBloodPressureFeature = (
     setForm(DEFAULT_FORM);
     setAdvice("");
     setLoading(false);
+    setSaving(false);
     setError(null);
     setHistory([]);
   }, []);
 
-  const saveRecord = useCallback(() => {
+  const persistRecord = useCallback(
+    async (state: BloodPressureFormState, adviceText: string) => {
+      if (!authHeaders) {
+        throw new Error(t("common.loginRequired"));
+      }
+      const response = await fetch(apiUrl("/blood-pressures"), {
+        method: "POST",
+        headers: {
+          ...authHeaders,
+          "Content-Type": authHeaders["Content-Type"] ?? "application/json"
+        },
+        body: JSON.stringify(buildPayload(state, adviceText))
+      });
+      if (!response.ok) {
+        let message = t("common.requestError", { status: response.status });
+        try {
+          const errBody = await response.json();
+          if (errBody && typeof errBody.error === "string") {
+            message = errBody.error;
+          }
+        } catch {
+          // ignore parse errors
+        }
+        throw new Error(message);
+      }
+      const body = await response.json();
+      return convertApiRecord(body);
+    },
+    [authHeaders, t]
+  );
+
+  const saveRecord = useCallback(async () => {
     const hasMetrics = form.systolic || form.diastolic || form.pulse;
     if (!hasMetrics) {
       setError(t("bpPrompt.saveError"));
       return;
     }
     setError(null);
-    const record: BloodPressureRecord = {
-      id: createRecordId(),
-      createdAt: new Date().toISOString(),
-      systolic: form.systolic,
-      diastolic: form.diastolic,
-      pulse: form.pulse,
-      question: form.question.trim(),
-      comment: form.comment.trim(),
-      advice: ""
-    };
-    setHistory(prev => [record, ...prev]);
-  }, [form]);
+    setSaving(true);
+    try {
+      const record = await persistRecord(form, "");
+      setHistory(prev => [record, ...prev]);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : t("common.networkError", { message: "unknown" }));
+    } finally {
+      setSaving(false);
+    }
+  }, [form, persistRecord, t]);
 
   const submit = useCallback(
     async (event: FormEvent<HTMLFormElement>) => {
@@ -104,17 +237,13 @@ export const useBloodPressureFeature = (
           .join("\n");
         const reply = await requestAdvice(prompt);
         setAdvice(reply);
-        const record: BloodPressureRecord = {
-          id: createRecordId(),
-          createdAt: new Date().toISOString(),
-          systolic: form.systolic,
-          diastolic: form.diastolic,
-          pulse: form.pulse,
-          question: form.question.trim(),
-          comment: form.comment.trim(),
-          advice: reply
-        };
-        setHistory(prev => [record, ...prev]);
+        try {
+          const record = await persistRecord(form, reply);
+          setHistory(prev => [record, ...prev]);
+        } catch (err) {
+          console.error("Failed to persist blood pressure record", err);
+          setError(err instanceof Error ? err.message : t("common.networkError", { message: "unknown" }));
+        }
       } catch (err) {
         setError(err instanceof Error ? err.message : t("bpPrompt.submitError"));
         setAdvice("");
@@ -122,13 +251,16 @@ export const useBloodPressureFeature = (
         setLoading(false);
       }
     },
-    [form, requestAdvice, t]
+    [form, persistRecord, requestAdvice, t]
   );
+
+  const pending = useMemo(() => loading || saving, [loading, saving]);
 
   return {
     form,
     advice,
     loading,
+    pending,
     error,
     history,
     updateField,

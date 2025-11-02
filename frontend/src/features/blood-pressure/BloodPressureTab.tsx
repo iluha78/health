@@ -7,6 +7,7 @@ export type BloodPressureTabProps = {
   form: BloodPressureFormState;
   advice: string;
   loading: boolean;
+  pending: boolean;
   error: string | null;
   disabled: boolean;
   disabledReason: string | null;
@@ -26,6 +27,7 @@ export const BloodPressureTab = ({
   form,
   advice,
   loading,
+  pending,
   error,
   disabled,
   disabledReason,
@@ -72,10 +74,10 @@ export const BloodPressureTab = ({
           />
         </label>
         <div className="form-actions">
-          <button type="button" className="ghost" onClick={onSave} disabled={loading}>
+          <button type="button" className="ghost" onClick={onSave} disabled={pending}>
             {t("bp.save")}
           </button>
-          <button type="submit" disabled={loading || disabled}>
+          <button type="submit" disabled={pending || disabled}>
             {loading ? t("bp.loading") : t("bp.submit")}
           </button>
           {!disabled && error && <p className="error">{error}</p>}

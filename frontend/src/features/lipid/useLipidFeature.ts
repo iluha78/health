@@ -1,8 +1,8 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import type { FormEvent } from "react";
 import { useTranslation } from "../../i18n";
 import { createRecordId } from "../../lib/ids";
-import { readArchive, readArchiveByKey, storageKey, writeArchive } from "../../lib/storage";
+import { apiUrl } from "../../lib/api";
 import type { LipidFormState, LipidRecord } from "../../types/forms";
 
 const DEFAULT_FORM: LipidFormState = {
@@ -30,67 +30,142 @@ const normalizeRecord = (input: Partial<LipidRecord>): LipidRecord => ({
   advice: input.advice ?? ""
 });
 
-const convertLegacyRecord = (input: {
-  id?: string;
-  createdAt?: string;
-  cholesterol?: string;
-  sugar?: string;
-  question?: string;
-  comment?: string;
-  advice?: string;
-}): LipidRecord => ({
-  id: input.id ?? createRecordId(),
-  createdAt: input.createdAt ?? new Date().toISOString(),
-  date: "",
-  cholesterol: input.cholesterol ?? "",
-  hdl: "",
-  ldl: "",
-  triglycerides: "",
-  glucose: input.sugar ?? "",
-  question: input.question ?? "",
-  comment: input.comment ?? "",
-  advice: input.advice ?? ""
+type ApiLipid = {
+  id?: number | string | null;
+  dt?: string | null;
+  chol?: number | string | null;
+  hdl?: number | string | null;
+  ldl?: number | string | null;
+  trig?: number | string | null;
+  glucose?: number | string | null;
+  note?: string | null;
+  question?: string | null;
+  advice?: string | null;
+  created_at?: string | null;
+};
+
+const toMetricString = (value: unknown): string => {
+  if (value === null || value === undefined) {
+    return "";
+  }
+  if (typeof value === "number" && Number.isFinite(value)) {
+    return String(value);
+  }
+  if (typeof value === "string") {
+    return value;
+  }
+  return String(value);
+};
+
+const toText = (value: unknown): string => {
+  if (typeof value === "string") {
+    return value;
+  }
+  return value == null ? "" : String(value);
+};
+
+const convertApiRecord = (input: unknown): LipidRecord => {
+  if (!input || typeof input !== "object") {
+    return normalizeRecord({});
+  }
+  const value = input as ApiLipid;
+  const idValue = value.id;
+  const id =
+    (typeof idValue === "number" && Number.isFinite(idValue)) ||
+    (typeof idValue === "string" && idValue.trim() !== "")
+      ? String(idValue)
+      : createRecordId();
+  const createdAt = typeof value.created_at === "string" && value.created_at
+    ? value.created_at
+    : new Date().toISOString();
+
+  return {
+    id,
+    createdAt,
+    date: toText(value.dt).trim(),
+    cholesterol: toMetricString(value.chol),
+    hdl: toMetricString(value.hdl),
+    ldl: toMetricString(value.ldl),
+    triglycerides: toMetricString(value.trig),
+    glucose: toMetricString(value.glucose),
+    question: toText(value.question).trim(),
+    comment: toText(value.note).trim(),
+    advice: toText(value.advice)
+  } satisfies LipidRecord;
+};
+
+const toFloatOrNull = (value: string): number | null => {
+  const trimmed = value.trim();
+  if (trimmed === "") {
+    return null;
+  }
+  const normalized = trimmed.replace(",", ".");
+  const parsed = Number.parseFloat(normalized);
+  return Number.isNaN(parsed) ? null : parsed;
+};
+
+const buildPayload = (state: LipidFormState, advice: string) => ({
+  dt: state.date.trim() || null,
+  chol: toFloatOrNull(state.cholesterol),
+  hdl: toFloatOrNull(state.hdl),
+  ldl: toFloatOrNull(state.ldl),
+  trig: toFloatOrNull(state.triglycerides),
+  glucose: toFloatOrNull(state.glucose),
+  note: state.comment.trim() || null,
+  question: state.question.trim() || null,
+  advice: advice.trim() || null
 });
 
 export const useLipidFeature = (
   userId: number | null,
+  authHeaders: Record<string, string> | undefined,
   requestAdvice: (prompt: string) => Promise<string>
 ) => {
   const { t } = useTranslation();
   const [form, setForm] = useState<LipidFormState>(DEFAULT_FORM);
   const [advice, setAdvice] = useState("");
   const [loading, setLoading] = useState(false);
+  const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [history, setHistory] = useState<LipidRecord[]>([]);
 
   useEffect(() => {
-    const data = readArchive("lipid", userId) as Partial<LipidRecord>[] | null;
-    if (data && data.length > 0) {
-      setHistory(data.map(normalizeRecord));
-      return;
-    }
-    const legacyKey = storageKey("metabolic", userId);
-    const legacy = readArchiveByKey(legacyKey) as
-      | {
-          id?: string;
-          createdAt?: string;
-          cholesterol?: string;
-          sugar?: string;
-          question?: string;
-          comment?: string;
-          advice?: string;
-        }[]
-      | null;
-    if (legacy && legacy.length > 0) {
-      setHistory(legacy.map(convertLegacyRecord));
-    } else {
+    let cancelled = false;
+    if (!authHeaders || userId === null) {
       setHistory([]);
+      return () => {
+        cancelled = true;
+      };
     }
-  }, [userId]);
 
-  useEffect(() => {
-    writeArchive("lipid", userId, history);
-  }, [history, userId]);
+    const loadHistory = async () => {
+      try {
+        const response = await fetch(apiUrl("/lipids"), {
+          headers: authHeaders
+        });
+        if (!response.ok) {
+          throw new Error(t("common.requestError", { status: response.status }));
+        }
+        const payload = await response.json();
+        if (!Array.isArray(payload)) {
+          throw new Error(t("common.parseError"));
+        }
+        if (cancelled) return;
+        setHistory(payload.map(convertApiRecord));
+      } catch (err) {
+        console.error("Failed to load lipid history", err);
+        if (cancelled) return;
+        setError(err instanceof Error ? err.message : t("common.networkError", { message: "unknown" }));
+        setHistory([]);
+      }
+    };
+
+    void loadHistory();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [authHeaders, t, userId]);
 
   const updateField = useCallback(<TKey extends keyof LipidFormState>(key: TKey, value: string) => {
     setForm(prev => ({ ...prev, [key]: value }));
@@ -100,33 +175,65 @@ export const useLipidFeature = (
     setForm(DEFAULT_FORM);
     setAdvice("");
     setLoading(false);
+    setSaving(false);
     setError(null);
     setHistory([]);
   }, []);
 
-  const saveRecord = useCallback(() => {
+  const persistRecord = useCallback(
+    async (state: LipidFormState, adviceText: string) => {
+      if (!authHeaders) {
+        throw new Error(t("common.loginRequired"));
+      }
+      const response = await fetch(apiUrl("/lipids"), {
+        method: "POST",
+        headers: {
+          ...authHeaders,
+          "Content-Type": authHeaders["Content-Type"] ?? "application/json"
+        },
+        body: JSON.stringify(buildPayload(state, adviceText))
+      });
+      if (!response.ok) {
+        let message = t("common.requestError", { status: response.status });
+        try {
+          const errBody = await response.json();
+          if (errBody && typeof errBody.error === "string") {
+            message = errBody.error;
+          }
+        } catch {
+          // ignore parse errors
+        }
+        throw new Error(message);
+      }
+      const body = await response.json();
+      return convertApiRecord(body);
+    },
+    [authHeaders, t]
+  );
+
+  const saveRecord = useCallback(async () => {
     const hasMetrics =
-      form.date || form.cholesterol || form.hdl || form.ldl || form.triglycerides || form.glucose;
+      form.date ||
+      form.cholesterol ||
+      form.hdl ||
+      form.ldl ||
+      form.triglycerides ||
+      form.glucose;
     if (!hasMetrics) {
       setError(t("lipidPrompt.saveError"));
       return;
     }
     setError(null);
-    const record: LipidRecord = {
-      id: createRecordId(),
-      createdAt: new Date().toISOString(),
-      date: form.date,
-      cholesterol: form.cholesterol,
-      hdl: form.hdl,
-      ldl: form.ldl,
-      triglycerides: form.triglycerides,
-      glucose: form.glucose,
-      question: form.question.trim(),
-      comment: form.comment.trim(),
-      advice: ""
-    };
-    setHistory(prev => [record, ...prev]);
-  }, [form]);
+    setSaving(true);
+    try {
+      const record = await persistRecord(form, "");
+      setHistory(prev => [record, ...prev]);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : t("common.networkError", { message: "unknown" }));
+    } finally {
+      setSaving(false);
+    }
+  }, [form, persistRecord, t]);
 
   const submit = useCallback(
     async (event: FormEvent<HTMLFormElement>) => {
@@ -155,20 +262,13 @@ export const useLipidFeature = (
           .join("\n");
         const reply = await requestAdvice(prompt);
         setAdvice(reply);
-        const record: LipidRecord = {
-          id: createRecordId(),
-          createdAt: new Date().toISOString(),
-          date: form.date,
-          cholesterol: form.cholesterol,
-          hdl: form.hdl,
-          ldl: form.ldl,
-          triglycerides: form.triglycerides,
-          glucose: form.glucose,
-          question: form.question.trim(),
-          comment: form.comment.trim(),
-          advice: reply
-        };
-        setHistory(prev => [record, ...prev]);
+        try {
+          const record = await persistRecord(form, reply);
+          setHistory(prev => [record, ...prev]);
+        } catch (err) {
+          console.error("Failed to persist lipid record", err);
+          setError(err instanceof Error ? err.message : t("common.networkError", { message: "unknown" }));
+        }
       } catch (err) {
         setError(err instanceof Error ? err.message : t("lipidPrompt.submitError"));
         setAdvice("");
@@ -176,13 +276,16 @@ export const useLipidFeature = (
         setLoading(false);
       }
     },
-    [form, requestAdvice, t]
+    [form, persistRecord, requestAdvice, t]
   );
+
+  const pending = useMemo(() => loading || saving, [loading, saving]);
 
   return {
     form,
     advice,
     loading,
+    pending,
     error,
     history,
     updateField,

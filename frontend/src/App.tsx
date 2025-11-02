@@ -171,25 +171,27 @@ const App = observer(() => {
     form: bpForm,
     advice: bpAdvice,
     loading: bpLoading,
+    pending: bpPending,
     error: bpError,
     history: bpHistory,
     updateField: updateBpField,
     saveRecord: saveBpRecord,
     submit: submitBp,
     reset: resetBp
-  } = useBloodPressureFeature(userId, requestAdvice);
+  } = useBloodPressureFeature(userId, jsonHeaders, requestAdvice);
 
   const {
     form: lipidForm,
     advice: lipidAdvice,
     loading: lipidLoading,
+    pending: lipidPending,
     error: lipidError,
     history: lipidHistory,
     updateField: updateLipidField,
     saveRecord: saveLipidRecord,
     submit: submitLipid,
     reset: resetLipid
-  } = useLipidFeature(userId, requestAdvice);
+  } = useLipidFeature(userId, jsonHeaders, requestAdvice);
 
   const nutritionDefaults = useMemo(
     () => ({
@@ -432,6 +434,7 @@ const App = observer(() => {
               form={bpForm}
               advice={bpAdvice}
               loading={bpLoading}
+              pending={bpPending}
               error={bpError}
               disabled={!adviceEnabled}
               disabledReason={adviceDisabledReason}
@@ -446,6 +449,7 @@ const App = observer(() => {
               form={lipidForm}
               advice={lipidAdvice}
               loading={lipidLoading}
+              pending={lipidPending}
               error={lipidError}
               disabled={!adviceEnabled}
               disabledReason={adviceDisabledReason}
