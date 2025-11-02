@@ -4,6 +4,7 @@ namespace App\Controllers;
 use App\Models\Lipid;
 use App\Support\Auth;
 use App\Support\ResponseHelper;
+use Illuminate\Database\Capsule\Manager as Capsule;
 use Illuminate\Database\Eloquent\Collection;
 use Psr\Http\Message\ResponseInterface as Response;
 use Psr\Http\Message\ServerRequestInterface as Request;
@@ -13,9 +14,14 @@ class LipidController
     public function list(Request $request, Response $response): Response
     {
         $user = Auth::user($request);
+        $query = Lipid::where('user_id', $user->id);
+
+        if ($this->hasCreatedAtColumn()) {
+            $query->orderByDesc('created_at');
+        }
+
         /** @var Collection<int, Lipid> $lipids */
-        $lipids = Lipid::where('user_id', $user->id)
-            ->orderByDesc('created_at')
+        $lipids = $query
             ->orderByDesc('id')
             ->get();
 
@@ -33,8 +39,19 @@ class LipidController
         }
 
         $payload['user_id'] = $user->id;
-        $lipid = Lipid::create($payload);
-        $lipid->refresh();
+
+        try {
+            $lipid = Lipid::create($payload);
+            $lipid->refresh();
+        } catch (\Throwable $e) {
+            error_log('[lipids] failed to persist record: ' . $e->getMessage());
+
+            return ResponseHelper::json(
+                $response,
+                ['error' => 'Не удалось сохранить запись. Убедитесь, что база данных обновлена.'],
+                500
+            );
+        }
 
         return ResponseHelper::json($response, $this->serialize($lipid), 201);
     }
@@ -135,5 +152,27 @@ class LipidController
             'advice' => $lipid->advice,
             'created_at' => $lipid->created_at,
         ];
+    }
+
+    private function hasCreatedAtColumn(): bool
+    {
+        static $cached = null;
+
+        if ($cached === true) {
+            return true;
+        }
+
+        try {
+            $exists = Capsule::schema()->hasColumn('lipids', 'created_at');
+        } catch (\Throwable $e) {
+            error_log('[lipids] failed to inspect schema: ' . $e->getMessage());
+            $exists = false;
+        }
+
+        if ($exists) {
+            $cached = true;
+        }
+
+        return $exists;
     }
 }
