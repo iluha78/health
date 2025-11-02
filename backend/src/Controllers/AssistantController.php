@@ -2,6 +2,7 @@
 namespace App\Controllers;
 
 use App\Models\AssistantInteraction;
+use App\Models\Lipid;
 use App\Models\Profile;
 use App\Services\OpenAiService;
 use App\Services\SubscriptionException;
@@ -59,6 +60,11 @@ class AssistantController
 
         $profile = Profile::find($user->id);
         $profileSummary = $this->profileSummary($profile);
+        $latestLipid = Lipid::where('user_id', $user->id)
+            ->orderByDesc('created_at')
+            ->orderByDesc('dt')
+            ->first();
+        $lipidSummary = $this->lipidSummary($latestLipid);
 
         $messages = array_merge([
             [
@@ -68,6 +74,10 @@ class AssistantController
             [
                 'role' => 'system',
                 'content' => 'Данные профиля пользователя: ' . $profileSummary,
+            ],
+            [
+                'role' => 'system',
+                'content' => 'Последний липидный профиль и глюкоза: ' . $lipidSummary,
             ],
         ], $history, [
             [
@@ -160,5 +170,42 @@ class AssistantController
             'ath' => 'спорт',
             default => 'не указана',
         };
+    }
+
+    private function lipidSummary(?Lipid $lipid): string
+    {
+        if ($lipid === null) {
+            return 'данные не найдены';
+        }
+
+        $parts = [];
+        $parts[] = $lipid->dt instanceof \DateTimeInterface
+            ? 'дата анализа ' . $lipid->dt->format('Y-m-d')
+            : 'дата анализа ' . ($lipid->dt ?: 'не указана');
+
+        $metrics = [
+            'общий холестерин' => $lipid->chol,
+            'ЛПВП' => $lipid->hdl,
+            'ЛПНП' => $lipid->ldl,
+            'триглицериды' => $lipid->trig,
+            'глюкоза' => $lipid->glucose,
+        ];
+
+        foreach ($metrics as $label => $value) {
+            if ($value === null || $value === '') {
+                continue;
+            }
+            $parts[] = sprintf('%s %s ммоль/л', $label, rtrim(rtrim((string) $value, '0'), '.'));
+        }
+
+        if ($lipid->note) {
+            $parts[] = 'комментарий: ' . $lipid->note;
+        }
+
+        if ($lipid->question) {
+            $parts[] = 'вопрос пациента: ' . $lipid->question;
+        }
+
+        return implode(', ', $parts);
     }
 }

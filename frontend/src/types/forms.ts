@@ -33,7 +33,7 @@ export type LipidFormState = {
 };
 
 export type LipidRecord = {
-  id: string;
+  id: number;
   createdAt: string;
   date: string;
   cholesterol: string;
