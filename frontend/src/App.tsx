@@ -121,13 +121,13 @@ const App = observer(() => {
         assistantDisabledReason: t("billing.loading"),
       };
     }
-    const balanceCents = billing.balance_cents;
-    const remainingCents = billing.ai_usage.remaining_cents;
-    const adviceCost = billing.costs.advice_cents;
-    const assistantCost = billing.costs.assistant_cents;
+    const balanceCents = billing.balance_cents ?? 0;
+    const remainingCents = billing.ai_usage?.remaining_cents ?? 0;
+    const adviceCost = billing.costs?.advice_cents ?? 0;
+    const assistantCost = billing.costs?.assistant_cents ?? 0;
 
     let adviceReason: string | null = null;
-    if (!billing.features.advice) {
+    if (!billing.features?.advice) {
       adviceReason = t("billing.adviceNotIncluded");
     } else if (balanceCents < adviceCost) {
       adviceReason = t("billing.insufficientBalance");
@@ -136,7 +136,7 @@ const App = observer(() => {
     }
 
     let assistantReason: string | null = null;
-    if (!billing.features.assistant) {
+    if (!billing.features?.assistant) {
       assistantReason = t("billing.assistantNotIncluded");
     } else if (balanceCents < assistantCost) {
       assistantReason = t("billing.insufficientBalance");
@@ -171,25 +171,27 @@ const App = observer(() => {
     form: bpForm,
     advice: bpAdvice,
     loading: bpLoading,
+    pending: bpPending,
     error: bpError,
     history: bpHistory,
     updateField: updateBpField,
     saveRecord: saveBpRecord,
     submit: submitBp,
     reset: resetBp
-  } = useBloodPressureFeature(userId, requestAdvice);
+  } = useBloodPressureFeature(userId, jsonHeaders, requestAdvice);
 
   const {
     form: lipidForm,
     advice: lipidAdvice,
     loading: lipidLoading,
+    pending: lipidPending,
     error: lipidError,
     history: lipidHistory,
     updateField: updateLipidField,
     saveRecord: saveLipidRecord,
     submit: submitLipid,
     reset: resetLipid
-  } = useLipidFeature(userId, requestAdvice);
+  } = useLipidFeature(userId, jsonHeaders, requestAdvice);
 
   const nutritionDefaults = useMemo(
     () => ({
@@ -432,6 +434,7 @@ const App = observer(() => {
               form={bpForm}
               advice={bpAdvice}
               loading={bpLoading}
+              pending={bpPending}
               error={bpError}
               disabled={!adviceEnabled}
               disabledReason={adviceDisabledReason}
@@ -446,6 +449,7 @@ const App = observer(() => {
               form={lipidForm}
               advice={lipidAdvice}
               loading={lipidLoading}
+              pending={lipidPending}
               error={lipidError}
               disabled={!adviceEnabled}
               disabledReason={adviceDisabledReason}

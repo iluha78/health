@@ -3,6 +3,7 @@ namespace App\Controllers;
 
 use App\Models\Lipid;
 use App\Models\NutritionAdvice;
+use App\Models\PhotoAnalysis;
 use App\Models\Profile;
 use App\Services\OpenAiService;
 use App\Services\SubscriptionException;
@@ -268,6 +269,14 @@ class AdviceController
 
         SubscriptionService::recordAdviceUsage($user);
 
+        $this->storePhotoAnalysis($user->id, [
+            'calories' => $calories,
+            'confidence' => $confidence,
+            'notes' => $notes,
+            'ingredients' => $ingredients,
+            'filename' => $photo['filename'] ?? null,
+        ]);
+
         $log(sprintf('success calories=%s confidence=%s ingredients=%d',
             $calories === null ? 'null' : (string) $calories,
             $confidence ?? 'null',
@@ -422,6 +431,58 @@ class AdviceController
             $mediaType = 'image/jpeg';
         }
 
-        return ['contents' => $contents, 'media_type' => $mediaType];
+        return [
+            'contents' => $contents,
+            'media_type' => $mediaType,
+            'filename' => $file->getClientFilename() ?: null,
+        ];
+    }
+
+    /**
+     * @param array{calories: float|null, confidence: string|null, notes: string, ingredients: array<int, string>, filename: string|null} $analysis
+     */
+    private function storePhotoAnalysis(int $userId, array $analysis): void
+    {
+        $estimatedCalories = $analysis['calories'];
+
+        $title = 'Анализ фото блюда';
+        if ($analysis['confidence']) {
+            $title = mb_substr($analysis['confidence'], 0, 190);
+        } elseif (!empty($analysis['ingredients'])) {
+            $title = 'Ингредиенты: ' . mb_substr(implode(', ', array_slice($analysis['ingredients'], 0, 3)), 0, 170);
+        }
+
+        $reasoningParts = [];
+        if ($analysis['confidence']) {
+            $reasoningParts[] = 'Уверенность: ' . $analysis['confidence'];
+        }
+        if ($estimatedCalories !== null) {
+            $reasoningParts[] = 'Оценка калорийности: ' . (int) round($estimatedCalories) . ' ккал';
+        }
+        if (!empty($analysis['ingredients'])) {
+            $reasoningParts[] = 'Ингредиенты: ' . implode(', ', $analysis['ingredients']);
+        }
+
+        $reasoning = implode("\n", $reasoningParts);
+
+        $healthiness = 'balanced';
+        if ($estimatedCalories !== null) {
+            if ($estimatedCalories <= 350) {
+                $healthiness = 'healthy';
+            } elseif ($estimatedCalories >= 700) {
+                $healthiness = 'caution';
+            }
+        }
+
+        PhotoAnalysis::create([
+            'user_id' => $userId,
+            'title' => $title,
+            'description' => $analysis['notes'],
+            'estimated_calories' => $estimatedCalories !== null ? (int) round($estimatedCalories) : null,
+            'healthiness' => $healthiness,
+            'reasoning' => $reasoning,
+            'tips' => $analysis['ingredients'],
+            'original_filename' => $analysis['filename'],
+        ]);
     }
 }

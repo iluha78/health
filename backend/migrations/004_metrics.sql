@@ -1,0 +1,18 @@
+ALTER TABLE lipids
+  ADD COLUMN created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  ADD COLUMN glucose DECIMAL(4,2) NULL,
+  ADD COLUMN question TEXT NULL,
+  ADD COLUMN advice TEXT NULL;
+
+CREATE TABLE IF NOT EXISTS blood_pressures (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  user_id INT NOT NULL,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  systolic INT NULL,
+  diastolic INT NULL,
+  pulse INT NULL,
+  question TEXT,
+  comment TEXT,
+  advice TEXT,
+  FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+);

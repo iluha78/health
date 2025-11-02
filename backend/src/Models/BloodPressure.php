@@ -3,20 +3,18 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 
-class Lipid extends Model
+class BloodPressure extends Model
 {
-    protected $table = 'lipids';
+    protected $table = 'blood_pressures';
     public $timestamps = false;
+
     protected $fillable = [
         'user_id',
-        'dt',
-        'chol',
-        'hdl',
-        'ldl',
-        'trig',
-        'glucose',
-        'note',
+        'systolic',
+        'diastolic',
+        'pulse',
         'question',
+        'comment',
         'advice',
     ];
 }

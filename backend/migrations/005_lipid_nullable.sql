@@ -1,0 +1,3 @@
+ALTER TABLE lipids
+  MODIFY dt DATE NULL,
+  MODIFY note TEXT NULL;
