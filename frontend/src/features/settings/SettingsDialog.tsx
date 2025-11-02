@@ -279,8 +279,8 @@ export const SettingsDialog = ({
                 </strong>
                 <p className="muted">
                   {t("billing.aiSpent", {
-                    spent: formatCents(billing.ai_usage.spent_cents),
-                    budget: formatCents(billing.ai_usage.budget_cents)
+                    used: billing.ai_usage.used_requests,
+                    limit: billing.ai_usage.limit_requests
                   })}
                 </p>
               </div>
@@ -346,9 +346,7 @@ export const SettingsDialog = ({
             </form>
             <p className="muted billing-note">
               {t("billing.aiCosts", {
-                budget: formatCents(billing.ai_usage.budget_cents),
-                advice: formatCents(billing.costs.advice_cents),
-                assistant: formatCents(billing.costs.assistant_cents)
+                limit: billing.ai_usage.limit_requests
               })}
             </p>
           </section>
