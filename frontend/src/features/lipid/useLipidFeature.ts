@@ -3,6 +3,7 @@ import type { FormEvent } from "react";
 import { useTranslation } from "../../i18n";
 import { createRecordId } from "../../lib/ids";
 import { apiUrl } from "../../lib/api";
+import { readArchive, readArchiveByKey, storageKey, writeArchive } from "../../lib/storage";
 import type { LipidFormState, LipidRecord } from "../../types/forms";
 
 const DEFAULT_FORM: LipidFormState = {
@@ -15,6 +16,8 @@ const DEFAULT_FORM: LipidFormState = {
   question: "",
   comment: ""
 };
+
+const STORAGE_SCOPE = "lipid";
 
 const normalizeRecord = (input: Partial<LipidRecord>): LipidRecord => ({
   id: input.id ?? createRecordId(),
@@ -29,6 +32,43 @@ const normalizeRecord = (input: Partial<LipidRecord>): LipidRecord => ({
   comment: input.comment ?? "",
   advice: input.advice ?? ""
 });
+
+const convertLegacyRecord = (input: {
+  id?: string;
+  createdAt?: string;
+  cholesterol?: string;
+  sugar?: string;
+  question?: string;
+  comment?: string;
+  advice?: string;
+}): LipidRecord => ({
+  id: input.id ?? createRecordId(),
+  createdAt: input.createdAt ?? new Date().toISOString(),
+  date: "",
+  cholesterol: input.cholesterol ?? "",
+  hdl: "",
+  ldl: "",
+  triglycerides: "",
+  glucose: input.sugar ?? "",
+  question: input.question ?? "",
+  comment: input.comment ?? "",
+  advice: input.advice ?? ""
+});
+
+const createLocalRecord = (state: LipidFormState, advice: string): LipidRecord =>
+  normalizeRecord({
+    id: createRecordId(),
+    createdAt: new Date().toISOString(),
+    date: state.date,
+    cholesterol: state.cholesterol,
+    hdl: state.hdl,
+    ldl: state.ldl,
+    triglycerides: state.triglycerides,
+    glucose: state.glucose,
+    question: state.question.trim(),
+    comment: state.comment.trim(),
+    advice
+  });
 
 type ApiLipid = {
   id?: number | string | null;
@@ -130,9 +170,37 @@ export const useLipidFeature = (
   const [history, setHistory] = useState<LipidRecord[]>([]);
 
   useEffect(() => {
+    const data = readArchive(STORAGE_SCOPE, userId) as Partial<LipidRecord>[] | null;
+    if (data && data.length > 0) {
+      setHistory(data.map(normalizeRecord));
+      return;
+    }
+    const legacyKey = storageKey("metabolic", userId);
+    const legacy = readArchiveByKey(legacyKey) as
+      | {
+          id?: string;
+          createdAt?: string;
+          cholesterol?: string;
+          sugar?: string;
+          question?: string;
+          comment?: string;
+          advice?: string;
+        }[]
+      | null;
+    if (legacy && legacy.length > 0) {
+      setHistory(legacy.map(convertLegacyRecord));
+    } else {
+      setHistory([]);
+    }
+  }, [userId]);
+
+  useEffect(() => {
+    writeArchive(STORAGE_SCOPE, userId, history);
+  }, [history, userId]);
+
+  useEffect(() => {
     let cancelled = false;
     if (!authHeaders || userId === null) {
-      setHistory([]);
       return () => {
         cancelled = true;
       };
@@ -151,12 +219,16 @@ export const useLipidFeature = (
           throw new Error(t("common.parseError"));
         }
         if (cancelled) return;
-        setHistory(payload.map(convertApiRecord));
+        const records = payload.map(convertApiRecord);
+        setHistory(prev => {
+          if (records.length > 0) {
+            return records;
+          }
+          return prev;
+        });
       } catch (err) {
         console.error("Failed to load lipid history", err);
         if (cancelled) return;
-        setError(err instanceof Error ? err.message : t("common.networkError", { message: "unknown" }));
-        setHistory([]);
       }
     };
 
@@ -224,16 +296,25 @@ export const useLipidFeature = (
       return;
     }
     setError(null);
-    setSaving(true);
-    try {
-      const record = await persistRecord(form, "");
-      setHistory(prev => [record, ...prev]);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : t("common.networkError", { message: "unknown" }));
-    } finally {
-      setSaving(false);
+    const fallbackRecord = createLocalRecord(form, "");
+    let stored = false;
+    if (authHeaders && userId !== null) {
+      setSaving(true);
+      try {
+        const record = await persistRecord(form, "");
+        setHistory(prev => [record, ...prev]);
+        stored = true;
+      } catch (err) {
+        console.error("Failed to persist lipid record", err);
+        setError(err instanceof Error ? err.message : t("common.networkError", { message: "unknown" }));
+      } finally {
+        setSaving(false);
+      }
     }
-  }, [form, persistRecord, t]);
+    if (!stored) {
+      setHistory(prev => [fallbackRecord, ...prev]);
+    }
+  }, [authHeaders, form, persistRecord, t, userId]);
 
   const submit = useCallback(
     async (event: FormEvent<HTMLFormElement>) => {
@@ -262,12 +343,20 @@ export const useLipidFeature = (
           .join("\n");
         const reply = await requestAdvice(prompt);
         setAdvice(reply);
-        try {
-          const record = await persistRecord(form, reply);
-          setHistory(prev => [record, ...prev]);
-        } catch (err) {
-          console.error("Failed to persist lipid record", err);
-          setError(err instanceof Error ? err.message : t("common.networkError", { message: "unknown" }));
+        let stored = false;
+        if (authHeaders && userId !== null) {
+          try {
+            const record = await persistRecord(form, reply);
+            setHistory(prev => [record, ...prev]);
+            stored = true;
+          } catch (err) {
+            console.error("Failed to persist lipid record", err);
+            setError(err instanceof Error ? err.message : t("common.networkError", { message: "unknown" }));
+          }
+        }
+        if (!stored) {
+          const localRecord = createLocalRecord(form, reply);
+          setHistory(prev => [localRecord, ...prev]);
         }
       } catch (err) {
         setError(err instanceof Error ? err.message : t("lipidPrompt.submitError"));
@@ -276,7 +365,7 @@ export const useLipidFeature = (
         setLoading(false);
       }
     },
-    [form, persistRecord, requestAdvice, t]
+    [authHeaders, form, persistRecord, requestAdvice, t, userId]
   );
 
   const pending = useMemo(() => loading || saving, [loading, saving]);

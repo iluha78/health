@@ -3,6 +3,7 @@ import type { FormEvent } from "react";
 import { useTranslation } from "../../i18n";
 import { createRecordId } from "../../lib/ids";
 import { apiUrl } from "../../lib/api";
+import { readArchive, writeArchive } from "../../lib/storage";
 import type { BloodPressureFormState, BloodPressureRecord } from "../../types/forms";
 
 const DEFAULT_FORM: BloodPressureFormState = {
@@ -12,6 +13,8 @@ const DEFAULT_FORM: BloodPressureFormState = {
   question: "",
   comment: ""
 };
+
+const STORAGE_SCOPE = "bp";
 
 const normalizeRecord = (input: Partial<BloodPressureRecord>): BloodPressureRecord => ({
   id: input.id ?? createRecordId(),
@@ -23,6 +26,18 @@ const normalizeRecord = (input: Partial<BloodPressureRecord>): BloodPressureReco
   comment: input.comment ?? "",
   advice: input.advice ?? ""
 });
+
+const createLocalRecord = (state: BloodPressureFormState, advice: string): BloodPressureRecord =>
+  normalizeRecord({
+    id: createRecordId(),
+    createdAt: new Date().toISOString(),
+    systolic: state.systolic,
+    diastolic: state.diastolic,
+    pulse: state.pulse,
+    question: state.question.trim(),
+    comment: state.comment.trim(),
+    advice
+  });
 
 type ApiBloodPressure = {
   id?: number | string | null;
@@ -114,9 +129,21 @@ export const useBloodPressureFeature = (
   const [history, setHistory] = useState<BloodPressureRecord[]>([]);
 
   useEffect(() => {
+    const data = readArchive(STORAGE_SCOPE, userId) as Partial<BloodPressureRecord>[] | null;
+    if (data && data.length > 0) {
+      setHistory(data.map(normalizeRecord));
+    } else {
+      setHistory([]);
+    }
+  }, [userId]);
+
+  useEffect(() => {
+    writeArchive(STORAGE_SCOPE, userId, history);
+  }, [history, userId]);
+
+  useEffect(() => {
     let cancelled = false;
     if (!authHeaders || userId === null) {
-      setHistory([]);
       return () => {
         cancelled = true;
       };
@@ -135,12 +162,16 @@ export const useBloodPressureFeature = (
           throw new Error(t("common.parseError"));
         }
         if (cancelled) return;
-        setHistory(payload.map(convertApiRecord));
+        const records = payload.map(convertApiRecord);
+        setHistory(prev => {
+          if (records.length > 0) {
+            return records;
+          }
+          return prev;
+        });
       } catch (err) {
         console.error("Failed to load blood pressure history", err);
         if (cancelled) return;
-        setError(err instanceof Error ? err.message : t("common.networkError", { message: "unknown" }));
-        setHistory([]);
       }
     };
 
@@ -202,16 +233,25 @@ export const useBloodPressureFeature = (
       return;
     }
     setError(null);
-    setSaving(true);
-    try {
-      const record = await persistRecord(form, "");
-      setHistory(prev => [record, ...prev]);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : t("common.networkError", { message: "unknown" }));
-    } finally {
-      setSaving(false);
+    const fallbackRecord = createLocalRecord(form, "");
+    let stored = false;
+    if (authHeaders && userId !== null) {
+      setSaving(true);
+      try {
+        const record = await persistRecord(form, "");
+        setHistory(prev => [record, ...prev]);
+        stored = true;
+      } catch (err) {
+        console.error("Failed to persist blood pressure record", err);
+        setError(err instanceof Error ? err.message : t("common.networkError", { message: "unknown" }));
+      } finally {
+        setSaving(false);
+      }
     }
-  }, [form, persistRecord, t]);
+    if (!stored) {
+      setHistory(prev => [fallbackRecord, ...prev]);
+    }
+  }, [authHeaders, form, persistRecord, t, userId]);
 
   const submit = useCallback(
     async (event: FormEvent<HTMLFormElement>) => {
@@ -237,12 +277,20 @@ export const useBloodPressureFeature = (
           .join("\n");
         const reply = await requestAdvice(prompt);
         setAdvice(reply);
-        try {
-          const record = await persistRecord(form, reply);
-          setHistory(prev => [record, ...prev]);
-        } catch (err) {
-          console.error("Failed to persist blood pressure record", err);
-          setError(err instanceof Error ? err.message : t("common.networkError", { message: "unknown" }));
+        let stored = false;
+        if (authHeaders && userId !== null) {
+          try {
+            const record = await persistRecord(form, reply);
+            setHistory(prev => [record, ...prev]);
+            stored = true;
+          } catch (err) {
+            console.error("Failed to persist blood pressure record", err);
+            setError(err instanceof Error ? err.message : t("common.networkError", { message: "unknown" }));
+          }
+        }
+        if (!stored) {
+          const localRecord = createLocalRecord(form, reply);
+          setHistory(prev => [localRecord, ...prev]);
         }
       } catch (err) {
         setError(err instanceof Error ? err.message : t("bpPrompt.submitError"));
@@ -251,7 +299,7 @@ export const useBloodPressureFeature = (
         setLoading(false);
       }
     },
-    [form, persistRecord, requestAdvice, t]
+    [authHeaders, form, persistRecord, requestAdvice, t, userId]
   );
 
   const pending = useMemo(() => loading || saving, [loading, saving]);
