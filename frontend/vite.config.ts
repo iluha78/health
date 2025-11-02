@@ -7,7 +7,7 @@ export default defineConfig({
     port: 5173,
     proxy: {
       // проксируем нужные API-пути на backend:8180
-      '^/(auth|me|profile|targets|foods|lipids|advice|analysis|assistant|uploads|billing)': {
+      '^/(auth|me|profile|targets|foods|lipids|blood-pressures|advice|analysis|assistant|uploads|billing)': {
         target: 'http://localhost:8180',
         changeOrigin: true,
         bypass(req) {
