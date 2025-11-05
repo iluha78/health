@@ -17,5 +17,6 @@ class BloodPressureRecord extends Model
         'question',
         'comment',
         'advice',
+        'created_at',
     ];
 }

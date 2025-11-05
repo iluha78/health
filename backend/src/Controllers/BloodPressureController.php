@@ -147,7 +147,108 @@ class BloodPressureController
             return ['error' => 'Укажите хотя бы одно значение давления или пульса'];
         }
 
+        $timestamp = $this->resolveMeasurementTimestamp($input);
+        if (isset($timestamp['error'])) {
+            return ['error' => $timestamp['error']];
+        }
+
+        if (isset($timestamp['created_at'])) {
+            $data['created_at'] = $timestamp['created_at'];
+        }
+
         return ['data' => $data];
+    }
+
+    /**
+     * @param array<string, mixed> $input
+     * @return array{created_at: string}|array{error: string}
+     */
+    private function resolveMeasurementTimestamp(array $input): array
+    {
+        $explicit = $this->firstNonEmptyValue($input, [
+            'recorded_at',
+            'measured_at',
+            'taken_at',
+            'datetime',
+            'created_at',
+        ]);
+
+        if ($explicit !== null) {
+            $parsed = $this->parseDateTimeString($explicit);
+            if ($parsed === null) {
+                return ['error' => 'Некорректная дата и время измерения'];
+            }
+
+            return ['created_at' => $parsed];
+        }
+
+        $date = $this->firstNonEmptyValue($input, ['date', 'dt']);
+        $time = $this->firstNonEmptyValue($input, ['time', 'tm']);
+
+        if ($date !== null || $time !== null) {
+            if ($date === null) {
+                return ['error' => 'Укажите дату измерения'];
+            }
+            if (!preg_match('/^\d{4}-\d{2}-\d{2}$/', $date)) {
+                return ['error' => 'Дата измерения должна быть в формате ГГГГ-ММ-ДД'];
+            }
+
+            $timePart = $time ?? '00:00';
+            if (!preg_match('/^\d{2}:\d{2}(:\d{2})?$/', $timePart)) {
+                return ['error' => 'Время измерения должно быть в формате ЧЧ:ММ или ЧЧ:ММ:СС'];
+            }
+
+            $format = strlen($timePart) === 5 ? 'Y-m-d H:i' : 'Y-m-d H:i:s';
+            $combined = $date . ' ' . $timePart;
+            $timestamp = \DateTimeImmutable::createFromFormat($format, $combined);
+            $errors = \DateTimeImmutable::getLastErrors();
+            if ($timestamp === false || $errors === false || $errors['warning_count'] > 0 || $errors['error_count'] > 0) {
+                return ['error' => 'Не удалось распознать дату и время измерения'];
+            }
+
+            return ['created_at' => $timestamp->format('Y-m-d H:i:s')];
+        }
+
+        $now = new \DateTimeImmutable('now');
+
+        return ['created_at' => $now->format('Y-m-d H:i:s')];
+    }
+
+    private function firstNonEmptyValue(array $input, array $keys): ?string
+    {
+        foreach ($keys as $key) {
+            if (!array_key_exists($key, $input)) {
+                continue;
+            }
+
+            $value = $input[$key];
+            if ($value === null) {
+                continue;
+            }
+
+            $value = trim((string) $value);
+            if ($value !== '') {
+                return $value;
+            }
+        }
+
+        return null;
+    }
+
+    private function parseDateTimeString(string $value): ?string
+    {
+        $value = trim($value);
+        if ($value === '') {
+            return null;
+        }
+
+        try {
+            $dateTime = new \DateTimeImmutable($value);
+        } catch (\Exception $exception) {
+            return null;
+        }
+
+        return $dateTime->format('Y-m-d H:i:s');
     }
 
     private function serializeHistory(array $records): array
