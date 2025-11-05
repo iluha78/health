@@ -10,7 +10,7 @@ export const fetchBloodPressureHistory = async (
     throw new Error(i18n.t("common.loginRequired"));
   }
 
-  const response = await fetch(apiUrl("/blood-pressure/history"), {
+  const response = await fetch(apiUrl("/blood-pressure"), {
     method: "GET",
     headers,
   });

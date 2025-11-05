@@ -1,6 +1,6 @@
 import type { AssistantMessage } from "./api";
 
-export type TabKey = "bp" | "lipid" | "nutrition" | "assistant";
+export type TabKey = "bp" | "lipid" | "nutrition" | "assistant" | "dailyfood";
 
 export type BloodPressureFormState = {
   systolic: string;

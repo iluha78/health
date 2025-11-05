@@ -20,6 +20,8 @@ import { useBillingControls } from "./features/settings/useBillingControls";
 import { requestAssistantPrompt } from "./lib/assistant";
 import { requestNutritionPhotoCalories } from "./lib/nutrition";
 import { LanguageSelector } from "./components/LanguageSelector";
+import { NutritionApp } from './components/NutritionApp';
+
 import "./App.css";
 
 const SettingsIcon = (props: SVGProps<SVGSVGElement>) => (
@@ -56,10 +58,10 @@ const LogoutIcon = (props: SVGProps<SVGSVGElement>) => (
 
 const TAB_STORAGE_KEY = "cholestofit_active_tab";
 
-const isTabKey = (value: string | null): value is TabKey =>
-  value === "bp" || value === "lipid" || value === "nutrition" || value === "assistant";
+const isTabKey = (value: string | null): value is ExtendedTabKey =>
+    value === "bp" || value === "lipid" || value === "nutrition" || value === "assistant" || value === "dailyfood"
 
-const initialTabFromStorage = (): TabKey => {
+const initialTabFromStorage = (): ExtendedTabKey => {
   if (typeof window === "undefined") {
     return "bp";
   }
@@ -79,17 +81,18 @@ const App = observer(() => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
-  const [activeTab, setActiveTab] = useState<TabKey>(() => initialTabFromStorage());
+  const [activeTab, setActiveTab] = useState<ExtendedTabKey>(() => initialTabFromStorage());
   const { t } = useTranslation();
 
   const tabItems: TabItem[] = useMemo(
-    () => [
-      { key: "bp", label: t("tabs.bp") },
-      { key: "lipid", label: t("tabs.lipid") },
-      { key: "nutrition", label: t("tabs.nutrition") },
-      { key: "assistant", label: t("tabs.assistant") }
-    ],
-    [t]
+      () => [
+        { key: "bp", label: t("tabs.bp") },
+        { key: "lipid", label: t("tabs.lipid") },
+        { key: "nutrition", label: t("tabs.nutrition") },
+        { key: "assistant", label: t("tabs.assistant") },
+        { key: "dailyfood", label: "📸 Дневник" }  // ← ДОБАВИТЬ ЭТУ СТРОКУ
+      ],
+      [t]
   );
 
   const jsonHeaders = useMemo(() => {
@@ -486,6 +489,9 @@ const App = observer(() => {
               onSubmit={submitAssistant}
               onReset={resetAssistant}
             />
+          )}
+          {activeTab === "dailyfood" && (
+              <NutritionApp token={userStore.token || ''} />
           )}
         </div>
       </main>

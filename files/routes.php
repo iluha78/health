@@ -8,8 +8,6 @@ use App\Controllers\BloodPressureController;
 use App\Controllers\DiaryController;
 use App\Controllers\FoodController;
 use App\Controllers\AdviceController;
-use App\Controllers\NutritionAdviceController;
-use App\Controllers\DailyFoodPhotoController;
 use App\Controllers\BillingController;
 use App\Controllers\AnalysisController;
 use App\Controllers\AssistantController;
@@ -31,29 +29,14 @@ $app->get('/blood-pressure',    [BloodPressureController::class, 'list'])->add(n
 $app->post('/blood-pressure',   [BloodPressureController::class, 'create'])->add(new JwtMiddleware());
 $app->delete('/blood-pressure/{id}',[BloodPressureController::class,'delete'])->add(new JwtMiddleware());
 
-// Фото еды с калориями (по дням)
-$app->get('/daily-food/{date}',      [DailyFoodPhotoController::class, 'getDay'])->add(new JwtMiddleware());
-$app->post('/daily-food',            [DailyFoodPhotoController::class, 'create'])->add(new JwtMiddleware());
-$app->get('/daily-food-history',     [DailyFoodPhotoController::class, 'history'])->add(new JwtMiddleware());
-$app->delete('/daily-food/{id}',     [DailyFoodPhotoController::class, 'delete'])->add(new JwtMiddleware());
-
-// Консультации нутрициолога (по дням)
-$app->get('/nutrition-advice/{date}',   [NutritionAdviceController::class, 'getDay'])->add(new JwtMiddleware());
-$app->post('/nutrition-advice',         [NutritionAdviceController::class, 'create'])->add(new JwtMiddleware());
-$app->get('/nutrition-advice-history',  [NutritionAdviceController::class, 'history'])->add(new JwtMiddleware());
-$app->delete('/nutrition-advice/{id}',  [NutritionAdviceController::class, 'delete'])->add(new JwtMiddleware());
-
 $app->get('/diary/{date}',              [DiaryController::class, 'getDay'])->add(new JwtMiddleware());
 $app->post('/diary/{date}/items',       [DiaryController::class, 'addItem'])->add(new JwtMiddleware());
 $app->get('/foods',                     [FoodController::class, 'search'])->add(new JwtMiddleware());
 $app->post('/foods',                    [FoodController::class, 'create'])->add(new JwtMiddleware());
-
-// Старые эндпоинты (для совместимости, можно удалить позже)
 $app->get('/advice/nutrition/history',  [AdviceController::class, 'history'])->add(new JwtMiddleware());
 $app->post('/advice/nutrition',         [AdviceController::class, 'nutrition'])->add(new JwtMiddleware());
 $app->post('/advice/nutrition/photo[/{variant:.*}]', [AdviceController::class, 'nutritionPhoto'])->add(new JwtMiddleware());
 $app->post('/advice/general',           [AdviceController::class, 'general'])->add(new JwtMiddleware());
-
 $app->get('/analysis/photo/history',    [AnalysisController::class, 'history'])->add(new JwtMiddleware());
 $app->post('/analysis/photo',           [AnalysisController::class, 'photo'])->add(new JwtMiddleware());
 $app->get('/assistant/history',         [AssistantController::class, 'history'])->add(new JwtMiddleware());

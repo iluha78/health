@@ -1,0 +1,209 @@
+.food-history {
+  max-width: 900px;
+  margin: 0 auto;
+  padding: 20px;
+}
+
+.history-header {
+  margin-bottom: 30px;
+}
+
+.history-header h2 {
+  margin: 0 0 20px 0;
+  font-size: 28px;
+  color: #2c3e50;
+}
+
+.history-stats {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 15px;
+  margin-bottom: 20px;
+}
+
+.stat-card {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  padding: 20px;
+  border-radius: 12px;
+  color: white;
+  text-align: center;
+  box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3);
+}
+
+.stat-label {
+  font-size: 14px;
+  opacity: 0.9;
+  margin-bottom: 8px;
+}
+
+.stat-value {
+  font-size: 28px;
+  font-weight: 700;
+}
+
+.history-controls {
+  margin-bottom: 20px;
+  display: flex;
+  justify-content: flex-end;
+}
+
+.history-controls label {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  color: #555;
+  font-weight: 500;
+}
+
+.history-controls select {
+  padding: 8px 12px;
+  border: 2px solid #e0e0e0;
+  border-radius: 8px;
+  font-size: 16px;
+  cursor: pointer;
+  background: white;
+}
+
+.history-list {
+  display: grid;
+  gap: 12px;
+}
+
+.history-item {
+  background: white;
+  border: 2px solid #e0e0e0;
+  border-radius: 12px;
+  padding: 20px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.history-item:hover {
+  border-color: #3498db;
+  box-shadow: 0 4px 12px rgba(52, 152, 219, 0.15);
+  transform: translateY(-2px);
+}
+
+.history-date {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 15px;
+}
+
+.date-label {
+  font-size: 18px;
+  font-weight: 600;
+  color: #2c3e50;
+}
+
+.date-full {
+  font-size: 14px;
+  color: #7f8c8d;
+}
+
+.history-info {
+  display: flex;
+  gap: 20px;
+  margin-bottom: 15px;
+}
+
+.info-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.info-item.calories {
+  margin-left: auto;
+}
+
+.info-icon {
+  font-size: 18px;
+}
+
+.info-text {
+  font-size: 16px;
+  color: #555;
+  font-weight: 500;
+}
+
+.info-item.calories .info-text {
+  color: #e67e22;
+  font-weight: 700;
+  font-size: 18px;
+}
+
+.history-bar {
+  background: #f0f0f0;
+  height: 8px;
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.bar-fill {
+  height: 100%;
+  background: linear-gradient(90deg, #667eea 0%, #764ba2 100%);
+  border-radius: 4px;
+  transition: width 0.3s ease;
+}
+
+.empty-state {
+  text-align: center;
+  padding: 60px 20px;
+  color: #7f8c8d;
+}
+
+.empty-state p {
+  margin: 10px 0;
+  font-size: 18px;
+}
+
+.empty-state .hint {
+  font-size: 14px;
+  color: #95a5a6;
+}
+
+.error-message {
+  background: #fee;
+  color: #c33;
+  padding: 15px;
+  border-radius: 8px;
+  margin-bottom: 20px;
+  border: 1px solid #fcc;
+}
+
+.loading,
+.loading-more {
+  text-align: center;
+  padding: 40px;
+  color: #7f8c8d;
+  font-size: 18px;
+}
+
+.loading-more {
+  padding: 20px;
+}
+
+@media (max-width: 768px) {
+  .history-stats {
+    grid-template-columns: 1fr;
+  }
+
+  .history-info {
+    flex-direction: column;
+    gap: 10px;
+  }
+
+  .info-item.calories {
+    margin-left: 0;
+  }
+
+  .date-label {
+    font-size: 16px;
+  }
+
+  .stat-value {
+    font-size: 24px;
+  }
+}
