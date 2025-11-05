@@ -147,23 +147,15 @@ class BloodPressureController
             return ['error' => 'Укажите хотя бы одно значение давления или пульса'];
         }
 
-        $timestamp = $this->resolveMeasurementTimestamp($input);
-        if (isset($timestamp['error'])) {
-            return ['error' => $timestamp['error']];
-        }
-
-        if (isset($timestamp['created_at'])) {
-            $data['created_at'] = $timestamp['created_at'];
-        }
+        $data['created_at'] = $this->resolveMeasurementTimestamp($input);
 
         return ['data' => $data];
     }
 
     /**
      * @param array<string, mixed> $input
-     * @return array{created_at: string}|array{error: string}
      */
-    private function resolveMeasurementTimestamp(array $input): array
+    private function resolveMeasurementTimestamp(array $input): string
     {
         $explicit = $this->firstNonEmptyValue($input, [
             'recorded_at',
@@ -175,43 +167,37 @@ class BloodPressureController
 
         if ($explicit !== null) {
             $parsed = $this->parseDateTimeString($explicit);
-            if ($parsed === null) {
-                return ['error' => 'Некорректная дата и время измерения'];
+            if ($parsed !== null) {
+                return $parsed;
             }
-
-            return ['created_at' => $parsed];
         }
 
-        $date = $this->firstNonEmptyValue($input, ['date', 'dt']);
-        $time = $this->firstNonEmptyValue($input, ['time', 'tm']);
+        $date = $this->normalizeDatePart($this->firstNonEmptyValue($input, ['date', 'dt']));
+        $time = $this->normalizeTimePart($this->firstNonEmptyValue($input, ['time', 'tm']));
 
-        if ($date !== null || $time !== null) {
-            if ($date === null) {
-                return ['error' => 'Укажите дату измерения'];
-            }
-            if (!preg_match('/^\d{4}-\d{2}-\d{2}$/', $date)) {
-                return ['error' => 'Дата измерения должна быть в формате ГГГГ-ММ-ДД'];
-            }
-
-            $timePart = $time ?? '00:00';
-            if (!preg_match('/^\d{2}:\d{2}(:\d{2})?$/', $timePart)) {
-                return ['error' => 'Время измерения должно быть в формате ЧЧ:ММ или ЧЧ:ММ:СС'];
-            }
-
-            $format = strlen($timePart) === 5 ? 'Y-m-d H:i' : 'Y-m-d H:i:s';
-            $combined = $date . ' ' . $timePart;
-            $timestamp = \DateTimeImmutable::createFromFormat($format, $combined);
-            $errors = \DateTimeImmutable::getLastErrors();
-            if ($timestamp === false || $errors === false || $errors['warning_count'] > 0 || $errors['error_count'] > 0) {
-                return ['error' => 'Не удалось распознать дату и время измерения'];
-            }
-
-            return ['created_at' => $timestamp->format('Y-m-d H:i:s')];
+        if ($date === null && $time === null) {
+            return $this->currentTimestamp();
         }
 
-        $now = new \DateTimeImmutable('now');
+        $datePart = $date ?? $this->currentDate();
+        $timePart = $time ?? '00:00:00';
 
-        return ['created_at' => $now->format('Y-m-d H:i:s')];
+        if (strlen($timePart) === 5) {
+            $timePart .= ':00';
+        }
+
+        $timestamp = \DateTimeImmutable::createFromFormat('Y-m-d H:i:s', $datePart . ' ' . $timePart);
+        $errors = \DateTimeImmutable::getLastErrors();
+        if ($timestamp !== false && $errors !== false && $errors['warning_count'] === 0 && $errors['error_count'] === 0) {
+            return $timestamp->format('Y-m-d H:i:s');
+        }
+
+        $fallback = $this->parseDateTimeString($datePart . ' ' . $timePart);
+        if ($fallback !== null) {
+            return $fallback;
+        }
+
+        return $this->currentTimestamp();
     }
 
     private function firstNonEmptyValue(array $input, array $keys): ?string
@@ -249,6 +235,79 @@ class BloodPressureController
         }
 
         return $dateTime->format('Y-m-d H:i:s');
+    }
+
+    private function normalizeDatePart(?string $value): ?string
+    {
+        if ($value === null) {
+            return null;
+        }
+
+        $value = trim($value);
+        if ($value === '') {
+            return null;
+        }
+
+        $formats = ['Y-m-d', 'd.m.Y', 'd/m/Y', 'd-m-Y', 'Y.m.d', 'Y/m/d'];
+        foreach ($formats as $format) {
+            $date = \DateTimeImmutable::createFromFormat('!' . $format, $value);
+            $errors = \DateTimeImmutable::getLastErrors();
+            if ($date !== false && $errors !== false && $errors['warning_count'] === 0 && $errors['error_count'] === 0) {
+                return $date->format('Y-m-d');
+            }
+        }
+
+        try {
+            $date = new \DateTimeImmutable($value);
+        } catch (\Exception $exception) {
+            return null;
+        }
+
+        return $date->format('Y-m-d');
+    }
+
+    private function normalizeTimePart(?string $value): ?string
+    {
+        if ($value === null) {
+            return null;
+        }
+
+        $value = trim($value);
+        if ($value === '') {
+            return null;
+        }
+
+        $formats = ['H:i:s', 'H:i', 'H.i.s', 'H.i', 'H-i-s', 'H-i', 'H'];
+        foreach ($formats as $format) {
+            $time = \DateTimeImmutable::createFromFormat('!' . $format, $value);
+            $errors = \DateTimeImmutable::getLastErrors();
+            if ($time !== false && $errors !== false && $errors['warning_count'] === 0 && $errors['error_count'] === 0) {
+                return $time->format('H:i:s');
+            }
+        }
+
+        try {
+            $time = new \DateTimeImmutable('1970-01-01 ' . $value);
+        } catch (\Exception $exception) {
+            return null;
+        }
+
+        return $time->format('H:i:s');
+    }
+
+    private function currentTimestamp(): string
+    {
+        return $this->currentDateTime()->format('Y-m-d H:i:s');
+    }
+
+    private function currentDate(): string
+    {
+        return $this->currentDateTime()->format('Y-m-d');
+    }
+
+    private function currentDateTime(): \DateTimeImmutable
+    {
+        return new \DateTimeImmutable('now');
     }
 
     private function serializeHistory(array $records): array
