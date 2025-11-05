@@ -130,7 +130,8 @@ const buildPayload = (form: BloodPressureFormState) => ({
   diastolic: form.diastolic || null,
   pulse: form.pulse || null,
   question: form.question.trim() || null,
-  comment: form.comment.trim() || null
+  comment: form.comment.trim() || null,
+  recorded_at: new Date().toISOString()
 });
 
 const convertHistoryItem = (item: BloodPressureHistoryItem): BloodPressureRecord => ({
