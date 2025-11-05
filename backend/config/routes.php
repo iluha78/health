@@ -34,6 +34,7 @@ $app->post('/advice/nutrition',         [AdviceController::class, 'nutrition'])-
 $app->post('/advice/nutrition/photo[/{variant:.*}]', [AdviceController::class, 'nutritionPhoto'])->add(new JwtMiddleware());
 $app->post('/advice/general',           [AdviceController::class, 'general'])->add(new JwtMiddleware());
 $app->get('/blood-pressure/history',    [BloodPressureController::class, 'history'])->add(new JwtMiddleware());
+$app->post('/blood-pressure',           [BloodPressureController::class, 'create'])->add(new JwtMiddleware());
 $app->post('/blood-pressure/records',   [BloodPressureController::class, 'create'])->add(new JwtMiddleware());
 $app->post('/blood-pressure/advice',    [BloodPressureController::class, 'advice'])->add(new JwtMiddleware());
 $app->get('/analysis/photo/history',    [AnalysisController::class, 'history'])->add(new JwtMiddleware());
