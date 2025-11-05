@@ -10,6 +10,7 @@ use App\Controllers\AdviceController;
 use App\Controllers\BillingController;
 use App\Controllers\AnalysisController;
 use App\Controllers\AssistantController;
+use App\Controllers\PressureController;
 use App\Middleware\JwtMiddleware;
 
 /** @var App $app */
@@ -23,6 +24,9 @@ $app->put('/profile',   [ProfileController::class, 'upsert'])->add(new JwtMiddle
 $app->get('/lipids',    [LipidController::class, 'list'])->add(new JwtMiddleware());
 $app->post('/lipids',   [LipidController::class, 'create'])->add(new JwtMiddleware());
 $app->delete('/lipids/{id}',[LipidController::class,'delete'])->add(new JwtMiddleware());
+
+$app->get('/pressure',  [PressureController::class, 'list'])->add(new JwtMiddleware());
+$app->post('/pressure', [PressureController::class, 'create'])->add(new JwtMiddleware());
 
 $app->get('/diary/{date}',              [DiaryController::class, 'getDay'])->add(new JwtMiddleware());
 $app->post('/diary/{date}/items',       [DiaryController::class, 'addItem'])->add(new JwtMiddleware());
