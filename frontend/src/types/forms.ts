@@ -11,8 +11,8 @@ export type BloodPressureFormState = {
 };
 
 export type BloodPressureRecord = {
-  id: string;
-  createdAt: string;
+  id: number;
+  createdAt: string | null;
   systolic: string;
   diastolic: string;
   pulse: string;
@@ -33,7 +33,7 @@ export type LipidFormState = {
 };
 
 export type LipidRecord = {
-  id: string;
+  id: number;
   createdAt: string;
   date: string;
   cholesterol: string;

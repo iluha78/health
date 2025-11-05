@@ -1,9 +1,9 @@
 import { useCallback, useEffect, useState } from "react";
 import type { FormEvent } from "react";
 import { useTranslation } from "../../i18n";
-import { createRecordId } from "../../lib/ids";
-import { readArchive, writeArchive } from "../../lib/storage";
 import type { BloodPressureFormState, BloodPressureRecord } from "../../types/forms";
+import { fetchBloodPressureHistory, requestBloodPressureAdvice, saveBloodPressureRecord } from "../../lib/bloodPressure";
+import type { BloodPressureHistoryItem } from "../../types/api";
 
 const DEFAULT_FORM: BloodPressureFormState = {
   systolic: "",
@@ -13,20 +13,11 @@ const DEFAULT_FORM: BloodPressureFormState = {
   comment: ""
 };
 
-const normalizeRecord = (input: Partial<BloodPressureRecord>): BloodPressureRecord => ({
-  id: input.id ?? createRecordId(),
-  createdAt: input.createdAt ?? new Date().toISOString(),
-  systolic: input.systolic ?? "",
-  diastolic: input.diastolic ?? "",
-  pulse: input.pulse ?? "",
-  question: input.question ?? "",
-  comment: input.comment ?? "",
-  advice: input.advice ?? ""
-});
-
 export const useBloodPressureFeature = (
-  userId: number | null,
-  requestAdvice: (prompt: string) => Promise<string>
+  headers: Record<string, string> | undefined,
+  enabled: boolean,
+  disabledReason: string | null,
+  refreshUsage?: () => Promise<void> | void
 ) => {
   const { t } = useTranslation();
   const [form, setForm] = useState<BloodPressureFormState>(DEFAULT_FORM);
@@ -36,17 +27,21 @@ export const useBloodPressureFeature = (
   const [history, setHistory] = useState<BloodPressureRecord[]>([]);
 
   useEffect(() => {
-    const data = readArchive("bp", userId) as Partial<BloodPressureRecord>[] | null;
-    if (data && data.length > 0) {
-      setHistory(data.map(normalizeRecord));
-    } else {
+    if (!headers || !enabled) {
       setHistory([]);
+      return;
     }
-  }, [userId]);
-
-  useEffect(() => {
-    writeArchive("bp", userId, history);
-  }, [history, userId]);
+    const load = async () => {
+      try {
+        const result = await fetchBloodPressureHistory(headers);
+        setHistory(result.map(convertHistoryItem));
+      } catch (err) {
+        console.warn("Failed to load blood pressure history", err);
+        setHistory([]);
+      }
+    };
+    void load();
+  }, [enabled, headers]);
 
   const updateField = useCallback(<TKey extends keyof BloodPressureFormState>(key: TKey, value: string) => {
     setForm(prev => ({ ...prev, [key]: value }));
@@ -63,66 +58,58 @@ export const useBloodPressureFeature = (
   const saveRecord = useCallback(() => {
     const hasMetrics = form.systolic || form.diastolic || form.pulse;
     if (!hasMetrics) {
-      setError(t("bpPrompt.saveError"));
+      setError(t("bp.saveError"));
+      return;
+    }
+    if (!headers) {
+      setError(t("common.loginRequired"));
       return;
     }
     setError(null);
-    const record: BloodPressureRecord = {
-      id: createRecordId(),
-      createdAt: new Date().toISOString(),
-      systolic: form.systolic,
-      diastolic: form.diastolic,
-      pulse: form.pulse,
-      question: form.question.trim(),
-      comment: form.comment.trim(),
-      advice: ""
-    };
-    setHistory(prev => [record, ...prev]);
-  }, [form]);
+    const payload = buildPayload(form);
+    saveBloodPressureRecord(headers, payload)
+      .then(result => {
+        const record = result.record ? convertHistoryItem(result.record) : null;
+        if (record) {
+          setHistory(prev => [record, ...prev]);
+        }
+      })
+      .catch(err => {
+        setError(err instanceof Error ? err.message : t("bp.saveError"));
+      });
+  }, [form, headers, t]);
 
   const submit = useCallback(
     async (event: FormEvent<HTMLFormElement>) => {
       event.preventDefault();
+      if (!enabled) {
+        setError(disabledReason ?? t("bp.disabled"));
+        return;
+      }
+      if (!headers) {
+        setError(t("common.loginRequired"));
+        return;
+      }
       setLoading(true);
       setError(null);
       try {
-        const metrics: string[] = [];
-        if (form.systolic) metrics.push(t("bpPrompt.metrics.systolic", { value: form.systolic }));
-        if (form.diastolic) metrics.push(t("bpPrompt.metrics.diastolic", { value: form.diastolic }));
-        if (form.pulse) metrics.push(t("bpPrompt.metrics.pulse", { value: form.pulse }));
-        if (form.comment) metrics.push(t("bpPrompt.metrics.comment", { value: form.comment }));
-        const metricSummary =
-          metrics.length > 0 ? metrics.join(", ") : t("bpPrompt.metrics.missing");
-        const prompt = [
-          t("bpPrompt.role"),
-          t("bpPrompt.summary", { summary: metricSummary }),
-          t("bpPrompt.advice"),
-          t("bpPrompt.lifestyle"),
-          form.question ? t("bpPrompt.extra", { question: form.question }) : ""
-        ]
-          .filter(Boolean)
-          .join("\n");
-        const reply = await requestAdvice(prompt);
+        const payload = buildPayload(form);
+        const { advice: reply, record } = await requestBloodPressureAdvice(headers, payload);
         setAdvice(reply);
-        const record: BloodPressureRecord = {
-          id: createRecordId(),
-          createdAt: new Date().toISOString(),
-          systolic: form.systolic,
-          diastolic: form.diastolic,
-          pulse: form.pulse,
-          question: form.question.trim(),
-          comment: form.comment.trim(),
-          advice: reply
-        };
-        setHistory(prev => [record, ...prev]);
+        if (record) {
+          setHistory(prev => [convertHistoryItem(record), ...prev]);
+        }
+        if (refreshUsage) {
+          await refreshUsage();
+        }
       } catch (err) {
-        setError(err instanceof Error ? err.message : t("bpPrompt.submitError"));
+        setError(err instanceof Error ? err.message : t("bp.submitError"));
         setAdvice("");
       } finally {
         setLoading(false);
       }
     },
-    [form, requestAdvice, t]
+    [disabledReason, enabled, form, headers, refreshUsage, t]
   );
 
   return {
@@ -137,3 +124,34 @@ export const useBloodPressureFeature = (
     reset
   };
 };
+
+const buildPayload = (form: BloodPressureFormState) => {
+  const timestamp = new Date();
+  const iso = timestamp.toISOString();
+  const date = iso.slice(0, 10);
+  const time = iso.slice(11, 19);
+
+  return {
+    systolic: form.systolic || null,
+    diastolic: form.diastolic || null,
+    pulse: form.pulse || null,
+    question: form.question.trim() || null,
+    comment: form.comment.trim() || null,
+    recorded_at: iso,
+    datetime: iso,
+    created_at: iso,
+    date,
+    time
+  };
+};
+
+const convertHistoryItem = (item: BloodPressureHistoryItem): BloodPressureRecord => ({
+  id: item.id,
+  createdAt: item.created_at,
+  systolic: item.systolic != null ? String(item.systolic) : "",
+  diastolic: item.diastolic != null ? String(item.diastolic) : "",
+  pulse: item.pulse != null ? String(item.pulse) : "",
+  question: item.question ?? "",
+  comment: item.comment ?? "",
+  advice: item.advice ?? ""
+});

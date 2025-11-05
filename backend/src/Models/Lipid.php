@@ -8,6 +8,20 @@ class Lipid extends Model
     protected $table = 'lipids';
     public $timestamps = false;
     protected $fillable = [
-        'user_id', 'dt', 'chol', 'hdl', 'ldl', 'trig', 'note'
+        'user_id',
+        'dt',
+        'chol',
+        'hdl',
+        'ldl',
+        'trig',
+        'glucose',
+        'note',
+        'question',
+        'advice',
+    ];
+
+    protected $casts = [
+        'dt' => 'date',
+        'created_at' => 'datetime',
     ];
 }

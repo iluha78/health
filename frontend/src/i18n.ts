@@ -92,6 +92,8 @@ const resources = {
         loading: "Запрашиваем рекомендации...",
         adviceTitle: "Рекомендации",
         historyTitle: "Архив давления и пульса",
+        saveError: "Укажите хотя бы одно значение, чтобы сохранить запись",
+        submitError: "Не удалось получить рекомендации",
         metrics: {
           systolic: "Систолическое: {{value}}",
           diastolic: "Диастолическое: {{value}}",
@@ -114,8 +116,9 @@ const resources = {
         comment: "комментарий: {{value}}",
         missing: "показатели не указаны"
       },
-      saveError: "Укажите хотя бы одно значение, чтобы сохранить запись",
-      submitError: "Не удалось получить рекомендации"
+        saveError: "Укажите хотя бы одно значение, чтобы сохранить запись",
+        saveFailed: "Не удалось сохранить запись",
+        submitError: "Не удалось получить рекомендации"
       },
       lipid: {
         title: "Липидный профиль и сахар",
@@ -449,6 +452,7 @@ const resources = {
         plan: "Create a plan covering diet, activity, lifestyle monitoring, and when to see a doctor.",
         extra: "Additional patient question: {{question}}.",
         saveError: "Provide at least one metric to save the record",
+        saveFailed: "Failed to save the record",
         submitError: "Failed to get recommendations"
       },
       nutrition: {
@@ -687,6 +691,7 @@ const resources = {
           missing: "keine Werte angegeben"
         },
         saveError: "Mindestens einen Wert angeben, um den Eintrag zu speichern",
+        saveFailed: "Datensatz konnte nicht gespeichert werden",
         submitError: "Empfehlungen konnten nicht abgerufen werden"
       },
       lipid: {
@@ -973,6 +978,7 @@ const resources = {
           missing: "no se proporcionaron registros"
         },
         saveError: "Indica al menos un valor para guardar el registro",
+        saveFailed: "No se pudo guardar el registro",
         submitError: "No se pudieron obtener recomendaciones"
       },
       lipid: {

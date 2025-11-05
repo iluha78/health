@@ -170,7 +170,9 @@ const App = observer(() => {
     saveRecord: saveBpRecord,
     submit: submitBp,
     reset: resetBp
-  } = useBloodPressureFeature(userId, requestAdvice);
+  } = useBloodPressureFeature(jsonHeaders, adviceEnabled, adviceDisabledReason, async () => {
+    await userStore.refresh();
+  });
 
   const {
     form: lipidForm,
@@ -182,7 +184,7 @@ const App = observer(() => {
     saveRecord: saveLipidRecord,
     submit: submitLipid,
     reset: resetLipid
-  } = useLipidFeature(userId, requestAdvice);
+  } = useLipidFeature(jsonHeaders, adviceEnabled, adviceDisabledReason, requestAdvice);
 
   const nutritionDefaults = useMemo(
     () => ({

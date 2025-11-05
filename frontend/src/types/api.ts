@@ -39,6 +39,20 @@ export interface Lipid {
   note: string | null;
 }
 
+export interface LipidHistoryItem {
+  id: number;
+  dt: string | null;
+  chol: number | null;
+  hdl: number | null;
+  ldl: number | null;
+  trig: number | null;
+  glucose: number | null;
+  note: string | null;
+  question: string | null;
+  advice: string | null;
+  created_at: string | null;
+}
+
 export interface Food {
   id: number;
   name: string;
@@ -112,6 +126,21 @@ export interface AssistantReply {
   error?: string;
   history?: AssistantHistoryItem[];
   [key: string]: unknown;
+}
+
+export interface BloodPressureHistoryItem {
+  id: number;
+  systolic: number | null;
+  diastolic: number | null;
+  pulse: number | null;
+  question: string | null;
+  comment: string | null;
+  advice: string | null;
+  created_at: string | null;
+}
+
+export interface BloodPressureRecordResponse {
+  record: BloodPressureHistoryItem | null;
 }
 
 export interface BillingPlan {
@@ -219,6 +248,40 @@ export function normalizeLipids(value: unknown): Lipid[] {
       } satisfies Lipid;
     })
     .filter((item): item is Lipid => item !== null);
+}
+
+export function normalizeLipidHistory(value: unknown): LipidHistoryItem[] {
+  if (!Array.isArray(value)) {
+    return [];
+  }
+
+  return value
+    .map(item => {
+      if (!isRecord(item)) {
+        return null;
+      }
+      const id = toNumberOrNull(item.id);
+      if (id === null) {
+        return null;
+      }
+
+      const dt = typeof item.dt === "string" ? item.dt : toStringOrNull(item.dt);
+
+      return {
+        id,
+        dt,
+        chol: toNumberOrNull(item.chol),
+        hdl: toNumberOrNull(item.hdl),
+        ldl: toNumberOrNull(item.ldl),
+        trig: toNumberOrNull(item.trig),
+        glucose: toNumberOrNull(item.glucose),
+        note: toStringOrNull(item.note),
+        question: toStringOrNull(item.question),
+        advice: toStringOrNull(item.advice),
+        created_at: toStringOrNull(item.created_at),
+      } satisfies LipidHistoryItem;
+    })
+    .filter((item): item is LipidHistoryItem => item !== null);
 }
 
 export function normalizeFoods(value: unknown): Food[] {
@@ -382,4 +445,31 @@ export function normalizeAssistantHistory(value: unknown): AssistantHistoryItem[
       } satisfies AssistantHistoryItem;
     })
     .filter((item): item is AssistantHistoryItem => item !== null);
+}
+
+export function normalizeBloodPressureHistory(value: unknown): BloodPressureHistoryItem[] {
+  if (!Array.isArray(value)) {
+    return [];
+  }
+  return value
+    .map(item => {
+      if (!isRecord(item)) {
+        return null;
+      }
+      const id = toNumberOrNull(item.id);
+      if (id === null) {
+        return null;
+      }
+      return {
+        id,
+        systolic: toNumberOrNull(item.systolic),
+        diastolic: toNumberOrNull(item.diastolic),
+        pulse: toNumberOrNull(item.pulse),
+        question: toStringOrNull(item.question),
+        comment: toStringOrNull(item.comment),
+        advice: toStringOrNull(item.advice),
+        created_at: toStringOrNull(item.created_at),
+      } satisfies BloodPressureHistoryItem;
+    })
+    .filter((item): item is BloodPressureHistoryItem => item !== null);
 }
