@@ -125,14 +125,25 @@ export const useBloodPressureFeature = (
   };
 };
 
-const buildPayload = (form: BloodPressureFormState) => ({
-  systolic: form.systolic || null,
-  diastolic: form.diastolic || null,
-  pulse: form.pulse || null,
-  question: form.question.trim() || null,
-  comment: form.comment.trim() || null,
-  recorded_at: new Date().toISOString()
-});
+const buildPayload = (form: BloodPressureFormState) => {
+  const timestamp = new Date();
+  const iso = timestamp.toISOString();
+  const date = iso.slice(0, 10);
+  const time = iso.slice(11, 19);
+
+  return {
+    systolic: form.systolic || null,
+    diastolic: form.diastolic || null,
+    pulse: form.pulse || null,
+    question: form.question.trim() || null,
+    comment: form.comment.trim() || null,
+    recorded_at: iso,
+    datetime: iso,
+    created_at: iso,
+    date,
+    time
+  };
+};
 
 const convertHistoryItem = (item: BloodPressureHistoryItem): BloodPressureRecord => ({
   id: item.id,
