@@ -114,7 +114,7 @@ const resources = {
         comment: "комментарий: {{value}}",
         missing: "показатели не указаны"
       },
-      saveError: "Укажите хотя бы одно значение, чтобы сохранить запись",
+      saveError: "Заполните систолическое и диастолическое давление, а также пульс, чтобы сохранить запись",
       submitError: "Не удалось получить рекомендации"
       },
       lipid: {
@@ -400,7 +400,7 @@ const resources = {
           comment: "comment: {{value}}",
           missing: "no readings provided"
         },
-        saveError: "Provide at least one value to save a record",
+        saveError: "Enter systolic and diastolic pressure plus pulse to save the record",
         submitError: "Failed to get recommendations"
       },
       lipid: {
@@ -686,7 +686,7 @@ const resources = {
           comment: "Kommentar: {{value}}",
           missing: "keine Werte angegeben"
         },
-        saveError: "Mindestens einen Wert angeben, um den Eintrag zu speichern",
+        saveError: "Gib systolischen und diastolischen Blutdruck sowie den Puls an, um den Eintrag zu speichern",
         submitError: "Empfehlungen konnten nicht abgerufen werden"
       },
       lipid: {
@@ -972,7 +972,7 @@ const resources = {
           comment: "comentario: {{value}}",
           missing: "no se proporcionaron registros"
         },
-        saveError: "Indica al menos un valor para guardar el registro",
+        saveError: "Indica la presión sistólica, diastólica y el pulso para guardar el registro",
         submitError: "No se pudieron obtener recomendaciones"
       },
       lipid: {
