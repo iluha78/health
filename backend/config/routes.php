@@ -31,6 +31,7 @@ $app->group('/pressure', function (RouteCollectorProxy $group): void {
     $group->get('/', [PressureController::class, 'list']);
     $group->post('', [PressureController::class, 'create']);
     $group->post('/', [PressureController::class, 'create']);
+    $group->delete('/{id}', [PressureController::class, 'delete']);
 })->add(new JwtMiddleware());
 
 $app->get('/diary/{date}',              [DiaryController::class, 'getDay'])->add(new JwtMiddleware());

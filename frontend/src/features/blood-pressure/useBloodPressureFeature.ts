@@ -334,6 +334,40 @@ export const useBloodPressureFeature = (
     ]
   );
 
+  const removeRecord = useCallback(
+    async (id: string) => {
+      if (!authHeaders) {
+        setHistory(prev => prev.filter(entry => entry.id !== id));
+        return;
+      }
+
+      try {
+        const response = await fetch(apiUrl(`/pressure/${encodeURIComponent(id)}`), {
+          method: "DELETE",
+          headers: authHeaders
+        });
+        const raw = await response.text();
+        const payload = raw ? JSON.parse(raw) : null;
+
+        if (!response.ok) {
+          const message = extractErrorMessage(
+            response.status,
+            payload,
+            t("common.requestError", { status: response.status })
+          );
+          setError(message);
+          return;
+        }
+
+        setHistory(prev => prev.filter(entry => entry.id !== id));
+      } catch (err) {
+        const message = err instanceof Error ? err.message : t("common.requestError", { status: 500 });
+        setError(message);
+      }
+    },
+    [authHeaders, t]
+  );
+
   return {
     form,
     advice,
@@ -343,6 +377,7 @@ export const useBloodPressureFeature = (
     updateField,
     saveRecord,
     submit,
-    reset
+    reset,
+    removeRecord
   };
 };

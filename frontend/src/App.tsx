@@ -169,7 +169,8 @@ const App = observer(() => {
     updateField: updateBpField,
     saveRecord: saveBpRecord,
     submit: submitBp,
-    reset: resetBp
+    reset: resetBp,
+    removeRecord: removeBpRecord
   } = useBloodPressureFeature(userId, requestAdvice, { authHeaders, jsonHeaders });
 
   const {
@@ -181,7 +182,8 @@ const App = observer(() => {
     updateField: updateLipidField,
     saveRecord: saveLipidRecord,
     submit: submitLipid,
-    reset: resetLipid
+    reset: resetLipid,
+    removeRecord: removeLipidRecord
   } = useLipidFeature(userId, requestAdvice, { authHeaders, jsonHeaders });
 
   const nutritionDefaults = useMemo(
@@ -432,6 +434,7 @@ const App = observer(() => {
               onFieldChange={updateBpField}
               onSubmit={submitBp}
               onSave={saveBpRecord}
+              onDeleteRecord={removeBpRecord}
             />
           )}
           {activeTab === "lipid" && (
@@ -446,6 +449,7 @@ const App = observer(() => {
               onFieldChange={updateLipidField}
               onSubmit={submitLipid}
               onSave={saveLipidRecord}
+              onDeleteRecord={removeLipidRecord}
             />
           )}
           {activeTab === "nutrition" && (

@@ -14,6 +14,7 @@ export type BloodPressureTabProps = {
   onFieldChange: (key: keyof BloodPressureFormState, value: string) => void;
   onSubmit: (event: FormEvent<HTMLFormElement>) => void;
   onSave: () => void;
+  onDeleteRecord: (id: string) => void;
 };
 
 const handleChange = (
@@ -32,7 +33,8 @@ export const BloodPressureTab = ({
   history,
   onFieldChange,
   onSubmit,
-  onSave
+  onSave,
+  onDeleteRecord
 }: BloodPressureTabProps) => {
   const { t } = useTranslation();
 
@@ -93,13 +95,26 @@ export const BloodPressureTab = ({
           <ul className="history-list">
             {history.map(entry => (
               <li key={entry.id} className="history-item">
-                <div className="history-meta">
-                  <span className="history-tag">{formatDateTime(entry.createdAt)}</span>
-                  <div className="metric-tags">
-                    {entry.systolic && <span className="metric-tag">{t("bp.metrics.systolic", { value: entry.systolic })}</span>}
-                    {entry.diastolic && <span className="metric-tag">{t("bp.metrics.diastolic", { value: entry.diastolic })}</span>}
-                    {entry.pulse && <span className="metric-tag">{t("bp.metrics.pulse", { value: entry.pulse })}</span>}
+                <div className="history-header">
+                  <div className="history-meta">
+                    <span className="history-tag">{formatDateTime(entry.createdAt)}</span>
+                    <div className="metric-tags">
+                      {entry.systolic && (
+                        <span className="metric-tag">{t("bp.metrics.systolic", { value: entry.systolic })}</span>
+                      )}
+                      {entry.diastolic && (
+                        <span className="metric-tag">{t("bp.metrics.diastolic", { value: entry.diastolic })}</span>
+                      )}
+                      {entry.pulse && <span className="metric-tag">{t("bp.metrics.pulse", { value: entry.pulse })}</span>}
+                    </div>
                   </div>
+                  <button
+                    type="button"
+                    className="ghost small"
+                    onClick={() => onDeleteRecord(entry.id)}
+                  >
+                    {t("bp.historyRemove")}
+                  </button>
                 </div>
                 {entry.question && (
                   <p className="history-question">
