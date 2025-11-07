@@ -18,7 +18,12 @@ class LipidController
             ->orderByDesc('dt')
             ->get();
 
-        return ResponseHelper::json($response, $lipids->toArray());
+        $payload = $lipids
+            ->map(fn (Lipid $lipid) => $this->formatLipid($lipid))
+            ->values()
+            ->all();
+
+        return ResponseHelper::json($response, $payload);
     }
 
     public function create(Request $request, Response $response): Response
@@ -40,7 +45,7 @@ class LipidController
         $payload['user_id'] = $user->id;
         $lipid = Lipid::create($payload);
 
-        return ResponseHelper::json($response, $lipid->toArray(), 201);
+        return ResponseHelper::json($response, $this->formatLipid($lipid), 201);
     }
 
     public function delete(Request $request, Response $response, array $args): Response
@@ -56,5 +61,21 @@ class LipidController
         $lipid->delete();
 
         return ResponseHelper::json($response, ['status' => 'ok']);
+    }
+
+    private function formatLipid(Lipid $lipid): array
+    {
+        return [
+            'id' => $lipid->id,
+            'dt' => $lipid->dt,
+            'chol' => $lipid->chol,
+            'hdl' => $lipid->hdl,
+            'ldl' => $lipid->ldl,
+            'trig' => $lipid->trig,
+            'glucose' => $lipid->glucose,
+            'note' => $lipid->note,
+            'advice' => $lipid->advice,
+            'user_id' => $lipid->user_id,
+        ];
     }
 }
