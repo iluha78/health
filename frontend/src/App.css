@@ -49,6 +49,17 @@ body {
   flex-wrap: wrap;
 }
 
+.brand {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.brand-text {
+  display: flex;
+  flex-direction: column;
+}
+
 .brand h1 {
   margin: 0;
   font-size: 1.8rem;
