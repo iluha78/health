@@ -162,7 +162,7 @@ const resources = {
         advice: "Дай рекомендации, как поддерживать липидный профиль и уровень сахара в безопасных пределах.",
         plan: "Составь план из нескольких пунктов: питание, активность, контроль образа жизни и когда нужно обратиться к врачу.",
         extra: "Дополнительный вопрос пациента: {{question}}.",
-        saveError: "Укажите хотя бы один показатель, чтобы сохранить запись",
+        saveError: "Укажите дату анализа и хотя бы один показатель, чтобы сохранить запись",
         submitError: "Не удалось получить рекомендации"
       },
       nutrition: {
@@ -448,7 +448,7 @@ const resources = {
         advice: "Give guidance on keeping lipid profile and glucose within safe ranges.",
         plan: "Create a plan covering diet, activity, lifestyle monitoring, and when to see a doctor.",
         extra: "Additional patient question: {{question}}.",
-        saveError: "Provide at least one metric to save the record",
+        saveError: "Provide a test date and at least one metric to save the record",
         submitError: "Failed to get recommendations"
       },
       nutrition: {
@@ -734,7 +734,7 @@ const resources = {
         advice: "Gib Hinweise, wie Lipidprofil und Glukose im sicheren Bereich bleiben.",
         plan: "Erstelle einen Plan mit Ernährung, Aktivität, Lifestyle-Kontrolle und Arztbesuch.",
         extra: "Zusätzliche Frage des Patienten: {{question}}.",
-        saveError: "Mindestens einen Wert angeben, um den Eintrag zu speichern",
+        saveError: "Gib das Analysedatum und mindestens einen Wert an, um den Eintrag zu speichern",
         submitError: "Empfehlungen konnten nicht abgerufen werden"
       },
       nutrition: {
@@ -1020,7 +1020,7 @@ const resources = {
         advice: "Indica cómo mantener el perfil lipídico y la glucosa dentro de rangos seguros.",
         plan: "Crea un plan con alimentación, actividad, seguimiento del estilo de vida y cuándo acudir al médico.",
         extra: "Pregunta adicional del paciente: {{question}}.",
-        saveError: "Indica al menos un valor para guardar el registro",
+        saveError: "Indica la fecha del análisis y al menos un valor para guardar el registro",
         submitError: "No se pudieron obtener recomendaciones"
       },
       nutrition: {

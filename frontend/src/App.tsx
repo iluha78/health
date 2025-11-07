@@ -182,7 +182,7 @@ const App = observer(() => {
     saveRecord: saveLipidRecord,
     submit: submitLipid,
     reset: resetLipid
-  } = useLipidFeature(userId, requestAdvice);
+  } = useLipidFeature(userId, requestAdvice, { authHeaders, jsonHeaders });
 
   const nutritionDefaults = useMemo(
     () => ({

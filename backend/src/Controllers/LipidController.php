@@ -26,7 +26,7 @@ class LipidController
         $user = Auth::user($request);
         $data = (array) $request->getParsedBody();
 
-        $payload = array_intersect_key($data, array_flip(['dt', 'chol', 'hdl', 'ldl', 'trig', 'note']));
+        $payload = array_intersect_key($data, array_flip(['dt', 'chol', 'hdl', 'ldl', 'trig', 'glucose', 'note']));
         if (empty($payload['dt'])) {
             return ResponseHelper::json($response, ['error' => 'Не указана дата измерения'], 422);
         }
