@@ -14,11 +14,17 @@ class LipidController
     {
         $user = Auth::user($request);
         /** @var Collection<int, Lipid> $lipids */
-        $lipids = Lipid::where('user_id', $user->id)
+        $lipids = Lipid::select(['id', 'dt', 'chol', 'hdl', 'ldl', 'trig', 'glucose', 'note', 'advice', 'user_id'])
+            ->where('user_id', $user->id)
             ->orderByDesc('dt')
             ->get();
 
-        return ResponseHelper::json($response, $lipids->toArray());
+        $payload = $lipids
+            ->map(fn (Lipid $lipid) => $this->formatLipid($lipid))
+            ->values()
+            ->all();
+
+        return ResponseHelper::json($response, $payload);
     }
 
     public function create(Request $request, Response $response): Response
@@ -26,15 +32,22 @@ class LipidController
         $user = Auth::user($request);
         $data = (array) $request->getParsedBody();
 
-        $payload = array_intersect_key($data, array_flip(['dt', 'chol', 'hdl', 'ldl', 'trig', 'note']));
+        $payload = array_intersect_key($data, array_flip(['dt', 'chol', 'hdl', 'ldl', 'trig', 'glucose', 'note', 'advice']));
         if (empty($payload['dt'])) {
             return ResponseHelper::json($response, ['error' => 'Не указана дата измерения'], 422);
         }
 
+        foreach (['note', 'advice'] as $textKey) {
+            if (array_key_exists($textKey, $payload) && $payload[$textKey] === '') {
+                $payload[$textKey] = null;
+            }
+        }
+
         $payload['user_id'] = $user->id;
         $lipid = Lipid::create($payload);
+        $lipid->refresh();
 
-        return ResponseHelper::json($response, $lipid->toArray(), 201);
+        return ResponseHelper::json($response, $this->formatLipid($lipid), 201);
     }
 
     public function delete(Request $request, Response $response, array $args): Response
@@ -50,5 +63,21 @@ class LipidController
         $lipid->delete();
 
         return ResponseHelper::json($response, ['status' => 'ok']);
+    }
+
+    private function formatLipid(Lipid $lipid): array
+    {
+        return [
+            'id' => $lipid->id,
+            'dt' => $lipid->dt,
+            'chol' => $lipid->chol,
+            'hdl' => $lipid->hdl,
+            'ldl' => $lipid->ldl,
+            'trig' => $lipid->trig,
+            'glucose' => $lipid->glucose,
+            'note' => $lipid->note,
+            'advice' => $lipid->advice ?? null,
+            'user_id' => $lipid->user_id,
+        ];
     }
 }

@@ -1,0 +1,2 @@
+ALTER TABLE lipids
+    ADD COLUMN glucose DECIMAL(4,2) NULL AFTER trig;

@@ -1,8 +1,8 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import type { FormEvent } from "react";
 import { useTranslation } from "../../i18n";
+import { apiUrl } from "../../lib/api";
 import { createRecordId } from "../../lib/ids";
-import { readArchive, writeArchive } from "../../lib/storage";
 import type { BloodPressureFormState, BloodPressureRecord } from "../../types/forms";
 
 const DEFAULT_FORM: BloodPressureFormState = {
@@ -13,20 +13,97 @@ const DEFAULT_FORM: BloodPressureFormState = {
   comment: ""
 };
 
-const normalizeRecord = (input: Partial<BloodPressureRecord>): BloodPressureRecord => ({
-  id: input.id ?? createRecordId(),
-  createdAt: input.createdAt ?? new Date().toISOString(),
-  systolic: input.systolic ?? "",
-  diastolic: input.diastolic ?? "",
-  pulse: input.pulse ?? "",
-  question: input.question ?? "",
-  comment: input.comment ?? "",
-  advice: input.advice ?? ""
-});
+type HeadersShape = Record<string, string> | undefined;
+
+type UseBloodPressureOptions = {
+  authHeaders?: HeadersShape;
+  jsonHeaders?: HeadersShape;
+};
+
+const isRecord = (value: unknown): value is Record<string, unknown> =>
+  typeof value === "object" && value !== null;
+
+const normalizeMetric = (value: unknown): string => {
+  if (typeof value === "number" && Number.isFinite(value)) {
+    return String(value);
+  }
+  if (typeof value === "string") {
+    return value.trim();
+  }
+  return "";
+};
+
+const pad = (value: number): string => value.toString().padStart(2, "0");
+
+const formatDateTime = (value: Date): string =>
+  [
+    `${value.getFullYear()}-${pad(value.getMonth() + 1)}-${pad(value.getDate())}`,
+    `${pad(value.getHours())}:${pad(value.getMinutes())}:${pad(value.getSeconds())}`
+  ].join(" ");
+
+const normalizeDate = (value: unknown): string => {
+  if (typeof value !== "string" || value.length === 0) {
+    return new Date().toISOString();
+  }
+
+  const parsed = new Date(value);
+  if (Number.isNaN(parsed.getTime())) {
+    return value;
+  }
+
+  return parsed.toISOString();
+};
+
+const normalizeApiRecord = (value: unknown): BloodPressureRecord | null => {
+  if (!isRecord(value)) {
+    return null;
+  }
+
+  const id = value.id;
+  const measured = value.measured_at ?? value.created_at;
+
+  return {
+    id: typeof id === "number" || typeof id === "string" ? String(id) : createRecordId(),
+    createdAt: normalizeDate(measured),
+    systolic: normalizeMetric(value.systolic),
+    diastolic: normalizeMetric(value.diastolic),
+    pulse: normalizeMetric(value.pulse),
+    question: "",
+    comment: "",
+    advice: typeof value.advice === "string" ? value.advice : ""
+  } satisfies BloodPressureRecord;
+};
+
+const extractErrorMessage = (status: number, payload: unknown, fallback: string): string => {
+  if (status === 401) {
+    return fallback;
+  }
+
+  if (isRecord(payload)) {
+    if (typeof payload.error === "string" && payload.error.length > 0) {
+      return payload.error;
+    }
+    if (isRecord(payload.errors)) {
+      const firstError = Object.values(payload.errors)[0];
+      if (Array.isArray(firstError) && firstError.length > 0) {
+        const first = firstError[0];
+        if (typeof first === "string") {
+          return first;
+        }
+      }
+      if (typeof firstError === "string" && firstError.length > 0) {
+        return firstError;
+      }
+    }
+  }
+
+  return fallback;
+};
 
 export const useBloodPressureFeature = (
   userId: number | null,
-  requestAdvice: (prompt: string) => Promise<string>
+  requestAdvice: (prompt: string) => Promise<string>,
+  { authHeaders, jsonHeaders }: UseBloodPressureOptions = {}
 ) => {
   const { t } = useTranslation();
   const [form, setForm] = useState<BloodPressureFormState>(DEFAULT_FORM);
@@ -36,17 +113,56 @@ export const useBloodPressureFeature = (
   const [history, setHistory] = useState<BloodPressureRecord[]>([]);
 
   useEffect(() => {
-    const data = readArchive("bp", userId) as Partial<BloodPressureRecord>[] | null;
-    if (data && data.length > 0) {
-      setHistory(data.map(normalizeRecord));
-    } else {
+    if (!authHeaders || userId == null) {
       setHistory([]);
+      return;
     }
-  }, [userId]);
 
-  useEffect(() => {
-    writeArchive("bp", userId, history);
-  }, [history, userId]);
+    let cancelled = false;
+
+    const loadHistory = async () => {
+      try {
+        const response = await fetch(apiUrl("/pressure"), { headers: authHeaders });
+        const raw = await response.text();
+        const payload = raw ? JSON.parse(raw) : [];
+
+        if (!response.ok) {
+          const message = extractErrorMessage(
+            response.status,
+            payload,
+            t("common.requestError", { status: response.status })
+          );
+          if (!cancelled) {
+            setError(message);
+          }
+          return;
+        }
+
+        const records = Array.isArray(payload)
+          ? payload
+              .map(normalizeApiRecord)
+              .filter((entry): entry is BloodPressureRecord => entry !== null)
+          : [];
+
+        if (!cancelled) {
+          setError(null);
+          setHistory(records);
+        }
+      } catch (err) {
+        if (!cancelled) {
+          const message =
+            err instanceof Error ? err.message : t("common.requestError", { status: 500 });
+          setError(message);
+        }
+      }
+    };
+
+    void loadHistory();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [authHeaders, t, userId]);
 
   const updateField = useCallback(<TKey extends keyof BloodPressureFormState>(key: TKey, value: string) => {
     setForm(prev => ({ ...prev, [key]: value }));
@@ -60,29 +176,111 @@ export const useBloodPressureFeature = (
     setHistory([]);
   }, []);
 
-  const saveRecord = useCallback(() => {
-    const hasMetrics = form.systolic || form.diastolic || form.pulse;
-    if (!hasMetrics) {
+  const normalizedMetrics = useMemo(() => {
+    const systolic = form.systolic.trim();
+    const diastolic = form.diastolic.trim();
+    const pulse = form.pulse.trim();
+    const allProvided = systolic !== "" && diastolic !== "" && pulse !== "";
+    return {
+      systolic,
+      diastolic,
+      pulse,
+      allProvided,
+      parsed: {
+        systolic: Number(systolic),
+        diastolic: Number(diastolic),
+        pulse: Number(pulse)
+      }
+    };
+  }, [form.diastolic, form.pulse, form.systolic]);
+
+  const persistRecord = useCallback(
+    async (payload: { systolic: number; diastolic: number; pulse: number; advice?: string }) => {
+      if (!jsonHeaders) {
+        throw new Error(t("common.loginRequired"));
+      }
+
+      const response = await fetch(apiUrl("/pressure"), {
+        method: "POST",
+        headers: jsonHeaders,
+        body: JSON.stringify({
+          systolic: payload.systolic,
+          diastolic: payload.diastolic,
+          pulse: payload.pulse,
+          measured_at: formatDateTime(new Date()),
+          advice: payload.advice ?? null
+        })
+      });
+
+      const raw = await response.text();
+      const data = raw ? JSON.parse(raw) : null;
+
+      if (!response.ok) {
+        const message = extractErrorMessage(
+          response.status,
+          data,
+          t("common.requestError", { status: response.status })
+        );
+        throw new Error(message);
+      }
+
+      const record = normalizeApiRecord(data);
+      if (!record) {
+        throw new Error(t("common.requestError", { status: response.status }));
+      }
+
+      return record;
+    },
+    [jsonHeaders, t]
+  );
+
+  const saveRecord = useCallback(async () => {
+    if (!normalizedMetrics.allProvided) {
       setError(t("bpPrompt.saveError"));
       return;
     }
+
+    if (
+      Number.isNaN(normalizedMetrics.parsed.systolic) ||
+      Number.isNaN(normalizedMetrics.parsed.diastolic) ||
+      Number.isNaN(normalizedMetrics.parsed.pulse)
+    ) {
+      setError(t("bpPrompt.saveError"));
+      return;
+    }
+
+    setLoading(true);
     setError(null);
-    const record: BloodPressureRecord = {
-      id: createRecordId(),
-      createdAt: new Date().toISOString(),
-      systolic: form.systolic,
-      diastolic: form.diastolic,
-      pulse: form.pulse,
-      question: form.question.trim(),
-      comment: form.comment.trim(),
-      advice: ""
-    };
-    setHistory(prev => [record, ...prev]);
-  }, [form]);
+    try {
+      const persisted = await persistRecord({
+        systolic: normalizedMetrics.parsed.systolic,
+        diastolic: normalizedMetrics.parsed.diastolic,
+        pulse: normalizedMetrics.parsed.pulse,
+        advice: ""
+      });
+
+      const record: BloodPressureRecord = {
+        ...persisted,
+        question: form.question.trim(),
+        comment: form.comment.trim(),
+        advice: ""
+      };
+
+      setHistory(prev => [record, ...prev]);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : t("common.requestError", { status: 500 }));
+    } finally {
+      setLoading(false);
+    }
+  }, [form.comment, form.question, normalizedMetrics, persistRecord, t]);
 
   const submit = useCallback(
     async (event: FormEvent<HTMLFormElement>) => {
       event.preventDefault();
+      if (!normalizedMetrics.allProvided) {
+        setError(t("bpPrompt.saveError"));
+        return;
+      }
       setLoading(true);
       setError(null);
       try {
@@ -104,12 +302,14 @@ export const useBloodPressureFeature = (
           .join("\n");
         const reply = await requestAdvice(prompt);
         setAdvice(reply);
+        const persisted = await persistRecord({
+          systolic: normalizedMetrics.parsed.systolic,
+          diastolic: normalizedMetrics.parsed.diastolic,
+          pulse: normalizedMetrics.parsed.pulse,
+          advice: reply
+        });
         const record: BloodPressureRecord = {
-          id: createRecordId(),
-          createdAt: new Date().toISOString(),
-          systolic: form.systolic,
-          diastolic: form.diastolic,
-          pulse: form.pulse,
+          ...persisted,
           question: form.question.trim(),
           comment: form.comment.trim(),
           advice: reply
@@ -122,7 +322,16 @@ export const useBloodPressureFeature = (
         setLoading(false);
       }
     },
-    [form, requestAdvice, t]
+    [
+      form,
+      normalizedMetrics.allProvided,
+      normalizedMetrics.parsed.diastolic,
+      normalizedMetrics.parsed.pulse,
+      normalizedMetrics.parsed.systolic,
+      persistRecord,
+      requestAdvice,
+      t
+    ]
   );
 
   return {

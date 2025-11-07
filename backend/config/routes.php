@@ -10,7 +10,9 @@ use App\Controllers\AdviceController;
 use App\Controllers\BillingController;
 use App\Controllers\AnalysisController;
 use App\Controllers\AssistantController;
+use App\Controllers\PressureController;
 use App\Middleware\JwtMiddleware;
+use Slim\Routing\RouteCollectorProxy;
 
 /** @var App $app */
 $app->post('/auth/register', [AuthController::class, 'register']);
@@ -23,6 +25,13 @@ $app->put('/profile',   [ProfileController::class, 'upsert'])->add(new JwtMiddle
 $app->get('/lipids',    [LipidController::class, 'list'])->add(new JwtMiddleware());
 $app->post('/lipids',   [LipidController::class, 'create'])->add(new JwtMiddleware());
 $app->delete('/lipids/{id}',[LipidController::class,'delete'])->add(new JwtMiddleware());
+
+$app->group('/pressure', function (RouteCollectorProxy $group): void {
+    $group->get('',  [PressureController::class, 'list']);
+    $group->get('/', [PressureController::class, 'list']);
+    $group->post('', [PressureController::class, 'create']);
+    $group->post('/', [PressureController::class, 'create']);
+})->add(new JwtMiddleware());
 
 $app->get('/diary/{date}',              [DiaryController::class, 'getDay'])->add(new JwtMiddleware());
 $app->post('/diary/{date}/items',       [DiaryController::class, 'addItem'])->add(new JwtMiddleware());
