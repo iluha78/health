@@ -14,7 +14,8 @@ class LipidController
     {
         $user = Auth::user($request);
         /** @var Collection<int, Lipid> $lipids */
-        $lipids = Lipid::where('user_id', $user->id)
+        $lipids = Lipid::select(['id', 'dt', 'chol', 'hdl', 'ldl', 'trig', 'glucose', 'note', 'advice', 'user_id'])
+            ->where('user_id', $user->id)
             ->orderByDesc('dt')
             ->get();
 
@@ -44,6 +45,7 @@ class LipidController
 
         $payload['user_id'] = $user->id;
         $lipid = Lipid::create($payload);
+        $lipid->refresh();
 
         return ResponseHelper::json($response, $this->formatLipid($lipid), 201);
     }
@@ -74,7 +76,7 @@ class LipidController
             'trig' => $lipid->trig,
             'glucose' => $lipid->glucose,
             'note' => $lipid->note,
-            'advice' => $lipid->advice,
+            'advice' => $lipid->advice ?? null,
             'user_id' => $lipid->user_id,
         ];
     }
