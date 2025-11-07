@@ -33,6 +33,14 @@ const normalizeMetric = (value: unknown): string => {
   return "";
 };
 
+const pad = (value: number): string => value.toString().padStart(2, "0");
+
+const formatDateTime = (value: Date): string =>
+  [
+    `${value.getFullYear()}-${pad(value.getMonth() + 1)}-${pad(value.getDate())}`,
+    `${pad(value.getHours())}:${pad(value.getMinutes())}:${pad(value.getSeconds())}`
+  ].join(" ");
+
 const normalizeDate = (value: unknown): string => {
   if (typeof value !== "string" || value.length === 0) {
     return new Date().toISOString();
@@ -199,7 +207,7 @@ export const useBloodPressureFeature = (
           systolic: payload.systolic,
           diastolic: payload.diastolic,
           pulse: payload.pulse,
-          measured_at: new Date().toISOString(),
+          measured_at: formatDateTime(new Date()),
           advice: payload.advice ?? null
         })
       });
