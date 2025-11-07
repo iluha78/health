@@ -1,0 +1,2 @@
+ALTER TABLE lipids
+    ADD COLUMN advice TEXT NULL AFTER note;

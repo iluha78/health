@@ -142,7 +142,7 @@ const normalizeApiRecord = (value: unknown): LipidRecord | null => {
     glucose: normalizeMetric(value.glucose),
     question: "",
     comment: typeof value.note === "string" ? value.note : "",
-    advice: ""
+    advice: typeof value.advice === "string" ? value.advice : ""
   } satisfies LipidRecord;
 };
 
@@ -340,6 +340,7 @@ export const useLipidFeature = (
       dt: string;
       metrics: ParsedMetrics;
       note: string | null;
+      advice: string | null;
     }): Promise<LipidRecord> => {
       if (!jsonHeaders) {
         throw new Error(t("common.loginRequired"));
@@ -355,7 +356,8 @@ export const useLipidFeature = (
           ldl: payload.metrics.ldl,
           trig: payload.metrics.trig,
           glucose: payload.metrics.glucose,
-          note: payload.note ?? null
+          note: payload.note ?? null,
+          advice: payload.advice ?? null
         })
       });
 
@@ -394,14 +396,15 @@ export const useLipidFeature = (
         const persisted = await persistRecord({
           dt: formatDateForApi(normalizedMetrics.date),
           metrics: normalizedMetrics.parsed,
-          note: form.comment.trim() ? form.comment.trim() : null
+          note: form.comment.trim() ? form.comment.trim() : null,
+          advice: null
         });
 
         const record: LipidRecord = {
           ...persisted,
           question: form.question.trim(),
           comment: form.comment.trim(),
-          advice: ""
+          advice: persisted.advice
         };
 
         setHistory(prev => [record, ...prev]);
@@ -453,13 +456,14 @@ export const useLipidFeature = (
         const persisted = await persistRecord({
           dt: formatDateForApi(normalizedMetrics.date),
           metrics: normalizedMetrics.parsed,
-          note: form.comment.trim() ? form.comment.trim() : null
+          note: form.comment.trim() ? form.comment.trim() : null,
+          advice: reply.trim() ? reply : null
         });
         const record: LipidRecord = {
           ...persisted,
           question: form.question.trim(),
           comment: form.comment.trim(),
-          advice: reply
+          advice: persisted.advice.trim() ? persisted.advice : reply
         };
         setHistory(prev => [record, ...prev]);
       } catch (err) {
