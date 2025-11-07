@@ -2,7 +2,35 @@ import { useCallback, useEffect, useState } from "react";
 import type { FormEvent, ChangeEvent } from "react";
 import { useTranslation } from "../../i18n";
 import { apiUrl } from "../../lib/api";
-import type { AssistantMessage } from "../../types/api";
+import type { AssistantHistoryItem, AssistantMessage } from "../../types/api";
+
+const mapHistoryToMessages = (history: AssistantHistoryItem[]): AssistantMessage[] => {
+  if (history.length === 0) {
+    return [];
+  }
+
+  const sorted = [...history].sort((a, b) => {
+    const aTime = a.created_at ? new Date(a.created_at).getTime() : 0;
+    const bTime = b.created_at ? new Date(b.created_at).getTime() : 0;
+    if (aTime !== bTime) {
+      return aTime - bTime;
+    }
+    return a.id - b.id;
+  });
+
+  const messages: AssistantMessage[] = [];
+  for (const item of sorted) {
+    const userMessage = item.user_message?.trim();
+    if (userMessage) {
+      messages.push({ role: "user", content: userMessage });
+    }
+    const assistantReply = item.assistant_reply?.trim();
+    if (assistantReply) {
+      messages.push({ role: "assistant", content: assistantReply });
+    }
+  }
+  return messages;
+};
 
 export const useAssistantChat = (
   token: string | null,
@@ -16,6 +44,41 @@ export const useAssistantChat = (
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!token || !headers) {
+      setMessages([]);
+      return;
+    }
+
+    const controller = new AbortController();
+
+    const fetchHistory = async () => {
+      try {
+        const response = await fetch(apiUrl("/assistant/history"), {
+          headers,
+          signal: controller.signal
+        });
+        if (!response.ok) {
+          return;
+        }
+        const data: unknown = await response.json();
+        if (Array.isArray(data)) {
+          setMessages(mapHistoryToMessages(data as AssistantHistoryItem[]));
+        }
+      } catch (err) {
+        if (!controller.signal.aborted) {
+          console.error("Failed to load assistant history", err);
+        }
+      }
+    };
+
+    void fetchHistory();
+
+    return () => {
+      controller.abort();
+    };
+  }, [headers, token]);
 
   useEffect(() => {
     if (!enabled && disabledReason) {
