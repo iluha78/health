@@ -1,10 +1,20 @@
 import { useCallback, useEffect, useState } from "react";
 import type { FormEvent } from "react";
 import { useTranslation } from "../../i18n";
-import { createRecordId } from "../../lib/ids";
-import { readArchive, writeArchive } from "../../lib/storage";
 import type { NutritionFormState, NutritionPhotoRecord, NutritionRecord } from "../../types/forms";
-import type { NutritionPhotoAnalysis, NutritionPhotoError } from "../../lib/nutrition";
+import type {
+  NutritionPhotoAnalysis,
+  NutritionPhotoError,
+  NutritionAdviceHistoryItem,
+  NutritionPhotoHistoryItem,
+  NutritionAdvicePayload
+} from "../../lib/nutrition";
+import {
+  fetchNutritionAdviceHistory,
+  submitNutritionAdvice,
+  fetchNutritionPhotoHistory,
+  deleteNutritionPhotoRecord
+} from "../../lib/nutrition";
 
 const DEFAULT_FORM: NutritionFormState = {
   weight: "",
@@ -15,29 +25,29 @@ const DEFAULT_FORM: NutritionFormState = {
   comment: ""
 };
 
-const normalizeRecord = (input: Partial<NutritionRecord>): NutritionRecord => ({
-  id: input.id ?? createRecordId(),
-  createdAt: input.createdAt ?? new Date().toISOString(),
-  weight: input.weight ?? "",
-  height: input.height ?? "",
-  calories: input.calories ?? "",
-  activity: input.activity ?? "",
-  question: input.question ?? "",
-  comment: input.comment ?? "",
-  advice: input.advice ?? ""
-});
+const mapAdviceHistory = (entries: NutritionAdviceHistoryItem[]): NutritionRecord[] =>
+  entries.map(entry => ({
+    id: String(entry.id),
+    createdAt: entry.createdAt,
+    weight: entry.weight,
+    height: entry.height,
+    calories: entry.calories,
+    activity: entry.activity,
+    question: entry.question,
+    comment: entry.comment,
+    advice: entry.advice
+  }));
 
-const normalizePhotoRecord = (input: Partial<NutritionPhotoRecord>): NutritionPhotoRecord => ({
-  id: input.id ?? createRecordId(),
-  createdAt: input.createdAt ?? new Date().toISOString(),
-  fileName: input.fileName ?? "",
-  calories: typeof input.calories === "number" ? input.calories : null,
-  confidence: typeof input.confidence === "string" ? input.confidence : null,
-  notes: input.notes ?? "",
-  ingredients: Array.isArray(input.ingredients)
-    ? input.ingredients.filter((item): item is string => typeof item === "string")
-    : []
-});
+const mapPhotoHistory = (entries: NutritionPhotoHistoryItem[]): NutritionPhotoRecord[] =>
+  entries.map(entry => ({
+    id: String(entry.id),
+    createdAt: entry.createdAt,
+    fileName: entry.fileName ?? "",
+    calories: entry.calories,
+    confidence: entry.confidence,
+    notes: entry.notes,
+    ingredients: entry.ingredients
+  }));
 
 type NutritionDefaults = {
   weight: number | null;
@@ -46,12 +56,21 @@ type NutritionDefaults = {
   activity: string | null;
 };
 
-export const useNutritionFeature = (
-  userId: number | null,
-  requestAdvice: (prompt: string) => Promise<string>,
-  defaults: NutritionDefaults,
-  analyzePhoto: (file: File) => Promise<NutritionPhotoAnalysis>
-) => {
+type NutritionFeatureOptions = {
+  userId: number | null;
+  defaults: NutritionDefaults;
+  analyzePhoto: (file: File) => Promise<{ analysis: NutritionPhotoAnalysis; history: NutritionPhotoHistoryItem[] }>;
+  jsonHeaders: Record<string, string> | undefined;
+  authHeaders: Record<string, string> | undefined;
+};
+
+export const useNutritionFeature = ({
+  userId,
+  defaults,
+  analyzePhoto,
+  jsonHeaders,
+  authHeaders
+}: NutritionFeatureOptions) => {
   const { t } = useTranslation();
   const [form, setForm] = useState<NutritionFormState>(DEFAULT_FORM);
   const [advice, setAdvice] = useState("");
@@ -84,32 +103,6 @@ export const useNutritionFeature = (
   }, [photoFile]);
 
   useEffect(() => {
-    const data = readArchive("nutrition", userId) as Partial<NutritionRecord>[] | null;
-    if (data && data.length > 0) {
-      setHistory(data.map(normalizeRecord));
-    } else {
-      setHistory([]);
-    }
-  }, [userId]);
-
-  useEffect(() => {
-    writeArchive("nutrition", userId, history);
-  }, [history, userId]);
-
-  useEffect(() => {
-    const data = readArchive("nutrition_photo", userId) as Partial<NutritionPhotoRecord>[] | null;
-    if (data && data.length > 0) {
-      setPhotoHistory(data.map(normalizePhotoRecord));
-    } else {
-      setPhotoHistory([]);
-    }
-  }, [userId]);
-
-  useEffect(() => {
-    writeArchive("nutrition_photo", userId, photoHistory);
-  }, [photoHistory, userId]);
-
-  useEffect(() => {
     setForm(prev => {
       const nextWeight = prev.weight || (defaults.weight != null ? String(defaults.weight) : "");
       const nextHeight = prev.height || (defaults.height != null ? String(defaults.height) : "");
@@ -132,6 +125,37 @@ export const useNutritionFeature = (
       };
     });
   }, [defaults.weight, defaults.height, defaults.calories, defaults.activity]);
+
+  const loadAdviceHistory = useCallback(async () => {
+    if (!authHeaders) {
+      setHistory([]);
+      return;
+    }
+    try {
+      const records = await fetchNutritionAdviceHistory(authHeaders);
+      setHistory(mapAdviceHistory(records));
+    } catch (err) {
+      console.error(err);
+    }
+  }, [authHeaders]);
+
+  const loadPhotoHistory = useCallback(async () => {
+    if (!authHeaders) {
+      setPhotoHistory([]);
+      return;
+    }
+    try {
+      const records = await fetchNutritionPhotoHistory(authHeaders);
+      setPhotoHistory(mapPhotoHistory(records));
+    } catch (err) {
+      console.error(err);
+    }
+  }, [authHeaders]);
+
+  useEffect(() => {
+    void loadAdviceHistory();
+    void loadPhotoHistory();
+  }, [loadAdviceHistory, loadPhotoHistory, userId]);
 
   const updateField = useCallback(<TKey extends keyof NutritionFormState>(key: TKey, value: string) => {
     setForm(prev => ({ ...prev, [key]: value }));
@@ -174,19 +198,10 @@ export const useNutritionFeature = (
     setPhotoError(null);
     setPhotoDebug([]);
     try {
-      const result = await analyzePhoto(photoFile);
-      setPhotoResult(result);
-      setPhotoDebug(result.debug ?? []);
-      const record: NutritionPhotoRecord = {
-        id: createRecordId(),
-        createdAt: new Date().toISOString(),
-        fileName: photoFile.name,
-        calories: result.calories,
-        confidence: result.confidence,
-        notes: result.notes,
-        ingredients: result.ingredients
-      };
-      setPhotoHistory(prev => [record, ...prev]);
+      const { analysis, history: historyItems } = await analyzePhoto(photoFile);
+      setPhotoResult(analysis);
+      setPhotoDebug(analysis.debug ?? []);
+      setPhotoHistory(mapPhotoHistory(historyItems));
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : t("nutrition.photo.error");
       const debug = err && typeof err === "object" && err !== null && "debug" in err
@@ -200,9 +215,27 @@ export const useNutritionFeature = (
     }
   }, [analyzePhoto, photoFile, t]);
 
-  const removePhotoHistoryEntry = useCallback((id: string) => {
-    setPhotoHistory(prev => prev.filter(entry => entry.id !== id));
-  }, []);
+  const removePhotoHistoryEntry = useCallback(
+    async (id: string) => {
+      if (!authHeaders) {
+        setPhotoHistory(prev => prev.filter(entry => entry.id !== id));
+        return;
+      }
+
+      const numericId = Number(id);
+      if (!Number.isFinite(numericId)) {
+        return;
+      }
+
+      try {
+        await deleteNutritionPhotoRecord(authHeaders, numericId);
+        setPhotoHistory(prev => prev.filter(entry => entry.id !== id));
+      } catch (err) {
+        setPhotoError(err instanceof Error ? err.message : t("common.requestError", { status: 500 }));
+      }
+    },
+    [authHeaders, t]
+  );
 
   const submit = useCallback(
     async (event: FormEvent<HTMLFormElement>) => {
@@ -210,36 +243,17 @@ export const useNutritionFeature = (
       setLoading(true);
       setError(null);
       try {
-        const facts: string[] = [];
-        if (form.weight) facts.push(t("nutritionPrompt.facts.weight", { value: form.weight }));
-        if (form.height) facts.push(t("nutritionPrompt.facts.height", { value: form.height }));
-        if (form.calories) facts.push(t("nutritionPrompt.facts.calories", { value: form.calories }));
-        if (form.activity) facts.push(t("nutritionPrompt.facts.activity", { value: form.activity }));
-        if (form.comment) facts.push(t("nutritionPrompt.facts.comment", { value: form.comment }));
-        const prompt = [
-          t("nutritionPrompt.role"),
-          facts.length > 0
-            ? t("nutritionPrompt.summary", { facts: facts.join(", ") })
-            : t("nutritionPrompt.summaryMissing"),
-          form.question
-            ? t("nutritionPrompt.extra", { question: form.question })
-            : t("nutritionPrompt.universal"),
-          t("nutritionPrompt.reminder")
-        ].join("\n");
-        const reply = await requestAdvice(prompt);
-        setAdvice(reply);
-        const record: NutritionRecord = {
-          id: createRecordId(),
-          createdAt: new Date().toISOString(),
-          weight: form.weight,
-          height: form.height,
-          calories: form.calories,
-          activity: form.activity,
+        const payload: NutritionAdvicePayload = {
+          weight: form.weight.trim(),
+          height: form.height.trim(),
+          calories: form.calories.trim(),
+          activity: form.activity.trim(),
           question: form.question.trim(),
-          comment: form.comment.trim(),
-          advice: reply
+          comment: form.comment.trim()
         };
-        setHistory(prev => [record, ...prev]);
+        const { advice: reply, history: historyItems } = await submitNutritionAdvice(jsonHeaders, payload);
+        setAdvice(reply);
+        setHistory(mapAdviceHistory(historyItems));
       } catch (err) {
         setError(err instanceof Error ? err.message : t("nutritionPrompt.submitError"));
         setAdvice("");
@@ -247,7 +261,7 @@ export const useNutritionFeature = (
         setLoading(false);
       }
     },
-    [form, requestAdvice, t]
+    [form.activity, form.calories, form.comment, form.height, form.question, form.weight, jsonHeaders, t]
   );
 
   return {

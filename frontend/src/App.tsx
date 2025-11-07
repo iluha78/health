@@ -236,7 +236,13 @@ const App = observer(() => {
     clearPhoto: clearNutritionPhoto,
     analyzePhoto: analyzeNutritionPhotoRequest,
     removePhotoHistoryEntry: removeNutritionPhotoHistoryEntry
-  } = useNutritionFeature(userId, requestAdvice, nutritionDefaults, analyzeNutritionPhoto);
+  } = useNutritionFeature({
+    userId,
+    defaults: nutritionDefaults,
+    analyzePhoto: analyzeNutritionPhoto,
+    jsonHeaders,
+    authHeaders
+  });
 
   const {
     messages: assistantMessages,

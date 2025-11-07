@@ -3,6 +3,7 @@ namespace App\Controllers;
 
 use App\Models\Lipid;
 use App\Models\NutritionAdvice;
+use App\Models\NutritionPhotoEstimate;
 use App\Models\Profile;
 use App\Services\OpenAiService;
 use App\Services\SubscriptionException;
@@ -24,7 +25,35 @@ class AdviceController
             ->first();
 
         $data = (array) $request->getParsedBody();
-        $focus = trim((string) ($data['focus'] ?? ''));
+
+        $weight = $this->parseFloat($data['weight'] ?? null);
+        $height = $this->parseInt($data['height'] ?? null);
+        $calories = $this->parseInt($data['calories'] ?? null);
+        $activity = $this->sanitizeString($data['activity'] ?? '');
+        $question = $this->sanitizeString($data['question'] ?? '', 500);
+        $comment = $this->sanitizeString($data['comment'] ?? '', 500);
+
+        $focusParts = [];
+        if ($weight !== null) {
+            $focusParts[] = sprintf('Вес: %s кг', $this->formatNumber($weight));
+        }
+        if ($height !== null) {
+            $focusParts[] = sprintf('Рост: %d см', $height);
+        }
+        if ($calories !== null) {
+            $focusParts[] = sprintf('Цель по калориям: %d ккал', $calories);
+        }
+        if ($activity !== '') {
+            $focusParts[] = 'Уровень активности: ' . $activity;
+        }
+        if ($question !== '') {
+            $focusParts[] = 'Вопрос пользователя: ' . $question;
+        }
+        if ($comment !== '') {
+            $focusParts[] = 'Комментарий: ' . $comment;
+        }
+
+        $focus = implode("\n", $focusParts);
 
         try {
             SubscriptionService::ensureAdviceAccess($user);
@@ -85,17 +114,27 @@ class AdviceController
             ], 500);
         }
 
-        $record = NutritionAdvice::create([
-            'user_id' => $user->id,
-            'focus'   => $focus !== '' ? $focus : null,
-            'advice'  => $advice,
+        NutritionAdvice::create([
+            'user_id'       => $user->id,
+            'weight_kg'     => $weight,
+            'height_cm'     => $height,
+            'calories_goal' => $calories,
+            'activity'      => $activity !== '' ? $activity : null,
+            'focus'         => $focus !== '' ? $focus : null,
+            'question'      => $question !== '' ? $question : null,
+            'comment'       => $comment !== '' ? $comment : null,
+            'advice'        => $advice,
         ]);
         SubscriptionService::recordAdviceUsage($user);
-        $record->refresh();
+
+        $history = NutritionAdvice::where('user_id', $user->id)
+            ->orderByDesc('created_at')
+            ->limit(20)
+            ->get();
 
         return ResponseHelper::json($response, [
             'advice'  => $advice,
-            'history' => $this->serializeHistory([$record]),
+            'history' => $this->serializeHistory($history->all()),
         ]);
     }
 
@@ -133,6 +172,11 @@ class AdviceController
         }
 
         $files = $request->getUploadedFiles();
+        $originalName = null;
+        if (isset($files['photo']) && $files['photo'] instanceof UploadedFileInterface) {
+            $originalName = $files['photo']->getClientFilename();
+        }
+
         $photo = $this->extractPhotoFile($files['photo'] ?? null);
         if (isset($photo['error'])) {
             /** @var array{error: string, status: int} $photo */
@@ -268,6 +312,20 @@ class AdviceController
 
         SubscriptionService::recordAdviceUsage($user);
 
+        NutritionPhotoEstimate::create([
+            'user_id' => $user->id,
+            'calories' => $calories,
+            'confidence' => $confidence,
+            'notes' => $notes,
+            'ingredients' => $ingredients,
+            'original_filename' => $originalName ?: null,
+        ]);
+
+        $history = NutritionPhotoEstimate::where('user_id', $user->id)
+            ->orderByDesc('created_at')
+            ->limit(20)
+            ->get();
+
         $log(sprintf('success calories=%s confidence=%s ingredients=%d',
             $calories === null ? 'null' : (string) $calories,
             $confidence ?? 'null',
@@ -280,7 +338,41 @@ class AdviceController
             'notes' => $notes,
             'ingredients' => $ingredients,
             'debug' => $debug,
+            'history' => $this->serializePhotoHistory($history->all()),
         ]);
+    }
+
+    public function nutritionPhotoHistory(Request $request, Response $response): Response
+    {
+        $user = Auth::user($request);
+
+        $records = NutritionPhotoEstimate::where('user_id', $user->id)
+            ->orderByDesc('created_at')
+            ->limit(20)
+            ->get();
+
+        return ResponseHelper::json($response, $this->serializePhotoHistory($records->all()));
+    }
+
+    public function deleteNutritionPhoto(Request $request, Response $response, array $args): Response
+    {
+        $user = Auth::user($request);
+        $id = isset($args['id']) ? (int) $args['id'] : 0;
+        if ($id <= 0) {
+            return ResponseHelper::json($response, ['error' => 'Запись не найдена'], 404);
+        }
+
+        $record = NutritionPhotoEstimate::where('user_id', $user->id)
+            ->where('id', $id)
+            ->first();
+
+        if ($record === null) {
+            return ResponseHelper::json($response, ['error' => 'Запись не найдена'], 404);
+        }
+
+        $record->delete();
+
+        return ResponseHelper::json($response, ['status' => 'ok']);
     }
 
     public function general(Request $request, Response $response): Response
@@ -352,14 +444,40 @@ class AdviceController
      */
     private function serializeHistory(array $records): array
     {
-        return array_map(static function (NutritionAdvice $advice): array {
+        return array_map(function (NutritionAdvice $advice): array {
             return [
                 'id'         => (int) $advice->id,
-                'focus'      => $advice->focus ?: null,
+                'weight'     => $advice->weight_kg !== null ? $this->formatNumber($advice->weight_kg) : '',
+                'height'     => $advice->height_cm !== null ? (string) $advice->height_cm : '',
+                'calories'   => $advice->calories_goal !== null ? (string) $advice->calories_goal : '',
+                'activity'   => $advice->activity ?: '',
+                'question'   => $advice->question ?: '',
+                'comment'    => $advice->comment ?: '',
                 'advice'     => $advice->advice,
                 'created_at' => $advice->created_at instanceof \DateTimeInterface
                     ? $advice->created_at->format(DATE_ATOM)
                     : ($advice->created_at ?: null),
+            ];
+        }, $records);
+    }
+
+    /**
+     * @param array<int, NutritionPhotoEstimate> $records
+     * @return array<int, array<string, mixed>>
+     */
+    private function serializePhotoHistory(array $records): array
+    {
+        return array_map(static function (NutritionPhotoEstimate $analysis): array {
+            return [
+                'id' => (int) $analysis->id,
+                'calories' => $analysis->calories !== null ? (float) $analysis->calories : null,
+                'confidence' => $analysis->confidence ?: null,
+                'notes' => $analysis->notes ?: '',
+                'ingredients' => $analysis->ingredients ?: [],
+                'file_name' => $analysis->original_filename ?: null,
+                'created_at' => $analysis->created_at instanceof \DateTimeInterface
+                    ? $analysis->created_at->format(DATE_ATOM)
+                    : ($analysis->created_at ?: null),
             ];
         }, $records);
     }
@@ -370,6 +488,11 @@ class AdviceController
             return '—';
         }
         return rtrim(rtrim(number_format((float) $value, 2, '.', ''), '0'), '.');
+    }
+
+    private function formatNumber(float $value): string
+    {
+        return rtrim(rtrim(number_format($value, 2, '.', ''), '0'), '.');
     }
 
     private function activityLabel(?string $activity): string
@@ -423,5 +546,56 @@ class AdviceController
         }
 
         return ['contents' => $contents, 'media_type' => $mediaType];
+    }
+
+    private function parseFloat($value): ?float
+    {
+        if ($value === null) {
+            return null;
+        }
+        if (is_numeric($value)) {
+            return (float) $value;
+        }
+        if (is_string($value)) {
+            $normalized = str_replace(',', '.', trim($value));
+            return is_numeric($normalized) ? (float) $normalized : null;
+        }
+        return null;
+    }
+
+    private function parseInt($value): ?int
+    {
+        if ($value === null) {
+            return null;
+        }
+        if (is_int($value)) {
+            return $value;
+        }
+        if (is_numeric($value)) {
+            return (int) round((float) $value);
+        }
+        if (is_string($value)) {
+            $normalized = preg_replace('/[^0-9\-\.]/', '', $value ?? '');
+            if ($normalized === '' || !is_numeric($normalized)) {
+                return null;
+            }
+            return (int) round((float) $normalized);
+        }
+        return null;
+    }
+
+    private function sanitizeString($value, int $maxLength = 190): string
+    {
+        if (!is_string($value)) {
+            return '';
+        }
+        $trimmed = trim($value);
+        if ($trimmed === '') {
+            return '';
+        }
+        if (mb_strlen($trimmed) > $maxLength) {
+            return mb_substr($trimmed, 0, $maxLength);
+        }
+        return $trimmed;
     }
 }
