@@ -14,6 +14,7 @@ export type LipidTabProps = {
   onFieldChange: (key: keyof LipidFormState, value: string) => void;
   onSubmit: (event: FormEvent<HTMLFormElement>) => void;
   onSave: () => void;
+  onDeleteRecord: (id: string) => void;
 };
 
 const handleChange = (key: keyof LipidFormState, handler: LipidTabProps["onFieldChange"]) =>
@@ -29,7 +30,8 @@ export const LipidTab = ({
   history,
   onFieldChange,
   onSubmit,
-  onSave
+  onSave,
+  onDeleteRecord
 }: LipidTabProps) => {
   const { t } = useTranslation();
 
@@ -132,20 +134,31 @@ export const LipidTab = ({
           <ul className="history-list">
             {history.map(entry => (
               <li key={entry.id} className="history-item">
-                <div className="history-meta">
-                  <span className="history-tag">{formatDateTime(entry.createdAt)}</span>
-                  <div className="metric-tags">
-                    {entry.date && <span className="metric-tag">{t("lipid.metrics.date", { value: entry.date })}</span>}
-                    {entry.cholesterol && (
-                      <span className="metric-tag">{t("lipid.metrics.cholesterol", { value: entry.cholesterol })}</span>
-                    )}
-                    {entry.hdl && <span className="metric-tag">{t("lipid.metrics.hdl", { value: entry.hdl })}</span>}
-                    {entry.ldl && <span className="metric-tag">{t("lipid.metrics.ldl", { value: entry.ldl })}</span>}
-                    {entry.triglycerides && (
-                      <span className="metric-tag">{t("lipid.metrics.triglycerides", { value: entry.triglycerides })}</span>
-                    )}
-                    {entry.glucose && <span className="metric-tag">{t("lipid.metrics.glucose", { value: entry.glucose })}</span>}
+                <div className="history-header">
+                  <div className="history-meta">
+                    <span className="history-tag">{formatDateTime(entry.createdAt)}</span>
+                    <div className="metric-tags">
+                      {entry.date && <span className="metric-tag">{t("lipid.metrics.date", { value: entry.date })}</span>}
+                      {entry.cholesterol && (
+                        <span className="metric-tag">{t("lipid.metrics.cholesterol", { value: entry.cholesterol })}</span>
+                      )}
+                      {entry.hdl && <span className="metric-tag">{t("lipid.metrics.hdl", { value: entry.hdl })}</span>}
+                      {entry.ldl && <span className="metric-tag">{t("lipid.metrics.ldl", { value: entry.ldl })}</span>}
+                      {entry.triglycerides && (
+                        <span className="metric-tag">{t("lipid.metrics.triglycerides", { value: entry.triglycerides })}</span>
+                      )}
+                      {entry.glucose && (
+                        <span className="metric-tag">{t("lipid.metrics.glucose", { value: entry.glucose })}</span>
+                      )}
+                    </div>
                   </div>
+                  <button
+                    type="button"
+                    className="ghost small"
+                    onClick={() => onDeleteRecord(entry.id)}
+                  >
+                    {t("lipid.historyRemove")}
+                  </button>
                 </div>
                 {entry.question && (
                   <p className="history-question">

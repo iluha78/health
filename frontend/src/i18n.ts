@@ -92,6 +92,7 @@ const resources = {
         loading: "Запрашиваем рекомендации...",
         adviceTitle: "Рекомендации",
         historyTitle: "Архив давления и пульса",
+        historyRemove: "Удалить запись",
         metrics: {
           systolic: "Систолическое: {{value}}",
           diastolic: "Диастолическое: {{value}}",
@@ -135,6 +136,7 @@ const resources = {
         loading: "Запрашиваем рекомендации...",
         adviceTitle: "Рекомендации",
         historyTitle: "Архив липидов и сахара",
+        historyRemove: "Удалить запись",
         metrics: {
           date: "Дата анализа: {{value}}",
           cholesterol: "Общий холестерин: {{value}}",
@@ -378,6 +380,7 @@ const resources = {
         loading: "Requesting recommendations...",
         adviceTitle: "Recommendations",
         historyTitle: "Blood pressure history",
+        historyRemove: "Remove entry",
         metrics: {
           systolic: "Systolic: {{value}}",
           diastolic: "Diastolic: {{value}}",
@@ -421,6 +424,7 @@ const resources = {
         loading: "Requesting recommendations...",
         adviceTitle: "Recommendations",
         historyTitle: "Lipid & glucose archive",
+        historyRemove: "Remove entry",
         metrics: {
           date: "Test date: {{value}}",
           cholesterol: "Total cholesterol: {{value}}",
@@ -664,6 +668,7 @@ const resources = {
         loading: "Empfehlungen werden angefordert...",
         adviceTitle: "Empfehlungen",
         historyTitle: "Blutdruckarchiv",
+        historyRemove: "Eintrag löschen",
         metrics: {
           systolic: "Systolisch: {{value}}",
           diastolic: "Diastolisch: {{value}}",
@@ -707,6 +712,7 @@ const resources = {
         loading: "Empfehlungen werden angefordert...",
         adviceTitle: "Empfehlungen",
         historyTitle: "Lipid- & Glukosearchiv",
+        historyRemove: "Eintrag löschen",
         metrics: {
           date: "Analysedatum: {{value}}",
           cholesterol: "Gesamtcholesterin: {{value}}",
@@ -950,6 +956,7 @@ const resources = {
         loading: "Solicitando recomendaciones...",
         adviceTitle: "Recomendaciones",
         historyTitle: "Historial de presión arterial",
+        historyRemove: "Eliminar entrada",
         metrics: {
           systolic: "Sistólica: {{value}}",
           diastolic: "Diastólica: {{value}}",
@@ -993,6 +1000,7 @@ const resources = {
         loading: "Solicitando recomendaciones...",
         adviceTitle: "Recomendaciones",
         historyTitle: "Archivo de lípidos y glucosa",
+        historyRemove: "Eliminar entrada",
         metrics: {
           date: "Fecha del análisis: {{value}}",
           cholesterol: "Colesterol total: {{value}}",

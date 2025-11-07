@@ -70,4 +70,22 @@ class PressureController
 
         return ResponseHelper::json($response, $reading->toArray(), 201);
     }
+
+    public function delete(Request $request, Response $response, array $args): Response
+    {
+        $user = Auth::user($request);
+        $id = (int) ($args['id'] ?? 0);
+
+        $reading = PressureReading::where('user_id', $user->id)
+            ->where('id', $id)
+            ->first();
+
+        if (!$reading) {
+            return ResponseHelper::json($response, ['error' => 'Запись не найдена'], 404);
+        }
+
+        $reading->delete();
+
+        return ResponseHelper::json($response, ['status' => 'ok']);
+    }
 }
