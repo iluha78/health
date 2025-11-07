@@ -1215,11 +1215,11 @@ details summary {
 
   .tabbar {
     position: fixed;
-    left: 1rem;
-    right: 1rem;
-    bottom: 1rem;
+    left: 0rem;
+    right: 0rem;
+    bottom: 0rem;
     width: auto;
-    border-radius: 1rem;
+    border-radius: 0rem;
     padding: 0.75rem;
     padding-bottom: calc(0.75rem + env(safe-area-inset-bottom, 0));
   }

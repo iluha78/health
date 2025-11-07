@@ -32,7 +32,7 @@ export const AuthPanel = ({
   return (
     <div className="auth">
       <LanguageSelector className="auth-language" />
-      <h1>CholestoFit</h1>
+      <h1>HlCoAi</h1>
       <p>{t("auth.subtitle")}</p>
       <form className="card" onSubmit={onSubmit}>
         <label>

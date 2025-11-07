@@ -395,7 +395,7 @@ const App = observer(() => {
     <div className="app-shell text-slate-900">
       <header className="topbar content rounded-2xl bg-white/70 px-4 py-3 shadow-sm backdrop-blur md:px-6 md:py-4">
         <div className="brand">
-          <h1>CholestoFit</h1>
+          <h1>HlCoAi</h1>
           <p>{t("common.tagline")}</p>
         </div>
         <div className="topbar-profile">
@@ -528,7 +528,7 @@ const App = observer(() => {
         items={tabItems}
         activeTab={activeTab}
         onSelect={setActiveTab}
-        className="border border-white/60 bg-white/80 shadow-2xl backdrop-blur md:bottom-8"
+        className=" border-white/60 bg-white/80 shadow-2xl backdrop-blur md:bottom-8"
       />
     </div>
   );
