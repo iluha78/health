@@ -1,1 +1,7 @@
 /backend/vendor
+/frontend/node_modules
+/mobile/node_modules
+/mobile/.expo
+/mobile/.expo-shared
+/mobile/android
+/mobile/ios
