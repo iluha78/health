@@ -79,6 +79,8 @@ const App = observer(() => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
+  const [verificationSent, setVerificationSent] = useState(false);
+  const [verificationCode, setVerificationCode] = useState("");
   const [activeTab, setActiveTab] = useState<TabKey>(() => initialTabFromStorage());
   const { t } = useTranslation();
 
@@ -367,12 +369,70 @@ const App = observer(() => {
       if (mode === "login") {
         await userStore.login(email, password);
       } else {
-        await userStore.register(email, password);
+        if (verificationSent) {
+          await userStore.verifyEmail(email, verificationCode);
+        } else {
+          const requiresVerification = await userStore.register(email, password);
+          if (requiresVerification) {
+            setVerificationSent(true);
+            setVerificationCode("");
+          } else {
+            setVerificationSent(false);
+            setVerificationCode("");
+          }
+        }
       }
     } catch (err) {
       console.error(err);
     }
   };
+
+  const handleEmailChange = useCallback(
+    (value: string) => {
+      setEmail(value);
+      if (verificationSent) {
+        setVerificationSent(false);
+        setVerificationCode("");
+      }
+      if (userStore.error) {
+        userStore.clearError();
+      }
+    },
+    [userStore, verificationSent]
+  );
+
+  const handlePasswordChange = useCallback(
+    (value: string) => {
+      setPassword(value);
+      if (verificationSent) {
+        setVerificationSent(false);
+        setVerificationCode("");
+      }
+      if (userStore.error) {
+        userStore.clearError();
+      }
+    },
+    [userStore, verificationSent]
+  );
+
+  const handleVerificationCodeChange = useCallback(
+    (value: string) => {
+      setVerificationCode(value);
+      if (userStore.error) {
+        userStore.clearError();
+      }
+    },
+    [userStore]
+  );
+
+  const handleSwitchMode = useCallback(() => {
+    setMode(prev => (prev === "login" ? "register" : "login"));
+    setVerificationSent(false);
+    setVerificationCode("");
+    if (userStore.error) {
+      userStore.clearError();
+    }
+  }, [userStore]);
 
   if (!userStore.token) {
     return (
@@ -382,11 +442,15 @@ const App = observer(() => {
         password={password}
         showPassword={showPassword}
         error={userStore.error}
-        onEmailChange={setEmail}
-        onPasswordChange={setPassword}
+        verificationCode={verificationCode}
+        isVerificationStep={verificationSent}
+        info={verificationSent ? t("auth.verificationInfo", { email }) : null}
+        onEmailChange={handleEmailChange}
+        onPasswordChange={handlePasswordChange}
         onTogglePassword={() => setShowPassword(prev => !prev)}
-        onSwitchMode={() => setMode(prev => (prev === "login" ? "register" : "login"))}
+        onSwitchMode={handleSwitchMode}
         onSubmit={handleAuthSubmit}
+        onVerificationCodeChange={handleVerificationCodeChange}
       />
     );
   }

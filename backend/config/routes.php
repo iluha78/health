@@ -17,6 +17,7 @@ use Slim\Routing\RouteCollectorProxy;
 /** @var App $app */
 $app->post('/auth/register', [AuthController::class, 'register']);
 $app->post('/auth/login',    [AuthController::class, 'login']);
+$app->post('/auth/verify',   [AuthController::class, 'verify']);
 
 $app->get('/me',        [MeController::class, 'get'])->add(new JwtMiddleware());
 $app->get('/targets',   [ProfileController::class, 'targets'])->add(new JwtMiddleware());

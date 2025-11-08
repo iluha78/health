@@ -328,6 +328,20 @@ button.small {
   margin: 0;
 }
 
+.auth .info {
+  align-self: stretch;
+  margin: 0;
+  color: #3a57f1;
+  font-weight: 500;
+  text-align: left;
+}
+
+.auth .verification-step {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
 .auth .toggle {
   display: flex;
   gap: 0.5rem;

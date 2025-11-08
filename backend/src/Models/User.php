@@ -19,10 +19,15 @@ class User extends Model
         'ai_cycle_spent_cents',
         'ai_cycle_advice_requests',
         'ai_cycle_assistant_requests',
+        'email_verified_at',
+        'email_verification_code_hash',
+        'email_verification_sent_at',
     ];
 
     protected $casts = [
         'ai_cycle_started_at' => 'date',
+        'email_verified_at' => 'datetime',
+        'email_verification_sent_at' => 'datetime',
     ];
 
     public function profile(): HasOne

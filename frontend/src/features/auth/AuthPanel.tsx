@@ -8,11 +8,15 @@ export type AuthPanelProps = {
   password: string;
   showPassword: boolean;
   error: string | null;
+  verificationCode: string;
+  isVerificationStep: boolean;
+  info?: string | null;
   onEmailChange: (value: string) => void;
   onPasswordChange: (value: string) => void;
   onTogglePassword: () => void;
   onSwitchMode: () => void;
   onSubmit: (event: FormEvent<HTMLFormElement>) => void;
+  onVerificationCodeChange: (value: string) => void;
 };
 
 export const AuthPanel = ({
@@ -21,11 +25,15 @@ export const AuthPanel = ({
   password,
   showPassword,
   error,
+  verificationCode,
+  isVerificationStep,
+  info,
   onEmailChange,
   onPasswordChange,
   onTogglePassword,
   onSwitchMode,
-  onSubmit
+  onSubmit,
+  onVerificationCodeChange
 }: AuthPanelProps) => {
   const { t } = useTranslation();
 
@@ -53,7 +61,34 @@ export const AuthPanel = ({
             </button>
           </span>
         </label>
-        <button type="submit">{mode === "login" ? t("auth.login") : t("auth.register")}</button>
+        {mode === "register" && isVerificationStep && (
+          <div className="verification-step">
+            {info && <p className="info">{info}</p>}
+            <p className="info">{t("auth.verificationDescription")}</p>
+            <label>
+              {t("auth.verificationCode")}
+              <input
+                type="text"
+                inputMode="numeric"
+                pattern="\\d{6}"
+                maxLength={6}
+                value={verificationCode}
+                onChange={event => {
+                  const digitsOnly = event.target.value.replace(/[^0-9]/g, "").slice(0, 6);
+                  onVerificationCodeChange(digitsOnly);
+                }}
+                required
+              />
+            </label>
+          </div>
+        )}
+        <button type="submit">
+          {mode === "login"
+            ? t("auth.login")
+            : isVerificationStep
+              ? t("auth.verify")
+              : t("auth.register")}
+        </button>
         {error && <p className="error">{error}</p>}
       </form>
       <button className="ghost" type="button" onClick={onSwitchMode}>
