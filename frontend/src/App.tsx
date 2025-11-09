@@ -4,7 +4,7 @@ import { observer } from "mobx-react-lite";
 import { useTranslation } from "./i18n";
 import { userStore } from "./stores/user";
 import type { TabKey } from "./types/forms";
-import { AuthPanel } from "./features/auth/AuthPanel";
+import { AuthPanel, type AuthView } from "./features/auth/AuthPanel";
 import { TabNavigation, type TabItem } from "./components/TabNavigation";
 import { useBloodPressureFeature } from "./features/blood-pressure/useBloodPressureFeature";
 import { BloodPressureTab } from "./features/blood-pressure/BloodPressureTab";
@@ -75,12 +75,16 @@ const initialTabFromStorage = (): TabKey => {
 };
 
 const App = observer(() => {
-  const [mode, setMode] = useState<"login" | "register">("login");
+  const [authView, setAuthView] = useState<AuthView>("login");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
-  const [verificationSent, setVerificationSent] = useState(false);
   const [verificationCode, setVerificationCode] = useState("");
+  const [infoMessage, setInfoMessage] = useState<string | null>(null);
+  const [resetPassword, setResetPassword] = useState("");
+  const [resetPasswordConfirm, setResetPasswordConfirm] = useState("");
+  const [showResetPassword, setShowResetPassword] = useState(false);
+  const [localError, setLocalError] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<TabKey>(() => initialTabFromStorage());
   const { t } = useTranslation();
 
@@ -363,24 +367,106 @@ const App = observer(() => {
     }
   }, [userStore.me, userStore.token]);
 
+  const clearAuthErrors = useCallback(() => {
+    if (localError) {
+      setLocalError(null);
+    }
+    if (userStore.error) {
+      userStore.clearError();
+    }
+  }, [localError, userStore]);
+
+  const resetForgotState = useCallback(() => {
+    setResetPassword("");
+    setResetPasswordConfirm("");
+    setShowResetPassword(false);
+  }, []);
+
+  const openLogin = useCallback(() => {
+    clearAuthErrors();
+    setAuthView("login");
+    setInfoMessage(null);
+    setVerificationCode("");
+    resetForgotState();
+    setShowPassword(false);
+  }, [clearAuthErrors, resetForgotState]);
+
+  const openRegister = useCallback(() => {
+    clearAuthErrors();
+    setAuthView("register");
+    setInfoMessage(null);
+    setVerificationCode("");
+    resetForgotState();
+    setShowPassword(false);
+  }, [clearAuthErrors, resetForgotState]);
+
+  const openRegisterVerify = useCallback(
+    (message: string | null) => {
+      clearAuthErrors();
+      setAuthView("registerVerify");
+      setInfoMessage(message);
+      setVerificationCode("");
+      resetForgotState();
+      setShowPassword(false);
+    },
+    [clearAuthErrors, resetForgotState]
+  );
+
+  const openForgotRequest = useCallback(() => {
+    clearAuthErrors();
+    setAuthView("forgotRequest");
+    setInfoMessage(null);
+    setVerificationCode("");
+    resetForgotState();
+    setShowPassword(false);
+  }, [clearAuthErrors, resetForgotState]);
+
+  const openForgotVerify = useCallback(
+    (message: string | null) => {
+      clearAuthErrors();
+      setAuthView("forgotVerify");
+      setInfoMessage(message);
+      setVerificationCode("");
+      resetForgotState();
+    },
+    [clearAuthErrors, resetForgotState]
+  );
+
   const handleAuthSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
+    clearAuthErrors();
+
     try {
-      if (mode === "login") {
-        await userStore.login(email, password);
-      } else {
-        if (verificationSent) {
-          await userStore.verifyEmail(email, verificationCode);
-        } else {
+      switch (authView) {
+        case "login":
+          setInfoMessage(null);
+          await userStore.login(email, password);
+          break;
+        case "register": {
+          setInfoMessage(null);
           const requiresVerification = await userStore.register(email, password);
           if (requiresVerification) {
-            setVerificationSent(true);
-            setVerificationCode("");
-          } else {
-            setVerificationSent(false);
-            setVerificationCode("");
+            openRegisterVerify(t("auth.verificationInfo", { email }));
           }
+          break;
         }
+        case "registerVerify":
+          await userStore.verifyEmail(email, verificationCode);
+          break;
+        case "forgotRequest":
+          setInfoMessage(null);
+          await userStore.requestPasswordReset(email);
+          openForgotVerify(t("auth.resetInfo", { email }));
+          break;
+        case "forgotVerify":
+          if (resetPassword !== resetPasswordConfirm) {
+            setLocalError(t("auth.passwordsDoNotMatch"));
+            return;
+          }
+          await userStore.resetPassword(email, verificationCode, resetPassword);
+          break;
+        default:
+          break;
       }
     } catch (err) {
       console.error(err);
@@ -390,67 +476,98 @@ const App = observer(() => {
   const handleEmailChange = useCallback(
     (value: string) => {
       setEmail(value);
-      if (verificationSent) {
-        setVerificationSent(false);
-        setVerificationCode("");
-      }
-      if (userStore.error) {
-        userStore.clearError();
-      }
+      clearAuthErrors();
     },
-    [userStore, verificationSent]
+    [clearAuthErrors]
   );
 
   const handlePasswordChange = useCallback(
     (value: string) => {
       setPassword(value);
-      if (verificationSent) {
-        setVerificationSent(false);
-        setVerificationCode("");
-      }
-      if (userStore.error) {
-        userStore.clearError();
-      }
+      clearAuthErrors();
     },
-    [userStore, verificationSent]
+    [clearAuthErrors]
   );
 
   const handleVerificationCodeChange = useCallback(
     (value: string) => {
       setVerificationCode(value);
+      clearAuthErrors();
+    },
+    [clearAuthErrors]
+  );
+
+  const handleResetPasswordChange = useCallback(
+    (value: string) => {
+      setResetPassword(value);
+      clearAuthErrors();
+    },
+    [clearAuthErrors]
+  );
+
+  const handleResetPasswordConfirmChange = useCallback(
+    (value: string) => {
+      setResetPasswordConfirm(value);
+      clearAuthErrors();
+    },
+    [clearAuthErrors]
+  );
+
+  const handleSwitchView = useCallback(
+    (target: "login" | "register" | "forgotRequest") => {
+      if (target === "login") {
+        openLogin();
+        return;
+      }
+      if (target === "register") {
+        openRegister();
+        return;
+      }
+      openForgotRequest();
+    },
+    [openForgotRequest, openLogin, openRegister]
+  );
+
+  useEffect(() => {
+    if (!userStore.token) {
+      setAuthView("login");
+      setInfoMessage(null);
+      setVerificationCode("");
+      setResetPassword("");
+      setResetPasswordConfirm("");
+      setShowPassword(false);
+      setShowResetPassword(false);
+      setLocalError(null);
       if (userStore.error) {
         userStore.clearError();
       }
-    },
-    [userStore]
-  );
-
-  const handleSwitchMode = useCallback(() => {
-    setMode(prev => (prev === "login" ? "register" : "login"));
-    setVerificationSent(false);
-    setVerificationCode("");
-    if (userStore.error) {
-      userStore.clearError();
     }
-  }, [userStore]);
+  }, [userStore.error, userStore.token]);
+
+  const authError = localError ?? userStore.error;
 
   if (!userStore.token) {
     return (
       <AuthPanel
-        mode={mode}
+        view={authView}
         email={email}
         password={password}
+        resetPassword={resetPassword}
+        resetPasswordConfirm={resetPasswordConfirm}
         showPassword={showPassword}
-        error={userStore.error}
+        showResetPassword={showResetPassword}
+        error={authError}
         verificationCode={verificationCode}
-        isVerificationStep={verificationSent}
-        info={verificationSent ? t("auth.verificationInfo", { email }) : null}
+        info={infoMessage}
         onEmailChange={handleEmailChange}
         onPasswordChange={handlePasswordChange}
         onTogglePassword={() => setShowPassword(prev => !prev)}
-        onSwitchMode={handleSwitchMode}
+        onResetPasswordChange={handleResetPasswordChange}
+        onResetPasswordConfirmChange={handleResetPasswordConfirmChange}
+        onToggleResetPassword={() => setShowResetPassword(prev => !prev)}
         onSubmit={handleAuthSubmit}
         onVerificationCodeChange={handleVerificationCodeChange}
+        onSwitchView={handleSwitchView}
       />
     );
   }

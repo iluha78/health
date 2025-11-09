@@ -128,6 +128,87 @@ class AuthController
         ]);
     }
 
+    public function requestPasswordReset(Request $request, Response $response): Response
+    {
+        $data = (array) $request->getParsedBody();
+        $email = strtolower(trim($data['email'] ?? ''));
+
+        if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
+            return ResponseHelper::json($response, ['error' => 'Некорректный email'], 422);
+        }
+
+        $user = User::where('email', $email)->first();
+        if (!$user) {
+            return ResponseHelper::json($response, [
+                'status' => 'reset_code_sent',
+                'message' => 'Если email зарегистрирован, код восстановления отправлен',
+            ]);
+        }
+
+        $resetCode = (string) random_int(100000, 999999);
+
+        $user->password_reset_code_hash = password_hash($resetCode, PASSWORD_DEFAULT);
+        $user->password_reset_sent_at = date('Y-m-d H:i:s');
+        $user->save();
+
+        try {
+            $this->emailService->sendPasswordResetCode($user->email, $resetCode);
+        } catch (\Throwable $exception) {
+            return ResponseHelper::json($response, ['error' => 'Не удалось отправить код восстановления'], 500);
+        }
+
+        return ResponseHelper::json($response, [
+            'status' => 'reset_code_sent',
+            'message' => 'Если email зарегистрирован, код восстановления отправлен',
+        ]);
+    }
+
+    public function resetPassword(Request $request, Response $response): Response
+    {
+        $data = (array) $request->getParsedBody();
+        $email = strtolower(trim($data['email'] ?? ''));
+        $code = trim((string) ($data['code'] ?? ''));
+        $pass = (string) ($data['pass'] ?? '');
+
+        if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
+            return ResponseHelper::json($response, ['error' => 'Некорректный email'], 422);
+        }
+
+        if (!preg_match('/^\d{6}$/', $code)) {
+            return ResponseHelper::json($response, ['error' => 'Код восстановления должен состоять из 6 цифр'], 422);
+        }
+
+        if (strlen($pass) < 6) {
+            return ResponseHelper::json($response, ['error' => 'Пароль должен быть длиной не менее 6 символов'], 422);
+        }
+
+        $user = User::where('email', $email)->first();
+        if (!$user) {
+            return ResponseHelper::json($response, ['error' => 'Пользователь не найден'], 404);
+        }
+
+        if (!$user->password_reset_code_hash || !password_verify($code, $user->password_reset_code_hash)) {
+            return ResponseHelper::json($response, ['error' => 'Неверный код восстановления'], 422);
+        }
+
+        if ($user->password_reset_sent_at) {
+            $expiresAt = strtotime($user->password_reset_sent_at . ' +1 hour');
+            if ($expiresAt !== false && $expiresAt < time()) {
+                return ResponseHelper::json($response, ['error' => 'Срок действия кода восстановления истек'], 410);
+            }
+        }
+
+        $user->pass_hash = password_hash($pass, PASSWORD_DEFAULT);
+        $user->password_reset_code_hash = null;
+        $user->password_reset_sent_at = null;
+        $user->save();
+
+        return ResponseHelper::json($response, [
+            'status' => 'password_reset',
+            'token' => $this->makeToken($user),
+        ]);
+    }
+
     private function makeToken(User $user): string
     {
         $secret = Env::string('JWT_SECRET', 'dev-secret') ?? 'dev-secret';

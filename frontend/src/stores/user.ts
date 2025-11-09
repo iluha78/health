@@ -131,6 +131,78 @@ export class UserStore {
         }
     }
 
+    async requestPasswordReset(email: string) {
+        this.error = null;
+        let resp: Response | null = null;
+        let bodyText = "";
+
+        try {
+            resp = await fetch(apiUrl("/auth/password/request"), {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ email })
+            });
+
+            bodyText = await resp.text();
+            if (!resp.ok) {
+                const payload = bodyText ? JSON.parse(bodyText) : null;
+                const message = (payload as ApiError)?.error ?? i18n.t("auth.resetRequestError");
+                runInAction(() => {
+                    this.error = message;
+                });
+                throw new Error(message);
+            }
+        } catch (e) {
+            if (!this.error) {
+                const message = i18n.t("common.networkError", {
+                    message: e instanceof Error ? e.message : String(e)
+                });
+                runInAction(() => {
+                    this.error = message;
+                });
+            }
+            throw e;
+        }
+    }
+
+    async resetPassword(email: string, code: string, pass: string) {
+        this.error = null;
+        let resp: Response | null = null;
+        let bodyText = "";
+
+        try {
+            resp = await fetch(apiUrl("/auth/password/reset"), {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ email, code, pass })
+            });
+
+            bodyText = await resp.text();
+            const payload = bodyText ? JSON.parse(bodyText) : null;
+
+            if (!resp.ok || !isAuthSuccess(payload)) {
+                const message = (payload as ApiError)?.error ?? i18n.t("auth.resetError");
+                runInAction(() => {
+                    this.error = message;
+                });
+                throw new Error(message);
+            }
+
+            this.setToken(payload.token);
+            await this.refresh();
+        } catch (e) {
+            if (!this.error) {
+                const message = i18n.t("common.networkError", {
+                    message: e instanceof Error ? e.message : String(e)
+                });
+                runInAction(() => {
+                    this.error = message;
+                });
+            }
+            throw e;
+        }
+    }
+
     async login(email: string, pass: string) {
         this.error = null;
         let resp: Response | null = null;
