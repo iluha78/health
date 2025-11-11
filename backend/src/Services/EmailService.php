@@ -70,6 +70,8 @@ class EmailService
         $headersString = implode("\r\n", $headers);
         $additionalParameters = $this->buildAdditionalParameters($fromAddress);
 
+        $this->logMailAttempt($email, $subject, $driver);
+
         $result = $additionalParameters === null
             ? mail($email, $encodedSubject, $normalizedMessage, $headersString)
             : mail($email, $encodedSubject, $normalizedMessage, $headersString, $additionalParameters);
@@ -78,8 +80,12 @@ class EmailService
             $phpMailError = error_get_last();
             $reason = $phpMailError['message'] ?? 'unknown error';
 
+            $this->logMailFailure($email, $subject, $reason);
+
             throw new RuntimeException($errorMessage . ': ' . $reason);
         }
+
+        $this->logMailSuccess($email, $subject);
 
         return [
             'driver' => 'mail',
@@ -168,5 +174,26 @@ LOG;
         $escapedName = addcslashes($name, "\"\\");
 
         return sprintf('"%s" <%s>', $escapedName, $address);
+    }
+
+    private function logMailAttempt(string $email, string $subject, string $driver): void
+    {
+        $message = sprintf('[mail] Attempting to send email via "%s" driver to %s with subject "%s"', $driver, $email, $subject);
+
+        error_log($message);
+    }
+
+    private function logMailFailure(string $email, string $subject, string $reason): void
+    {
+        $message = sprintf('[mail] Failed to send email to %s with subject "%s": %s', $email, $subject, $reason);
+
+        error_log($message);
+    }
+
+    private function logMailSuccess(string $email, string $subject): void
+    {
+        $message = sprintf('[mail] Successfully sent email to %s with subject "%s"', $email, $subject);
+
+        error_log($message);
     }
 }
