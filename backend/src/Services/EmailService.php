@@ -78,10 +78,7 @@ class EmailService
     private function logEmail(string $email, string $subject, string $message): string
     {
         $timestamp = date('Y-m-d H:i:s');
-        $logDir = dirname(__DIR__, 2) . '/storage/logs';
-        if (!is_dir($logDir) && !mkdir($logDir, 0775, true) && !is_dir($logDir)) {
-            throw new RuntimeException('Unable to create mail log directory');
-        }
+        $logDir = $this->resolveLogDirectory();
 
         $entry = <<<LOG
 [{$timestamp}] To: {$email}
@@ -98,6 +95,38 @@ LOG;
         $realPath = realpath($logFile);
 
         return $realPath !== false ? $realPath : $logFile;
+    }
+
+    private function resolveLogDirectory(): string
+    {
+        $primaryDir = dirname(__DIR__, 2) . '/storage/logs';
+        if ($this->ensureWritableDirectory($primaryDir)) {
+            return $primaryDir;
+        }
+
+        $fallbackDir = rtrim(sys_get_temp_dir(), DIRECTORY_SEPARATOR) . DIRECTORY_SEPARATOR . 'cholestofit-mail-logs';
+        if ($this->ensureWritableDirectory($fallbackDir)) {
+            return $fallbackDir;
+        }
+
+        throw new RuntimeException('Unable to create mail log directory');
+    }
+
+    private function ensureWritableDirectory(string $directory): bool
+    {
+        if (!is_dir($directory)) {
+            if (!mkdir($directory, 0775, true) && !is_dir($directory)) {
+                return false;
+            }
+        }
+
+        if (is_writable($directory)) {
+            return true;
+        }
+
+        @chmod($directory, 0775);
+
+        return is_writable($directory);
     }
 
     private function formatAddress(?string $name, string $address): string
