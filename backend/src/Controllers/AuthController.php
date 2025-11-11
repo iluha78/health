@@ -64,7 +64,7 @@ class AuthController
         }
 
         $verificationMessage = $dispatch['driver'] === 'log'
-            ? 'Код подтверждения сохранен в журнале ' . $this->formatLogPathForDisplay($dispatch['log_path'])
+            ? 'Код подтверждения: ' . $verificationCode . '. Также сохранен в журнале ' . $this->formatLogPathForDisplay($dispatch['log_path'])
             : 'Код подтверждения отправлен на ваш email';
 
         return ResponseHelper::json($response, [
@@ -163,7 +163,7 @@ class AuthController
 
         return ResponseHelper::json($response, [
             'status' => 'reset_code_sent',
-            'message' => $this->buildResetMessage($dispatch),
+            'message' => $this->buildResetMessage($dispatch, $dispatch['driver'] === 'log' ? $resetCode : null),
         ]);
     }
 
@@ -228,8 +228,9 @@ class AuthController
 
     /**
      * @param array{driver: string, log_path: string|null}|null $dispatch
+     * @param string|null $code
      */
-    private function buildResetMessage(?array $dispatch): string
+    private function buildResetMessage(?array $dispatch, ?string $code = null): string
     {
         if ($dispatch !== null && $dispatch['driver'] !== 'log') {
             return 'Если email зарегистрирован, код восстановления отправлен';
@@ -237,7 +238,13 @@ class AuthController
 
         $logPath = $dispatch['log_path'] ?? null;
 
-        return 'Если email зарегистрирован, код восстановления сохранен в журнале ' . $this->formatLogPathForDisplay($logPath);
+        $baseMessage = 'Если email зарегистрирован, код восстановления сохранен в журнале ' . $this->formatLogPathForDisplay($logPath);
+
+        if ($code === null) {
+            return $baseMessage;
+        }
+
+        return 'Код восстановления: ' . $code . '. ' . $baseMessage;
     }
 
     private function formatLogPathForDisplay(?string $absolutePath): string
