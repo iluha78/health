@@ -55,18 +55,17 @@ class AuthController
             'email_verification_sent_at' => date('Y-m-d H:i:s'),
         ]);
 
-        $mailDriver = strtolower(Env::string('MAIL_DRIVER', 'log') ?? 'log');
-        $verificationMessage = $mailDriver === 'log'
-            ? 'Код подтверждения сохранен в журнале backend/storage/logs/mail.log'
-            : 'Код подтверждения отправлен на ваш email';
-
         try {
-            $this->emailService->sendVerificationCode($user->email, $verificationCode);
+            $dispatch = $this->emailService->sendVerificationCode($user->email, $verificationCode);
         } catch (\Throwable $exception) {
             $user->delete();
 
             return ResponseHelper::json($response, ['error' => 'Не удалось отправить код подтверждения'], 500);
         }
+
+        $verificationMessage = $dispatch['driver'] === 'log'
+            ? 'Код подтверждения сохранен в журнале ' . $this->formatLogPathForDisplay($dispatch['log_path'])
+            : 'Код подтверждения отправлен на ваш email';
 
         return ResponseHelper::json($response, [
             'status' => 'verification_required',
@@ -142,16 +141,11 @@ class AuthController
             return ResponseHelper::json($response, ['error' => 'Некорректный email'], 422);
         }
 
-        $mailDriver = strtolower(Env::string('MAIL_DRIVER', 'log') ?? 'log');
-        $resetMessage = $mailDriver === 'log'
-            ? 'Если email зарегистрирован, код восстановления сохранен в журнале backend/storage/logs/mail.log'
-            : 'Если email зарегистрирован, код восстановления отправлен';
-
         $user = User::where('email', $email)->first();
         if (!$user) {
             return ResponseHelper::json($response, [
                 'status' => 'reset_code_sent',
-                'message' => $resetMessage,
+                'message' => $this->buildResetMessage(null),
             ]);
         }
 
@@ -162,14 +156,14 @@ class AuthController
         $user->save();
 
         try {
-            $this->emailService->sendPasswordResetCode($user->email, $resetCode);
+            $dispatch = $this->emailService->sendPasswordResetCode($user->email, $resetCode);
         } catch (\Throwable $exception) {
             return ResponseHelper::json($response, ['error' => 'Не удалось отправить код восстановления'], 500);
         }
 
         return ResponseHelper::json($response, [
             'status' => 'reset_code_sent',
-            'message' => $resetMessage,
+            'message' => $this->buildResetMessage($dispatch),
         ]);
     }
 
@@ -230,5 +224,41 @@ class AuthController
         ];
 
         return JWT::encode($payload, $secret, 'HS256');
+    }
+
+    /**
+     * @param array{driver: string, log_path: string|null}|null $dispatch
+     */
+    private function buildResetMessage(?array $dispatch): string
+    {
+        if ($dispatch !== null && $dispatch['driver'] !== 'log') {
+            return 'Если email зарегистрирован, код восстановления отправлен';
+        }
+
+        $logPath = $dispatch['log_path'] ?? null;
+
+        return 'Если email зарегистрирован, код восстановления сохранен в журнале ' . $this->formatLogPathForDisplay($logPath);
+    }
+
+    private function formatLogPathForDisplay(?string $absolutePath): string
+    {
+        if ($absolutePath === null) {
+            return 'storage/logs/mail.log';
+        }
+
+        $backendRoot = realpath(dirname(__DIR__, 2));
+        $normalizedBackendRoot = $backendRoot !== false ? $backendRoot : null;
+
+        if ($normalizedBackendRoot !== null) {
+            $prefix = $normalizedBackendRoot . DIRECTORY_SEPARATOR;
+            if (strpos($absolutePath, $prefix) === 0) {
+                $relative = substr($absolutePath, strlen($prefix));
+                if ($relative !== false && $relative !== '') {
+                    return $relative;
+                }
+            }
+        }
+
+        return $absolutePath;
     }
 }

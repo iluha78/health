@@ -7,29 +7,42 @@ use RuntimeException;
 
 class EmailService
 {
-    public function sendVerificationCode(string $email, string $code): void
+    /**
+     * @return array{driver: string, log_path: string|null}
+     */
+    public function sendVerificationCode(string $email, string $code): array
     {
         $subject = 'Код подтверждения регистрации';
         $message = "Ваш код подтверждения: {$code}\n\nВведите его в приложении, чтобы завершить регистрацию.";
 
-        $this->sendEmail($email, $subject, $message, 'Unable to send verification email');
+        return $this->sendEmail($email, $subject, $message, 'Unable to send verification email');
     }
 
-    public function sendPasswordResetCode(string $email, string $code): void
+    /**
+     * @return array{driver: string, log_path: string|null}
+     */
+    public function sendPasswordResetCode(string $email, string $code): array
     {
         $subject = 'Восстановление пароля CholestoFit';
         $message = "Вы запросили восстановление пароля. Код: {$code}\n\nЕсли вы не запрашивали восстановление, просто проигнорируйте это письмо.";
 
-        $this->sendEmail($email, $subject, $message, 'Unable to send password reset email');
+        return $this->sendEmail($email, $subject, $message, 'Unable to send password reset email');
     }
 
-    private function sendEmail(string $email, string $subject, string $message, string $errorMessage): void
+    /**
+     * @return array{driver: string, log_path: string|null}
+     */
+    private function sendEmail(string $email, string $subject, string $message, string $errorMessage): array
     {
         $driver = strtolower(Env::string('MAIL_DRIVER', 'log') ?? 'log');
 
         if ($driver === 'log') {
-            $this->logEmail($email, $subject, $message);
-            return;
+            $logPath = $this->logEmail($email, $subject, $message);
+
+            return [
+                'driver' => 'log',
+                'log_path' => $logPath,
+            ];
         }
 
         $fromAddress = Env::string('MAIL_FROM_ADDRESS', 'no-reply@example.com');
@@ -55,9 +68,14 @@ class EmailService
         if ($result === false) {
             throw new RuntimeException($errorMessage);
         }
+
+        return [
+            'driver' => 'mail',
+            'log_path' => null,
+        ];
     }
 
-    private function logEmail(string $email, string $subject, string $message): void
+    private function logEmail(string $email, string $subject, string $message): string
     {
         $timestamp = date('Y-m-d H:i:s');
         $logDir = dirname(__DIR__, 2) . '/storage/logs';
@@ -76,6 +94,10 @@ LOG;
         if (file_put_contents($logFile, $entry, FILE_APPEND) === false) {
             throw new RuntimeException('Unable to write mail log');
         }
+
+        $realPath = realpath($logFile);
+
+        return $realPath !== false ? $realPath : $logFile;
     }
 
     private function formatAddress(?string $name, string $address): string
