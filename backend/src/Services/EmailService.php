@@ -64,15 +64,45 @@ class EmailService
         $headers[] = 'Content-Type: text/plain; charset=UTF-8';
         $headers[] = 'Content-Transfer-Encoding: 8bit';
 
-        $result = mail($email, $encodedSubject, $message, implode("\r\n", $headers));
+        $normalizedMessage = str_replace(["\r\n", "\r"], "\n", $message);
+        $normalizedMessage = str_replace("\n", "\r\n", $normalizedMessage);
+
+        $headersString = implode("\r\n", $headers);
+        $additionalParameters = $this->buildAdditionalParameters($fromAddress);
+
+        $result = $additionalParameters === null
+            ? mail($email, $encodedSubject, $normalizedMessage, $headersString)
+            : mail($email, $encodedSubject, $normalizedMessage, $headersString, $additionalParameters);
+
         if ($result === false) {
-            throw new RuntimeException($errorMessage);
+            $phpMailError = error_get_last();
+            $reason = $phpMailError['message'] ?? 'unknown error';
+
+            throw new RuntimeException($errorMessage . ': ' . $reason);
         }
 
         return [
             'driver' => 'mail',
             'log_path' => null,
         ];
+    }
+
+    private function buildAdditionalParameters(?string $fromAddress): ?string
+    {
+        if ($fromAddress === null || $fromAddress === '') {
+            return null;
+        }
+
+        if (!filter_var($fromAddress, FILTER_VALIDATE_EMAIL)) {
+            return null;
+        }
+
+        $sanitizedAddress = preg_replace('/[^A-Za-z0-9@._+-]/', '', $fromAddress);
+        if ($sanitizedAddress === null || $sanitizedAddress === '') {
+            return null;
+        }
+
+        return '-f' . $sanitizedAddress;
     }
 
     private function logEmail(string $email, string $subject, string $message): string
