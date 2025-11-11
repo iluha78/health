@@ -55,6 +55,11 @@ class AuthController
             'email_verification_sent_at' => date('Y-m-d H:i:s'),
         ]);
 
+        $mailDriver = strtolower(Env::string('MAIL_DRIVER', 'log') ?? 'log');
+        $verificationMessage = $mailDriver === 'log'
+            ? 'Код подтверждения сохранен в журнале backend/storage/logs/mail.log'
+            : 'Код подтверждения отправлен на ваш email';
+
         try {
             $this->emailService->sendVerificationCode($user->email, $verificationCode);
         } catch (\Throwable $exception) {
@@ -65,7 +70,7 @@ class AuthController
 
         return ResponseHelper::json($response, [
             'status' => 'verification_required',
-            'message' => 'Код подтверждения отправлен на ваш email',
+            'message' => $verificationMessage,
         ], 201);
     }
 
@@ -137,11 +142,16 @@ class AuthController
             return ResponseHelper::json($response, ['error' => 'Некорректный email'], 422);
         }
 
+        $mailDriver = strtolower(Env::string('MAIL_DRIVER', 'log') ?? 'log');
+        $resetMessage = $mailDriver === 'log'
+            ? 'Если email зарегистрирован, код восстановления сохранен в журнале backend/storage/logs/mail.log'
+            : 'Если email зарегистрирован, код восстановления отправлен';
+
         $user = User::where('email', $email)->first();
         if (!$user) {
             return ResponseHelper::json($response, [
                 'status' => 'reset_code_sent',
-                'message' => 'Если email зарегистрирован, код восстановления отправлен',
+                'message' => $resetMessage,
             ]);
         }
 
@@ -159,7 +169,7 @@ class AuthController
 
         return ResponseHelper::json($response, [
             'status' => 'reset_code_sent',
-            'message' => 'Если email зарегистрирован, код восстановления отправлен',
+            'message' => $resetMessage,
         ]);
     }
 

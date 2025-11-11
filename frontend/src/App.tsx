@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { FormEvent, MouseEvent as ReactMouseEvent, SVGProps } from "react";
 import { observer } from "mobx-react-lite";
 import { useTranslation } from "./i18n";
@@ -86,6 +86,7 @@ const App = observer(() => {
   const [showResetPassword, setShowResetPassword] = useState(false);
   const [localError, setLocalError] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<TabKey>(() => initialTabFromStorage());
+  const previousTokenRef = useRef<string | null>(userStore.token);
   const { t } = useTranslation();
 
   const tabItems: TabItem[] = useMemo(
@@ -444,9 +445,9 @@ const App = observer(() => {
           break;
         case "register": {
           setInfoMessage(null);
-          const requiresVerification = await userStore.register(email, password);
-          if (requiresVerification) {
-            openRegisterVerify(t("auth.verificationInfo", { email }));
+          const result = await userStore.register(email, password);
+          if (result.requiresVerification) {
+            openRegisterVerify(result.message ?? t("auth.verificationInfo", { email }));
           }
           break;
         }
@@ -529,20 +530,27 @@ const App = observer(() => {
   );
 
   useEffect(() => {
-    if (!userStore.token) {
-      setAuthView("login");
-      setInfoMessage(null);
-      setVerificationCode("");
-      setResetPassword("");
-      setResetPasswordConfirm("");
-      setShowPassword(false);
-      setShowResetPassword(false);
-      setLocalError(null);
-      if (userStore.error) {
-        userStore.clearError();
-      }
+    const previousToken = previousTokenRef.current;
+    if (userStore.token) {
+      previousTokenRef.current = userStore.token;
+      return;
     }
-  }, [userStore.error, userStore.token]);
+
+    if (previousToken === null) {
+      return;
+    }
+
+    previousTokenRef.current = null;
+    setAuthView("login");
+    setInfoMessage(null);
+    setVerificationCode("");
+    setResetPassword("");
+    setResetPasswordConfirm("");
+    setShowPassword(false);
+    setShowResetPassword(false);
+    setLocalError(null);
+    userStore.clearError();
+  }, [userStore.token]);
 
   const authError = localError ?? userStore.error;
 

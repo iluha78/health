@@ -18,6 +18,10 @@ const isAuthSuccess = (payload: unknown): payload is AuthSuccess =>
 const isRegisterVerificationResponse = (payload: unknown): payload is RegisterVerificationResponse =>
     typeof payload === "object" && payload !== null && (payload as RegisterVerificationResponse).status === "verification_required";
 
+type RegisterResult =
+    | { requiresVerification: true; message: string | null }
+    | { requiresVerification: false };
+
 export class UserStore {
     token: string | null = null;
     me: UserSummary | null = null;
@@ -47,7 +51,7 @@ export class UserStore {
         this.persistToken();
     }
 
-    async register(email: string, pass: string){
+    async register(email: string, pass: string): Promise<RegisterResult>{
         this.error = null;
         let resp: Response | null = null;
         let bodyText = "";
@@ -72,14 +76,14 @@ export class UserStore {
             if (isAuthSuccess(payload)) {
                 this.setToken(payload.token);
                 await this.refresh();
-                return false;
+                return { requiresVerification: false };
             }
 
             if (isRegisterVerificationResponse(payload)) {
-                return true;
+                return { requiresVerification: true, message: payload.message ?? null };
             }
 
-            return true;
+            return { requiresVerification: true, message: null };
         } catch (e) {
             if (!this.error) {
                 const message = i18n.t("common.networkError", {

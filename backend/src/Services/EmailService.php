@@ -25,6 +25,13 @@ class EmailService
 
     private function sendEmail(string $email, string $subject, string $message, string $errorMessage): void
     {
+        $driver = strtolower(Env::string('MAIL_DRIVER', 'log') ?? 'log');
+
+        if ($driver === 'log') {
+            $this->logEmail($email, $subject, $message);
+            return;
+        }
+
         $fromAddress = Env::string('MAIL_FROM_ADDRESS', 'no-reply@example.com');
         $fromName = Env::string('MAIL_FROM_NAME', 'CholestoFit');
 
@@ -47,6 +54,27 @@ class EmailService
         $result = mail($email, $encodedSubject, $message, implode("\r\n", $headers));
         if ($result === false) {
             throw new RuntimeException($errorMessage);
+        }
+    }
+
+    private function logEmail(string $email, string $subject, string $message): void
+    {
+        $timestamp = date('Y-m-d H:i:s');
+        $logDir = dirname(__DIR__, 2) . '/storage/logs';
+        if (!is_dir($logDir) && !mkdir($logDir, 0775, true) && !is_dir($logDir)) {
+            throw new RuntimeException('Unable to create mail log directory');
+        }
+
+        $entry = <<<LOG
+[{$timestamp}] To: {$email}
+Subject: {$subject}
+{$message}
+
+LOG;
+
+        $logFile = $logDir . '/mail.log';
+        if (file_put_contents($logFile, $entry, FILE_APPEND) === false) {
+            throw new RuntimeException('Unable to write mail log');
         }
     }
 
