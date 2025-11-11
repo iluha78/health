@@ -1,5 +1,12 @@
 import { makeAutoObservable, runInAction } from "mobx";
-import type { ApiError, AuthSuccess, BillingStatus, ProfileTargets, UserSummary } from "../types/api";
+import type {
+    ApiError,
+    AuthSuccess,
+    BillingStatus,
+    ProfileTargets,
+    RegisterVerificationResponse,
+    UserSummary
+} from "../types/api";
 import { apiUrl } from "../lib/api";
 import { i18n } from "../i18n";
 
@@ -7,6 +14,13 @@ const TOKEN_STORAGE_KEY = "cholestofit_token";
 
 const isAuthSuccess = (payload: unknown): payload is AuthSuccess =>
     typeof payload === "object" && payload !== null && typeof (payload as AuthSuccess).token === "string";
+
+const isRegisterVerificationResponse = (payload: unknown): payload is RegisterVerificationResponse =>
+    typeof payload === "object" && payload !== null && (payload as RegisterVerificationResponse).status === "verification_required";
+
+type RegisterResult =
+    | { requiresVerification: true; message: string | null }
+    | { requiresVerification: false };
 
 export class UserStore {
     token: string | null = null;
@@ -37,23 +51,160 @@ export class UserStore {
         this.persistToken();
     }
 
-    async register(email: string, pass: string){
+    async register(email: string, pass: string): Promise<RegisterResult>{
         this.error = null;
-        const r = await fetch(apiUrl("/auth/register"), {
-            method: "POST",
-            headers: { "Content-Type":"application/json" },
-            body: JSON.stringify({ email, pass })
-        });
-        const payload = await r.json() as AuthSuccess | ApiError;
-        if (!r.ok || !isAuthSuccess(payload)) {
-            const message = (payload as ApiError).error ?? i18n.t("auth.registerError");
-            runInAction(() => {
-                this.error = message;
+        let resp: Response | null = null;
+        let bodyText = "";
+        try {
+            resp = await fetch(apiUrl("/auth/register"), {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ email, pass })
             });
-            throw new Error(message);
+
+            bodyText = await resp.text();
+            const payload = bodyText ? JSON.parse(bodyText) : null;
+
+            if (!resp.ok) {
+                const message = (payload as ApiError)?.error ?? i18n.t("auth.registerError");
+                runInAction(() => {
+                    this.error = message;
+                });
+                throw new Error(message);
+            }
+
+            if (isAuthSuccess(payload)) {
+                this.setToken(payload.token);
+                await this.refresh();
+                return { requiresVerification: false };
+            }
+
+            if (isRegisterVerificationResponse(payload)) {
+                return { requiresVerification: true, message: payload.message ?? null };
+            }
+
+            return { requiresVerification: true, message: null };
+        } catch (e) {
+            if (!this.error) {
+                const message = i18n.t("common.networkError", {
+                    message: e instanceof Error ? e.message : String(e)
+                });
+                runInAction(() => {
+                    this.error = message;
+                });
+            }
+            throw e;
         }
-        this.setToken(payload.token);
-        await this.refresh();
+    }
+
+    async verifyEmail(email: string, code: string) {
+        this.error = null;
+        let resp: Response | null = null;
+        let bodyText = "";
+
+        try {
+            resp = await fetch(apiUrl("/auth/verify"), {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ email, code })
+            });
+
+            bodyText = await resp.text();
+            const payload = bodyText ? JSON.parse(bodyText) : null;
+
+            if (!resp.ok || !isAuthSuccess(payload)) {
+                const message = (payload as ApiError)?.error ?? i18n.t("auth.verifyError");
+                runInAction(() => {
+                    this.error = message;
+                });
+                throw new Error(message);
+            }
+
+            this.setToken(payload.token);
+            await this.refresh();
+        } catch (e) {
+            if (!this.error) {
+                const message = i18n.t("common.networkError", {
+                    message: e instanceof Error ? e.message : String(e)
+                });
+                runInAction(() => {
+                    this.error = message;
+                });
+            }
+            throw e;
+        }
+    }
+
+    async requestPasswordReset(email: string) {
+        this.error = null;
+        let resp: Response | null = null;
+        let bodyText = "";
+
+        try {
+            resp = await fetch(apiUrl("/auth/password/request"), {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ email })
+            });
+
+            bodyText = await resp.text();
+            if (!resp.ok) {
+                const payload = bodyText ? JSON.parse(bodyText) : null;
+                const message = (payload as ApiError)?.error ?? i18n.t("auth.resetRequestError");
+                runInAction(() => {
+                    this.error = message;
+                });
+                throw new Error(message);
+            }
+        } catch (e) {
+            if (!this.error) {
+                const message = i18n.t("common.networkError", {
+                    message: e instanceof Error ? e.message : String(e)
+                });
+                runInAction(() => {
+                    this.error = message;
+                });
+            }
+            throw e;
+        }
+    }
+
+    async resetPassword(email: string, code: string, pass: string) {
+        this.error = null;
+        let resp: Response | null = null;
+        let bodyText = "";
+
+        try {
+            resp = await fetch(apiUrl("/auth/password/reset"), {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ email, code, pass })
+            });
+
+            bodyText = await resp.text();
+            const payload = bodyText ? JSON.parse(bodyText) : null;
+
+            if (!resp.ok || !isAuthSuccess(payload)) {
+                const message = (payload as ApiError)?.error ?? i18n.t("auth.resetError");
+                runInAction(() => {
+                    this.error = message;
+                });
+                throw new Error(message);
+            }
+
+            this.setToken(payload.token);
+            await this.refresh();
+        } catch (e) {
+            if (!this.error) {
+                const message = i18n.t("common.networkError", {
+                    message: e instanceof Error ? e.message : String(e)
+                });
+                runInAction(() => {
+                    this.error = message;
+                });
+            }
+            throw e;
+        }
     }
 
     async login(email: string, pass: string) {
@@ -71,6 +222,13 @@ export class UserStore {
             bodyText = await resp.text();
             const payload = bodyText ? JSON.parse(bodyText) : null;
 
+            if (!resp.ok || !isAuthSuccess(payload)) {
+                const message = (payload as ApiError)?.error ?? i18n.t("auth.loginError");
+                runInAction(() => {
+                    this.error = message;
+                });
+                throw new Error(message);
+            }
 
             this.setToken(payload.token);
 
@@ -148,6 +306,12 @@ export class UserStore {
 
     logout(){
         this.clearAuth();
+    }
+
+    clearError(){
+        runInAction(() => {
+            this.error = null;
+        });
     }
 
     private describeError(reason: unknown): string {

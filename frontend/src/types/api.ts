@@ -9,6 +9,11 @@ export interface ApiError {
   [key: string]: unknown;
 }
 
+export interface RegisterVerificationResponse {
+  status: "verification_required";
+  message?: string;
+}
+
 export interface UserSummary {
   id: number;
   email: string;

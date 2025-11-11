@@ -1,10 +1,10 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { FormEvent, MouseEvent as ReactMouseEvent, SVGProps } from "react";
 import { observer } from "mobx-react-lite";
 import { useTranslation } from "./i18n";
 import { userStore } from "./stores/user";
 import type { TabKey } from "./types/forms";
-import { AuthPanel } from "./features/auth/AuthPanel";
+import { AuthPanel, type AuthView } from "./features/auth/AuthPanel";
 import { TabNavigation, type TabItem } from "./components/TabNavigation";
 import { useBloodPressureFeature } from "./features/blood-pressure/useBloodPressureFeature";
 import { BloodPressureTab } from "./features/blood-pressure/BloodPressureTab";
@@ -75,11 +75,18 @@ const initialTabFromStorage = (): TabKey => {
 };
 
 const App = observer(() => {
-  const [mode, setMode] = useState<"login" | "register">("login");
+  const [authView, setAuthView] = useState<AuthView>("login");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
+  const [verificationCode, setVerificationCode] = useState("");
+  const [infoMessage, setInfoMessage] = useState<string | null>(null);
+  const [resetPassword, setResetPassword] = useState("");
+  const [resetPasswordConfirm, setResetPasswordConfirm] = useState("");
+  const [showResetPassword, setShowResetPassword] = useState(false);
+  const [localError, setLocalError] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<TabKey>(() => initialTabFromStorage());
+  const previousTokenRef = useRef<string | null>(userStore.token);
   const { t } = useTranslation();
 
   const tabItems: TabItem[] = useMemo(
@@ -361,32 +368,214 @@ const App = observer(() => {
     }
   }, [userStore.me, userStore.token]);
 
+  const clearAuthErrors = useCallback(() => {
+    if (localError) {
+      setLocalError(null);
+    }
+    if (userStore.error) {
+      userStore.clearError();
+    }
+  }, [localError, userStore]);
+
+  const resetForgotState = useCallback(() => {
+    setResetPassword("");
+    setResetPasswordConfirm("");
+    setShowResetPassword(false);
+  }, []);
+
+  const openLogin = useCallback(() => {
+    clearAuthErrors();
+    setAuthView("login");
+    setInfoMessage(null);
+    setVerificationCode("");
+    resetForgotState();
+    setShowPassword(false);
+  }, [clearAuthErrors, resetForgotState]);
+
+  const openRegister = useCallback(() => {
+    clearAuthErrors();
+    setAuthView("register");
+    setInfoMessage(null);
+    setVerificationCode("");
+    resetForgotState();
+    setShowPassword(false);
+  }, [clearAuthErrors, resetForgotState]);
+
+  const openRegisterVerify = useCallback(
+    (message: string | null) => {
+      clearAuthErrors();
+      setAuthView("registerVerify");
+      setInfoMessage(message);
+      setVerificationCode("");
+      resetForgotState();
+      setShowPassword(false);
+    },
+    [clearAuthErrors, resetForgotState]
+  );
+
+  const openForgotRequest = useCallback(() => {
+    clearAuthErrors();
+    setAuthView("forgotRequest");
+    setInfoMessage(null);
+    setVerificationCode("");
+    resetForgotState();
+    setShowPassword(false);
+  }, [clearAuthErrors, resetForgotState]);
+
+  const openForgotVerify = useCallback(
+    (message: string | null) => {
+      clearAuthErrors();
+      setAuthView("forgotVerify");
+      setInfoMessage(message);
+      setVerificationCode("");
+      resetForgotState();
+    },
+    [clearAuthErrors, resetForgotState]
+  );
+
   const handleAuthSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
+    clearAuthErrors();
+
     try {
-      if (mode === "login") {
-        await userStore.login(email, password);
-      } else {
-        await userStore.register(email, password);
+      switch (authView) {
+        case "login":
+          setInfoMessage(null);
+          await userStore.login(email, password);
+          break;
+        case "register": {
+          setInfoMessage(null);
+          const result = await userStore.register(email, password);
+          if (result.requiresVerification) {
+            openRegisterVerify(result.message ?? t("auth.verificationInfo", { email }));
+          }
+          break;
+        }
+        case "registerVerify":
+          await userStore.verifyEmail(email, verificationCode);
+          break;
+        case "forgotRequest":
+          setInfoMessage(null);
+          await userStore.requestPasswordReset(email);
+          openForgotVerify(t("auth.resetInfo", { email }));
+          break;
+        case "forgotVerify":
+          if (resetPassword !== resetPasswordConfirm) {
+            setLocalError(t("auth.passwordsDoNotMatch"));
+            return;
+          }
+          await userStore.resetPassword(email, verificationCode, resetPassword);
+          break;
+        default:
+          break;
       }
     } catch (err) {
       console.error(err);
     }
   };
 
+  const handleEmailChange = useCallback(
+    (value: string) => {
+      setEmail(value);
+      clearAuthErrors();
+    },
+    [clearAuthErrors]
+  );
+
+  const handlePasswordChange = useCallback(
+    (value: string) => {
+      setPassword(value);
+      clearAuthErrors();
+    },
+    [clearAuthErrors]
+  );
+
+  const handleVerificationCodeChange = useCallback(
+    (value: string) => {
+      setVerificationCode(value);
+      clearAuthErrors();
+    },
+    [clearAuthErrors]
+  );
+
+  const handleResetPasswordChange = useCallback(
+    (value: string) => {
+      setResetPassword(value);
+      clearAuthErrors();
+    },
+    [clearAuthErrors]
+  );
+
+  const handleResetPasswordConfirmChange = useCallback(
+    (value: string) => {
+      setResetPasswordConfirm(value);
+      clearAuthErrors();
+    },
+    [clearAuthErrors]
+  );
+
+  const handleSwitchView = useCallback(
+    (target: "login" | "register" | "forgotRequest") => {
+      if (target === "login") {
+        openLogin();
+        return;
+      }
+      if (target === "register") {
+        openRegister();
+        return;
+      }
+      openForgotRequest();
+    },
+    [openForgotRequest, openLogin, openRegister]
+  );
+
+  useEffect(() => {
+    const previousToken = previousTokenRef.current;
+    if (userStore.token) {
+      previousTokenRef.current = userStore.token;
+      return;
+    }
+
+    if (previousToken === null) {
+      return;
+    }
+
+    previousTokenRef.current = null;
+    setAuthView("login");
+    setInfoMessage(null);
+    setVerificationCode("");
+    setResetPassword("");
+    setResetPasswordConfirm("");
+    setShowPassword(false);
+    setShowResetPassword(false);
+    setLocalError(null);
+    userStore.clearError();
+  }, [userStore.token]);
+
+  const authError = localError ?? userStore.error;
+
   if (!userStore.token) {
     return (
       <AuthPanel
-        mode={mode}
+        view={authView}
         email={email}
         password={password}
+        resetPassword={resetPassword}
+        resetPasswordConfirm={resetPasswordConfirm}
         showPassword={showPassword}
-        error={userStore.error}
-        onEmailChange={setEmail}
-        onPasswordChange={setPassword}
+        showResetPassword={showResetPassword}
+        error={authError}
+        verificationCode={verificationCode}
+        info={infoMessage}
+        onEmailChange={handleEmailChange}
+        onPasswordChange={handlePasswordChange}
         onTogglePassword={() => setShowPassword(prev => !prev)}
-        onSwitchMode={() => setMode(prev => (prev === "login" ? "register" : "login"))}
+        onResetPasswordChange={handleResetPasswordChange}
+        onResetPasswordConfirmChange={handleResetPasswordConfirmChange}
+        onToggleResetPassword={() => setShowResetPassword(prev => !prev)}
         onSubmit={handleAuthSubmit}
+        onVerificationCodeChange={handleVerificationCodeChange}
+        onSwitchView={handleSwitchView}
       />
     );
   }
