@@ -120,7 +120,12 @@ const resources = {
           pulse: "Пульс: {{value}}"
         },
         question: "Вопрос",
-        commentLabel: "Комментарий"
+        commentLabel: "Комментарий",
+        compareWithPrevious: "Сравнить с предыдущей записью",
+        compareWithPreviousHelp:
+          "Добавить в ответ сравнение с последним сохранённым измерением.",
+        historyAdviceShow: "Показать рекомендации",
+        historyAdviceHide: "Скрыть рекомендации"
       },
       bpPrompt: {
         role: "Ты — кардиолог, который объясняет понятным языком.",
@@ -133,11 +138,17 @@ const resources = {
           systolic: "систолическое давление {{value}} мм рт. ст.",
           diastolic: "диастолическое давление {{value}} мм рт. ст.",
           pulse: "пульс {{value}} уд/мин",
-        comment: "комментарий: {{value}}",
-        missing: "показатели не указаны"
-      },
-      saveError: "Заполните систолическое и диастолическое давление, а также пульс, чтобы сохранить запись",
-      submitError: "Не удалось получить рекомендации"
+          comment: "комментарий: {{value}}",
+          missing: "показатели не указаны"
+        },
+        compareWithPrevious: "Сравни с предыдущими показателями: {{metrics}}.",
+        previousMetrics: {
+          systolic: "предыдущее систолическое давление {{value}} мм рт. ст.",
+          diastolic: "предыдущее диастолическое давление {{value}} мм рт. ст.",
+          pulse: "предыдущий пульс {{value}} уд/мин"
+        },
+        saveError: "Заполните систолическое и диастолическое давление, а также пульс, чтобы сохранить запись",
+        submitError: "Не удалось получить рекомендации"
       },
       lipid: {
         title: "Липидный профиль и сахар",
@@ -443,7 +454,12 @@ const resources = {
           pulse: "Pulse: {{value}}"
         },
         question: "Question",
-        commentLabel: "Comment"
+        commentLabel: "Comment",
+        compareWithPrevious: "Compare with previous entry",
+        compareWithPreviousHelp:
+          "Include how this measurement compares to the last saved reading.",
+        historyAdviceShow: "Show recommendations",
+        historyAdviceHide: "Hide recommendations"
       },
       bpPrompt: {
         role: "You are a cardiologist who explains things clearly.",
@@ -458,6 +474,12 @@ const resources = {
           pulse: "pulse {{value}} bpm",
           comment: "comment: {{value}}",
           missing: "no readings provided"
+        },
+        compareWithPrevious: "Compare against the previous results: {{metrics}}.",
+        previousMetrics: {
+          systolic: "previous systolic pressure {{value}} mm Hg",
+          diastolic: "previous diastolic pressure {{value}} mm Hg",
+          pulse: "previous heart rate {{value}} bpm"
         },
         saveError: "Enter systolic and diastolic pressure plus pulse to save the record",
         submitError: "Failed to get recommendations"
@@ -766,7 +788,12 @@ const resources = {
           pulse: "Puls: {{value}}"
         },
         question: "Frage",
-        commentLabel: "Kommentar"
+        commentLabel: "Kommentar",
+        compareWithPrevious: "Mit vorherigem Eintrag vergleichen",
+        compareWithPreviousHelp:
+          "Füge den Vergleich mit der zuletzt gespeicherten Messung hinzu.",
+        historyAdviceShow: "Empfehlungen anzeigen",
+        historyAdviceHide: "Empfehlungen verbergen"
       },
       bpPrompt: {
         role: "Du bist Kardiologe und erklärst verständlich.",
@@ -781,6 +808,12 @@ const resources = {
           pulse: "Puls {{value}} bpm",
           comment: "Kommentar: {{value}}",
           missing: "keine Werte angegeben"
+        },
+        compareWithPrevious: "Vergleiche mit den vorherigen Werten: {{metrics}}.",
+        previousMetrics: {
+          systolic: "vorheriger systolischer Druck {{value}} mmHg",
+          diastolic: "vorheriger diastolischer Druck {{value}} mmHg",
+          pulse: "vorheriger Puls {{value}} bpm"
         },
         saveError: "Gib systolischen und diastolischen Blutdruck sowie den Puls an, um den Eintrag zu speichern",
         submitError: "Empfehlungen konnten nicht abgerufen werden"
@@ -1089,7 +1122,12 @@ const resources = {
           pulse: "Pulso: {{value}}"
         },
         question: "Pregunta",
-        commentLabel: "Comentario"
+        commentLabel: "Comentario",
+        compareWithPrevious: "Comparar con el registro anterior",
+        compareWithPreviousHelp:
+          "Incluye cómo se compara esta medición con la última guardada.",
+        historyAdviceShow: "Mostrar recomendaciones",
+        historyAdviceHide: "Ocultar recomendaciones"
       },
       bpPrompt: {
         role: "Eres cardiólogo y explicas con claridad.",
@@ -1104,6 +1142,12 @@ const resources = {
           pulse: "pulso {{value}} lpm",
           comment: "comentario: {{value}}",
           missing: "no se proporcionaron registros"
+        },
+        compareWithPrevious: "Compara con los resultados anteriores: {{metrics}}.",
+        previousMetrics: {
+          systolic: "presión sistólica previa {{value}} mm Hg",
+          diastolic: "presión diastólica previa {{value}} mm Hg",
+          pulse: "pulso previo {{value}} lpm"
         },
         saveError: "Indica la presión sistólica, diastólica y el pulso para guardar el registro",
         submitError: "No se pudieron obtener recomendaciones"

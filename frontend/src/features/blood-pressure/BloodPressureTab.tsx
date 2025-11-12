@@ -11,7 +11,7 @@ export type BloodPressureTabProps = {
   disabled: boolean;
   disabledReason: string | null;
   history: BloodPressureRecord[];
-  onFieldChange: (key: keyof BloodPressureFormState, value: string) => void;
+  onFieldChange: (key: keyof BloodPressureFormState, value: string | boolean) => void;
   onSubmit: (event: FormEvent<HTMLFormElement>) => void;
   onSave: () => void;
   onDeleteRecord: (id: string) => void;
@@ -22,6 +22,12 @@ const handleChange = (
   handler: BloodPressureTabProps["onFieldChange"]
 ) =>
   (event: ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => handler(key, event.target.value);
+
+const handleCheckboxChange = (
+  key: keyof BloodPressureFormState,
+  handler: BloodPressureTabProps["onFieldChange"]
+) =>
+  (event: ChangeEvent<HTMLInputElement>) => handler(key, event.target.checked);
 
 export const BloodPressureTab = ({
   form,
@@ -73,6 +79,17 @@ export const BloodPressureTab = ({
             onChange={handleChange("comment", onFieldChange)}
           />
         </label>
+        <label className="form-checkbox">
+          <input
+            type="checkbox"
+            checked={form.compareWithPrevious}
+            onChange={handleCheckboxChange("compareWithPrevious", onFieldChange)}
+          />
+          <span>
+            <span className="form-checkbox-title">{t("bp.compareWithPrevious")}</span>
+            <span className="form-checkbox-description">{t("bp.compareWithPreviousHelp")}</span>
+          </span>
+        </label>
         <div className="form-actions">
           <button type="button" className="ghost" onClick={onSave} disabled={loading}>
             {t("bp.save")}
@@ -90,7 +107,7 @@ export const BloodPressureTab = ({
         </article>
       )}
       {history.length > 0 && (
-        <details className="card history-card form-card" open>
+        <details className="card history-card form-card">
           <summary>{t("bp.historyTitle")}</summary>
           <ul className="history-list">
             {history.map(entry => (
@@ -126,7 +143,19 @@ export const BloodPressureTab = ({
                     <strong>{t("bp.commentLabel")}:</strong> {entry.comment}
                   </p>
                 )}
-                {entry.advice && <pre className="history-advice">{entry.advice}</pre>}
+                {entry.advice && (
+                  <details className="history-advice-collapsible">
+                    <summary>
+                      <span className="history-advice-toggle-closed">
+                        {t("bp.historyAdviceShow")}
+                      </span>
+                      <span className="history-advice-toggle-open">
+                        {t("bp.historyAdviceHide")}
+                      </span>
+                    </summary>
+                    <pre className="history-advice">{entry.advice}</pre>
+                  </details>
+                )}
               </li>
             ))}
           </ul>
