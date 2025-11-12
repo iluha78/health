@@ -184,7 +184,19 @@ export const LipidTab = ({
                     <strong>{t("lipid.commentLabel")}:</strong> {entry.comment}
                   </p>
                 )}
-                {entry.advice && <pre className="history-advice">{entry.advice}</pre>}
+                {entry.advice && (
+                  <details className="history-advice-collapsible">
+                    <summary>
+                      <span className="history-advice-toggle-closed">
+                        {t("lipid.historyAdviceShow")}
+                      </span>
+                      <span className="history-advice-toggle-open">
+                        {t("lipid.historyAdviceHide")}
+                      </span>
+                    </summary>
+                    <pre className="history-advice">{entry.advice}</pre>
+                  </details>
+                )}
               </li>
             ))}
           </ul>

@@ -1000,6 +1000,48 @@ section h2 {
   color: #334155;
 }
 
+.history-advice-collapsible {
+  margin: 0.5rem 0 0;
+  border: 1px solid #dbe3ff;
+  border-radius: 0.9rem;
+  background: #fff;
+  overflow: hidden;
+}
+
+.history-advice-collapsible summary {
+  padding: 0.85rem 1rem;
+  margin: 0;
+  cursor: pointer;
+  font-weight: 600;
+  color: #2f46af;
+  list-style: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.history-advice-collapsible summary::-webkit-details-marker {
+  display: none;
+}
+
+.history-advice-collapsible .history-advice {
+  border: 0;
+  border-top: 1px solid #dbe3ff;
+  border-radius: 0;
+}
+
+.history-advice-toggle-open {
+  display: none;
+}
+
+.history-advice-collapsible[open] .history-advice-toggle-open {
+  display: inline;
+}
+
+.history-advice-collapsible[open] .history-advice-toggle-closed {
+  display: none;
+}
+
 .history-advice {
   margin: 0;
   padding: 0.85rem 1rem;

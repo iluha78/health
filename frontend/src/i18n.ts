@@ -158,6 +158,8 @@ const resources = {
         adviceTitle: "Рекомендации",
         historyTitle: "Архив липидов и сахара",
         historyRemove: "Удалить запись",
+        historyAdviceShow: "Показать рекомендации",
+        historyAdviceHide: "Скрыть рекомендации",
         compareWithPrevious: "Сравнить с предыдущей записью",
         compareWithPreviousHelp:
           "Добавить в запрос прошлые показатели, чтобы ассистент отметил динамику.",
@@ -479,6 +481,8 @@ const resources = {
         adviceTitle: "Recommendations",
         historyTitle: "Lipid & glucose archive",
         historyRemove: "Remove entry",
+        historyAdviceShow: "Show recommendations",
+        historyAdviceHide: "Hide recommendations",
         compareWithPrevious: "Compare with previous entry",
         compareWithPreviousHelp:
           "Include the last saved metrics so the assistant comments on the trend.",
@@ -800,6 +804,8 @@ const resources = {
         adviceTitle: "Empfehlungen",
         historyTitle: "Lipid- & Glukosearchiv",
         historyRemove: "Eintrag löschen",
+        historyAdviceShow: "Empfehlungen anzeigen",
+        historyAdviceHide: "Empfehlungen verbergen",
         compareWithPrevious: "Mit vorherigem Eintrag vergleichen",
         compareWithPreviousHelp:
           "Füge die zuletzt gespeicherten Werte hinzu, damit der Assistent den Trend bewertet.",
@@ -1121,6 +1127,8 @@ const resources = {
         adviceTitle: "Recomendaciones",
         historyTitle: "Archivo de lípidos y glucosa",
         historyRemove: "Eliminar entrada",
+        historyAdviceShow: "Mostrar recomendaciones",
+        historyAdviceHide: "Ocultar recomendaciones",
         compareWithPrevious: "Comparar con el registro anterior",
         compareWithPreviousHelp:
           "Incluye los últimos valores guardados para que el asistente comente la tendencia.",
