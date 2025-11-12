@@ -96,7 +96,12 @@ const resources = {
         send: "Отправить",
         reset: "Очистить диалог",
         user: "Вы",
-        assistant: "Ассистент"
+        assistant: "Ассистент",
+        attachPhoto: "Прикрепить фото",
+        removePhoto: "Удалить фото",
+        attachmentPreviewAlt: "Миниатюра прикреплённого фото",
+        photoTooLarge: "Фото слишком большое (максимум 5 МБ).",
+        photoUnsupported: "Формат файла не поддерживается. Загрузите JPG, PNG или WebP."
       },
       bp: {
         title: "Давление и пульс",
@@ -430,7 +435,12 @@ const resources = {
         send: "Send",
         reset: "Clear conversation",
         user: "You",
-        assistant: "Assistant"
+        assistant: "Assistant",
+        attachPhoto: "Attach photo",
+        removePhoto: "Remove photo",
+        attachmentPreviewAlt: "Preview of the attached photo",
+        photoTooLarge: "The photo is too large (max 5 MB).",
+        photoUnsupported: "Unsupported file format. Please upload a JPG, PNG, or WebP image."
       },
       bp: {
         title: "Blood pressure",
@@ -764,7 +774,12 @@ const resources = {
         send: "Senden",
         reset: "Gespräch löschen",
         user: "Sie",
-        assistant: "Assistent"
+        assistant: "Assistent",
+        attachPhoto: "Foto anhängen",
+        removePhoto: "Foto entfernen",
+        attachmentPreviewAlt: "Vorschau des angehängten Fotos",
+        photoTooLarge: "Das Foto ist zu groß (maximal 5 MB).",
+        photoUnsupported: "Dateiformat wird nicht unterstützt. Bitte lade ein JPG-, PNG- oder WebP-Bild hoch."
       },
       bp: {
         title: "Blutdruck",
@@ -1098,7 +1113,12 @@ const resources = {
         send: "Enviar",
         reset: "Limpiar conversación",
         user: "Tú",
-        assistant: "Asistente"
+        assistant: "Asistente",
+        attachPhoto: "Adjuntar foto",
+        removePhoto: "Quitar foto",
+        attachmentPreviewAlt: "Vista previa de la foto adjunta",
+        photoTooLarge: "La foto es demasiado grande (máximo 5 MB).",
+        photoUnsupported: "Formato de archivo no compatible. Sube una imagen JPG, PNG o WebP."
       },
       bp: {
         title: "Presión arterial",

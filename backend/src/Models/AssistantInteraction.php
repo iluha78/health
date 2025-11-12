@@ -8,6 +8,10 @@ class AssistantInteraction extends Model
     protected $table = 'assistant_interactions';
     public $timestamps = false;
     protected $fillable = [
-        'user_id', 'user_message', 'assistant_reply',
+        'user_id',
+        'user_message',
+        'user_image_path',
+        'user_image_name',
+        'assistant_reply',
     ];
 }
