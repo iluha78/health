@@ -211,7 +211,7 @@ export const NutritionTab = ({
         )}
       </section>
       {photoHistory.length > 0 && (
-        <details className="card form-card photo-history" open>
+        <details className="card form-card photo-history">
           <summary>{t("nutrition.photo.historyTitle")}</summary>
           <ul className="photo-history-list">
             {photoHistory.map(entry => {
@@ -269,7 +269,7 @@ export const NutritionTab = ({
         </article>
       )}
       {history.length > 0 && (
-        <details className="card history-card form-card" open>
+        <details className="card history-card form-card">
           <summary>{t("nutrition.historyTitle")}</summary>
           <ul className="history-list">
             {history.map(entry => (
