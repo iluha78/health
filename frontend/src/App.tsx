@@ -89,6 +89,16 @@ const App = observer(() => {
   const previousTokenRef = useRef<string | null>(userStore.token);
   const { t } = useTranslation();
 
+  useEffect(() => {
+    if (typeof document === "undefined") {
+      return;
+    }
+    document.body.classList.add("app-active");
+    return () => {
+      document.body.classList.remove("app-active");
+    };
+  }, []);
+
   const tabItems: TabItem[] = useMemo(
     () => [
       { key: "bp", label: t("tabs.bp") },
@@ -556,32 +566,35 @@ const App = observer(() => {
 
   if (!userStore.token) {
     return (
-      <AuthPanel
-        view={authView}
-        email={email}
-        password={password}
-        resetPassword={resetPassword}
-        resetPasswordConfirm={resetPasswordConfirm}
-        showPassword={showPassword}
-        showResetPassword={showResetPassword}
-        error={authError}
-        verificationCode={verificationCode}
-        info={infoMessage}
-        onEmailChange={handleEmailChange}
-        onPasswordChange={handlePasswordChange}
-        onTogglePassword={() => setShowPassword(prev => !prev)}
-        onResetPasswordChange={handleResetPasswordChange}
-        onResetPasswordConfirmChange={handleResetPasswordConfirmChange}
-        onToggleResetPassword={() => setShowResetPassword(prev => !prev)}
-        onSubmit={handleAuthSubmit}
-        onVerificationCodeChange={handleVerificationCodeChange}
-        onSwitchView={handleSwitchView}
-      />
+      <div className="app-root">
+        <AuthPanel
+          view={authView}
+          email={email}
+          password={password}
+          resetPassword={resetPassword}
+          resetPasswordConfirm={resetPasswordConfirm}
+          showPassword={showPassword}
+          showResetPassword={showResetPassword}
+          error={authError}
+          verificationCode={verificationCode}
+          info={infoMessage}
+          onEmailChange={handleEmailChange}
+          onPasswordChange={handlePasswordChange}
+          onTogglePassword={() => setShowPassword(prev => !prev)}
+          onResetPasswordChange={handleResetPasswordChange}
+          onResetPasswordConfirmChange={handleResetPasswordConfirmChange}
+          onToggleResetPassword={() => setShowResetPassword(prev => !prev)}
+          onSubmit={handleAuthSubmit}
+          onVerificationCodeChange={handleVerificationCodeChange}
+          onSwitchView={handleSwitchView}
+        />
+      </div>
     );
   }
 
   return (
-    <div className="app-shell text-slate-900">
+    <div className="app-root">
+      <div className="app-shell text-slate-900">
       <header className="topbar content rounded-2xl bg-white/70 px-4 py-3 shadow-sm backdrop-blur md:px-6 md:py-4">
         <div className="brand">
           <h1>HlCoAi</h1>
@@ -720,6 +733,7 @@ const App = observer(() => {
         className=" border-white/60 bg-white/80 shadow-2xl backdrop-blur md:bottom-8"
       />
     </div>
+  </div>
   );
 });
 

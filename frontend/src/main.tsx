@@ -3,10 +3,26 @@ import { createRoot } from "react-dom/client";
 import "./index.css";
 import "./i18n";
 import App from "./App.tsx";
+import { LandingPage } from "./pages/LandingPage";
+
+const isLandingPath = (path: string) => path === "/" || path === "" || path === "/index.html";
+
+const Root = () => {
+  if (typeof window === "undefined") {
+    return <App />;
+  }
+
+  const path = window.location.pathname;
+  if (isLandingPath(path)) {
+    return <LandingPage />;
+  }
+
+  return <App />;
+};
 
 createRoot(document.getElementById("root")!).render(
   <StrictMode>
-    <App />
+    <Root />
   </StrictMode>,
 );
 if ("serviceWorker" in navigator) {
