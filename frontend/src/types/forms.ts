@@ -8,6 +8,7 @@ export type BloodPressureFormState = {
   pulse: string;
   question: string;
   comment: string;
+  compareWithPrevious: boolean;
 };
 
 export type BloodPressureRecord = {
@@ -30,6 +31,7 @@ export type LipidFormState = {
   glucose: string;
   question: string;
   comment: string;
+  compareWithPrevious: boolean;
 };
 
 export type LipidRecord = {

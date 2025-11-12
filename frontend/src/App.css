@@ -617,6 +617,39 @@ label {
   color: #2f3a4c;
 }
 
+.form-checkbox {
+  flex-direction: row;
+  align-items: flex-start;
+  gap: 0.75rem;
+}
+
+.form-checkbox input[type="checkbox"] {
+  width: 1.2rem;
+  height: 1.2rem;
+  min-height: 1.2rem;
+  margin-top: 0.2rem;
+  padding: 0;
+  accent-color: #3a57f1;
+}
+
+.form-checkbox span {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.form-checkbox-title {
+  font-weight: 600;
+  color: #2f3a4c;
+}
+
+.form-checkbox-description {
+  font-weight: 500;
+  color: #5a6b91;
+  font-size: 0.9rem;
+  line-height: 1.4;
+}
+
 input,
 select,
 textarea {
@@ -646,6 +679,10 @@ textarea:focus {
   outline: none;
   border-color: #5b7cff;
   box-shadow: 0 0 0 3px rgba(91, 124, 255, 0.15);
+}
+
+input[type="checkbox"] {
+  min-height: auto;
 }
 
 input[type="date"] {
@@ -961,6 +998,48 @@ section h2 {
 
 .history-comment strong {
   color: #334155;
+}
+
+.history-advice-collapsible {
+  margin: 0.5rem 0 0;
+  border: 1px solid #dbe3ff;
+  border-radius: 0.9rem;
+  background: #fff;
+  overflow: hidden;
+}
+
+.history-advice-collapsible summary {
+  padding: 0.85rem 1rem;
+  margin: 0;
+  cursor: pointer;
+  font-weight: 600;
+  color: #2f46af;
+  list-style: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.history-advice-collapsible summary::-webkit-details-marker {
+  display: none;
+}
+
+.history-advice-collapsible .history-advice {
+  border: 0;
+  border-top: 1px solid #dbe3ff;
+  border-radius: 0;
+}
+
+.history-advice-toggle-open {
+  display: none;
+}
+
+.history-advice-collapsible[open] .history-advice-toggle-open {
+  display: inline;
+}
+
+.history-advice-collapsible[open] .history-advice-toggle-closed {
+  display: none;
 }
 
 .history-advice {

@@ -11,7 +11,7 @@ export type LipidTabProps = {
   disabled: boolean;
   disabledReason: string | null;
   history: LipidRecord[];
-  onFieldChange: (key: keyof LipidFormState, value: string) => void;
+  onFieldChange: (key: keyof LipidFormState, value: string | boolean) => void;
   onSubmit: (event: FormEvent<HTMLFormElement>) => void;
   onSave: () => void;
   onDeleteRecord: (id: string) => void;
@@ -19,6 +19,9 @@ export type LipidTabProps = {
 
 const handleChange = (key: keyof LipidFormState, handler: LipidTabProps["onFieldChange"]) =>
   (event: ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => handler(key, event.target.value);
+
+const handleCheckboxChange = (key: keyof LipidFormState, handler: LipidTabProps["onFieldChange"]) =>
+  (event: ChangeEvent<HTMLInputElement>) => handler(key, event.target.checked);
 
 export const LipidTab = ({
   form,
@@ -112,6 +115,17 @@ export const LipidTab = ({
             onChange={handleChange("comment", onFieldChange)}
           />
         </label>
+        <label className="form-checkbox">
+          <input
+            type="checkbox"
+            checked={form.compareWithPrevious}
+            onChange={handleCheckboxChange("compareWithPrevious", onFieldChange)}
+          />
+          <span>
+            <span className="form-checkbox-title">{t("lipid.compareWithPrevious")}</span>
+            <span className="form-checkbox-description">{t("lipid.compareWithPreviousHelp")}</span>
+          </span>
+        </label>
         <div className="form-actions">
           <button type="button" className="ghost" onClick={onSave} disabled={loading}>
             {t("lipid.save")}
@@ -129,7 +143,7 @@ export const LipidTab = ({
         </article>
       )}
       {history.length > 0 && (
-        <details className="card history-card form-card" open>
+        <details className="card history-card form-card">
           <summary>{t("lipid.historyTitle")}</summary>
           <ul className="history-list">
             {history.map(entry => (
@@ -170,7 +184,19 @@ export const LipidTab = ({
                     <strong>{t("lipid.commentLabel")}:</strong> {entry.comment}
                   </p>
                 )}
-                {entry.advice && <pre className="history-advice">{entry.advice}</pre>}
+                {entry.advice && (
+                  <details className="history-advice-collapsible">
+                    <summary>
+                      <span className="history-advice-toggle-closed">
+                        {t("lipid.historyAdviceShow")}
+                      </span>
+                      <span className="history-advice-toggle-open">
+                        {t("lipid.historyAdviceHide")}
+                      </span>
+                    </summary>
+                    <pre className="history-advice">{entry.advice}</pre>
+                  </details>
+                )}
               </li>
             ))}
           </ul>

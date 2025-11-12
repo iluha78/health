@@ -120,7 +120,12 @@ const resources = {
           pulse: "Пульс: {{value}}"
         },
         question: "Вопрос",
-        commentLabel: "Комментарий"
+        commentLabel: "Комментарий",
+        compareWithPrevious: "Сравнить с предыдущей записью",
+        compareWithPreviousHelp:
+          "Добавить в ответ сравнение с последним сохранённым измерением.",
+        historyAdviceShow: "Показать рекомендации",
+        historyAdviceHide: "Скрыть рекомендации"
       },
       bpPrompt: {
         role: "Ты — кардиолог, который объясняет понятным языком.",
@@ -133,11 +138,17 @@ const resources = {
           systolic: "систолическое давление {{value}} мм рт. ст.",
           diastolic: "диастолическое давление {{value}} мм рт. ст.",
           pulse: "пульс {{value}} уд/мин",
-        comment: "комментарий: {{value}}",
-        missing: "показатели не указаны"
-      },
-      saveError: "Заполните систолическое и диастолическое давление, а также пульс, чтобы сохранить запись",
-      submitError: "Не удалось получить рекомендации"
+          comment: "комментарий: {{value}}",
+          missing: "показатели не указаны"
+        },
+        compareWithPrevious: "Сравни с предыдущими показателями: {{metrics}}.",
+        previousMetrics: {
+          systolic: "предыдущее систолическое давление {{value}} мм рт. ст.",
+          diastolic: "предыдущее диастолическое давление {{value}} мм рт. ст.",
+          pulse: "предыдущий пульс {{value}} уд/мин"
+        },
+        saveError: "Заполните систолическое и диастолическое давление, а также пульс, чтобы сохранить запись",
+        submitError: "Не удалось получить рекомендации"
       },
       lipid: {
         title: "Липидный профиль и сахар",
@@ -158,6 +169,11 @@ const resources = {
         adviceTitle: "Рекомендации",
         historyTitle: "Архив липидов и сахара",
         historyRemove: "Удалить запись",
+        historyAdviceShow: "Показать рекомендации",
+        historyAdviceHide: "Скрыть рекомендации",
+        compareWithPrevious: "Сравнить с предыдущей записью",
+        compareWithPreviousHelp:
+          "Добавить в запрос прошлые показатели, чтобы ассистент отметил динамику.",
         metrics: {
           date: "Дата анализа: {{value}}",
           cholesterol: "Общий холестерин: {{value}}",
@@ -185,6 +201,15 @@ const resources = {
         advice: "Дай рекомендации, как поддерживать липидный профиль и уровень сахара в безопасных пределах.",
         plan: "Составь план из нескольких пунктов: питание, активность, контроль образа жизни и когда нужно обратиться к врачу.",
         extra: "Дополнительный вопрос пациента: {{question}}.",
+        compareWithPrevious: "Сравни с предыдущими показателями: {{metrics}}.",
+        previousMetrics: {
+          date: "предыдущая дата анализа {{value}}",
+          cholesterol: "предыдущий общий холестерин {{value}} ммоль/л",
+          hdl: "предыдущий ЛПВП {{value}} ммоль/л",
+          ldl: "предыдущий ЛПНП {{value}} ммоль/л",
+          triglycerides: "предыдущие триглицериды {{value}} ммоль/л",
+          glucose: "предыдущая глюкоза {{value}} ммоль/л"
+        },
         saveError: "Укажите дату анализа и хотя бы один показатель, чтобы сохранить запись",
         submitError: "Не удалось получить рекомендации"
       },
@@ -429,7 +454,12 @@ const resources = {
           pulse: "Pulse: {{value}}"
         },
         question: "Question",
-        commentLabel: "Comment"
+        commentLabel: "Comment",
+        compareWithPrevious: "Compare with previous entry",
+        compareWithPreviousHelp:
+          "Include how this measurement compares to the last saved reading.",
+        historyAdviceShow: "Show recommendations",
+        historyAdviceHide: "Hide recommendations"
       },
       bpPrompt: {
         role: "You are a cardiologist who explains things clearly.",
@@ -444,6 +474,12 @@ const resources = {
           pulse: "pulse {{value}} bpm",
           comment: "comment: {{value}}",
           missing: "no readings provided"
+        },
+        compareWithPrevious: "Compare against the previous results: {{metrics}}.",
+        previousMetrics: {
+          systolic: "previous systolic pressure {{value}} mm Hg",
+          diastolic: "previous diastolic pressure {{value}} mm Hg",
+          pulse: "previous heart rate {{value}} bpm"
         },
         saveError: "Enter systolic and diastolic pressure plus pulse to save the record",
         submitError: "Failed to get recommendations"
@@ -467,6 +503,11 @@ const resources = {
         adviceTitle: "Recommendations",
         historyTitle: "Lipid & glucose archive",
         historyRemove: "Remove entry",
+        historyAdviceShow: "Show recommendations",
+        historyAdviceHide: "Hide recommendations",
+        compareWithPrevious: "Compare with previous entry",
+        compareWithPreviousHelp:
+          "Include the last saved metrics so the assistant comments on the trend.",
         metrics: {
           date: "Test date: {{value}}",
           cholesterol: "Total cholesterol: {{value}}",
@@ -494,6 +535,15 @@ const resources = {
         advice: "Give guidance on keeping lipid profile and glucose within safe ranges.",
         plan: "Create a plan covering diet, activity, lifestyle monitoring, and when to see a doctor.",
         extra: "Additional patient question: {{question}}.",
+        compareWithPrevious: "Compare against the previous results: {{metrics}}.",
+        previousMetrics: {
+          date: "previous test date {{value}}",
+          cholesterol: "previous total cholesterol {{value}} mmol/L",
+          hdl: "previous HDL {{value}} mmol/L",
+          ldl: "previous LDL {{value}} mmol/L",
+          triglycerides: "previous triglycerides {{value}} mmol/L",
+          glucose: "previous glucose {{value}} mmol/L"
+        },
         saveError: "Provide a test date and at least one metric to save the record",
         submitError: "Failed to get recommendations"
       },
@@ -738,7 +788,12 @@ const resources = {
           pulse: "Puls: {{value}}"
         },
         question: "Frage",
-        commentLabel: "Kommentar"
+        commentLabel: "Kommentar",
+        compareWithPrevious: "Mit vorherigem Eintrag vergleichen",
+        compareWithPreviousHelp:
+          "Füge den Vergleich mit der zuletzt gespeicherten Messung hinzu.",
+        historyAdviceShow: "Empfehlungen anzeigen",
+        historyAdviceHide: "Empfehlungen verbergen"
       },
       bpPrompt: {
         role: "Du bist Kardiologe und erklärst verständlich.",
@@ -753,6 +808,12 @@ const resources = {
           pulse: "Puls {{value}} bpm",
           comment: "Kommentar: {{value}}",
           missing: "keine Werte angegeben"
+        },
+        compareWithPrevious: "Vergleiche mit den vorherigen Werten: {{metrics}}.",
+        previousMetrics: {
+          systolic: "vorheriger systolischer Druck {{value}} mmHg",
+          diastolic: "vorheriger diastolischer Druck {{value}} mmHg",
+          pulse: "vorheriger Puls {{value}} bpm"
         },
         saveError: "Gib systolischen und diastolischen Blutdruck sowie den Puls an, um den Eintrag zu speichern",
         submitError: "Empfehlungen konnten nicht abgerufen werden"
@@ -776,6 +837,11 @@ const resources = {
         adviceTitle: "Empfehlungen",
         historyTitle: "Lipid- & Glukosearchiv",
         historyRemove: "Eintrag löschen",
+        historyAdviceShow: "Empfehlungen anzeigen",
+        historyAdviceHide: "Empfehlungen verbergen",
+        compareWithPrevious: "Mit vorherigem Eintrag vergleichen",
+        compareWithPreviousHelp:
+          "Füge die zuletzt gespeicherten Werte hinzu, damit der Assistent den Trend bewertet.",
         metrics: {
           date: "Analysedatum: {{value}}",
           cholesterol: "Gesamtcholesterin: {{value}}",
@@ -803,6 +869,15 @@ const resources = {
         advice: "Gib Hinweise, wie Lipidprofil und Glukose im sicheren Bereich bleiben.",
         plan: "Erstelle einen Plan mit Ernährung, Aktivität, Lifestyle-Kontrolle und Arztbesuch.",
         extra: "Zusätzliche Frage des Patienten: {{question}}.",
+        compareWithPrevious: "Vergleiche mit den vorherigen Werten: {{metrics}}.",
+        previousMetrics: {
+          date: "vorheriges Analysedatum {{value}}",
+          cholesterol: "vorheriges Gesamtcholesterin {{value}} mmol/L",
+          hdl: "vorheriges HDL {{value}} mmol/L",
+          ldl: "vorheriges LDL {{value}} mmol/L",
+          triglycerides: "vorherige Triglyceride {{value}} mmol/L",
+          glucose: "vorherige Glukose {{value}} mmol/L"
+        },
         saveError: "Gib das Analysedatum und mindestens einen Wert an, um den Eintrag zu speichern",
         submitError: "Empfehlungen konnten nicht abgerufen werden"
       },
@@ -1047,7 +1122,12 @@ const resources = {
           pulse: "Pulso: {{value}}"
         },
         question: "Pregunta",
-        commentLabel: "Comentario"
+        commentLabel: "Comentario",
+        compareWithPrevious: "Comparar con el registro anterior",
+        compareWithPreviousHelp:
+          "Incluye cómo se compara esta medición con la última guardada.",
+        historyAdviceShow: "Mostrar recomendaciones",
+        historyAdviceHide: "Ocultar recomendaciones"
       },
       bpPrompt: {
         role: "Eres cardiólogo y explicas con claridad.",
@@ -1062,6 +1142,12 @@ const resources = {
           pulse: "pulso {{value}} lpm",
           comment: "comentario: {{value}}",
           missing: "no se proporcionaron registros"
+        },
+        compareWithPrevious: "Compara con los resultados anteriores: {{metrics}}.",
+        previousMetrics: {
+          systolic: "presión sistólica previa {{value}} mm Hg",
+          diastolic: "presión diastólica previa {{value}} mm Hg",
+          pulse: "pulso previo {{value}} lpm"
         },
         saveError: "Indica la presión sistólica, diastólica y el pulso para guardar el registro",
         submitError: "No se pudieron obtener recomendaciones"
@@ -1085,6 +1171,11 @@ const resources = {
         adviceTitle: "Recomendaciones",
         historyTitle: "Archivo de lípidos y glucosa",
         historyRemove: "Eliminar entrada",
+        historyAdviceShow: "Mostrar recomendaciones",
+        historyAdviceHide: "Ocultar recomendaciones",
+        compareWithPrevious: "Comparar con el registro anterior",
+        compareWithPreviousHelp:
+          "Incluye los últimos valores guardados para que el asistente comente la tendencia.",
         metrics: {
           date: "Fecha del análisis: {{value}}",
           cholesterol: "Colesterol total: {{value}}",
@@ -1112,6 +1203,15 @@ const resources = {
         advice: "Indica cómo mantener el perfil lipídico y la glucosa dentro de rangos seguros.",
         plan: "Crea un plan con alimentación, actividad, seguimiento del estilo de vida y cuándo acudir al médico.",
         extra: "Pregunta adicional del paciente: {{question}}.",
+        compareWithPrevious: "Compara con los resultados anteriores: {{metrics}}.",
+        previousMetrics: {
+          date: "fecha anterior del análisis {{value}}",
+          cholesterol: "colesterol total anterior {{value}} mmol/L",
+          hdl: "HDL anterior {{value}} mmol/L",
+          ldl: "LDL anterior {{value}} mmol/L",
+          triglycerides: "triglicéridos anteriores {{value}} mmol/L",
+          glucose: "glucosa anterior {{value}} mmol/L"
+        },
         saveError: "Indica la fecha del análisis y al menos un valor para guardar el registro",
         submitError: "No se pudieron obtener recomendaciones"
       },

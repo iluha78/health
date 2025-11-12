@@ -10,7 +10,8 @@ const DEFAULT_FORM: BloodPressureFormState = {
   diastolic: "",
   pulse: "",
   question: "",
-  comment: ""
+  comment: "",
+  compareWithPrevious: false
 };
 
 type HeadersShape = Record<string, string> | undefined;
@@ -164,7 +165,10 @@ export const useBloodPressureFeature = (
     };
   }, [authHeaders, t, userId]);
 
-  const updateField = useCallback(<TKey extends keyof BloodPressureFormState>(key: TKey, value: string) => {
+  const updateField = useCallback(<TKey extends keyof BloodPressureFormState>(
+    key: TKey,
+    value: BloodPressureFormState[TKey]
+  ) => {
     setForm(prev => ({ ...prev, [key]: value }));
   }, []);
 
@@ -291,12 +295,26 @@ export const useBloodPressureFeature = (
         if (form.comment) metrics.push(t("bpPrompt.metrics.comment", { value: form.comment }));
         const metricSummary =
           metrics.length > 0 ? metrics.join(", ") : t("bpPrompt.metrics.missing");
+        const previous = history[0];
+        const previousMetrics: string[] = [];
+        if (previous?.systolic) {
+          previousMetrics.push(t("bpPrompt.previousMetrics.systolic", { value: previous.systolic }));
+        }
+        if (previous?.diastolic) {
+          previousMetrics.push(t("bpPrompt.previousMetrics.diastolic", { value: previous.diastolic }));
+        }
+        if (previous?.pulse) {
+          previousMetrics.push(t("bpPrompt.previousMetrics.pulse", { value: previous.pulse }));
+        }
         const prompt = [
           t("bpPrompt.role"),
           t("bpPrompt.summary", { summary: metricSummary }),
           t("bpPrompt.advice"),
           t("bpPrompt.lifestyle"),
-          form.question ? t("bpPrompt.extra", { question: form.question }) : ""
+          form.question ? t("bpPrompt.extra", { question: form.question }) : "",
+          form.compareWithPrevious && previousMetrics.length > 0
+            ? t("bpPrompt.compareWithPrevious", { metrics: previousMetrics.join(", ") })
+            : ""
         ]
           .filter(Boolean)
           .join("\n");
@@ -324,6 +342,7 @@ export const useBloodPressureFeature = (
     },
     [
       form,
+      history,
       normalizedMetrics.allProvided,
       normalizedMetrics.parsed.diastolic,
       normalizedMetrics.parsed.pulse,
