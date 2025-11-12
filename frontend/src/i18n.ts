@@ -87,6 +87,52 @@ const resources = {
         backToRegister: "Назад к регистрации",
         resendCode: "Отправить код ещё раз"
       },
+      landing: {
+        hero: {
+          title: "Цифровой контроль здоровья сердца",
+          lead: "HlCoAi объединяет данные давления, анализов и рациона в одном пространстве.",
+          description:
+            "Мы создали платформу для тех, кто хочет вовремя замечать отклонения и обсуждать их с врачом без лишней паники.",
+          point1: "Персонализированные рекомендации по данным давления, липидов и питания.",
+          point2: "AI-ассистент и медицинские редакторы на связи 24/7.",
+          point3: "Подробные отчёты для врача и семьи в один клик.",
+        },
+        why: {
+          title: "Почему это важно",
+          subtitle: "Профилактика работает, когда цифры понятны и под рукой.",
+          point1: "Стабильный контроль давления снижает риск инсульта и осложнений гипертонии.",
+          point2: "Осознанное питание помогает держать вес и глюкозу в целевых диапазонах.",
+          point3: "Своевременное общение с врачом предотвращает затяжные кризы.",
+        },
+        features: {
+          title: "Все инструменты в одной подписке",
+          subtitle: "Каждый модуль HlCoAi работает вместе, чтобы поддерживать ваше сердце.",
+          monitor: {
+            title: "Отслеживание давления и пульса",
+            text: "Записывайте показатели, стройте динамику и получайте рекомендации для стабилизации.",
+          },
+          nutrition: {
+            title: "Умный нутрициолог",
+            text: "Загружайте фото блюд и получайте мгновенную оценку калорий и советы.",
+          },
+          assistant: {
+            title: "AI-ассистент 24/7",
+            text: "Задавайте вопросы и получайте персональные ответы на основе ваших данных.",
+          },
+          subscription: {
+            title: "Прозрачная подписка",
+            text: "Один тариф включает все функции и ежемесячный лимит AI-запросов.",
+          },
+        },
+        news: {
+          title: "Новости сообщества HlCoAi",
+          subtitle: "Мы делимся исследованиями, улучшениями сервиса и историями пользователей.",
+          readMore: "Читать полностью",
+          back: "← Ко всем новостям",
+          published: "Опубликовано: {{date}}",
+          date: "Дата: {{date}}",
+        },
+      },
       assistant: {
         title: "AI ассистент",
         unavailable: "AI-ассистент временно недоступен",
@@ -395,6 +441,52 @@ const resources = {
         backToLogin: "Back to sign in",
         backToRegister: "Back to registration",
         resendCode: "Send the code again"
+      },
+      landing: {
+        hero: {
+          title: "A digital co-pilot for heart health",
+          lead: "HlCoAi brings blood pressure, labs, and nutrition together in one workspace.",
+          description:
+            "We designed it for people who want to spot changes early and talk them through with clinicians without stress.",
+          point1: "Personalised guidance across pressure, lipids, and daily habits.",
+          point2: "AI assistant and clinical editors available around the clock.",
+          point3: "Shareable reports for your doctor and family in one tap.",
+        },
+        why: {
+          title: "Why it matters",
+          subtitle: "Prevention works when your numbers stay clear and actionable.",
+          point1: "Stable pressure monitoring lowers the risk of stroke and emergencies.",
+          point2: "Mindful nutrition keeps weight and glucose within safe ranges.",
+          point3: "Timely clinician conversations prevent prolonged crises.",
+        },
+        features: {
+          title: "Everything included in one plan",
+          subtitle: "Each HlCoAi module works together to keep your heart protected.",
+          monitor: {
+            title: "Blood pressure & pulse trends",
+            text: "Log readings, follow progress, and get advice to stabilise your day.",
+          },
+          nutrition: {
+            title: "Smart nutrition coach",
+            text: "Upload meal photos for instant calorie estimates and practical tips.",
+          },
+          assistant: {
+            title: "AI assistant on demand",
+            text: "Ask questions any time and receive responses tuned to your history.",
+          },
+          subscription: {
+            title: "Transparent subscription",
+            text: "One plan unlocks all features with a generous monthly AI allowance.",
+          },
+        },
+        news: {
+          title: "HlCoAi community news",
+          subtitle: "Research highlights, product updates, and stories from our members.",
+          readMore: "Read the full story",
+          back: "← Back to all news",
+          published: "Published: {{date}}",
+          date: "Date: {{date}}",
+        },
       },
       assistant: {
         title: "AI assistant",
@@ -1251,7 +1343,7 @@ const DEFAULT_LANGUAGE = "ru";
 const FALLBACK_LANGUAGES = ["en", DEFAULT_LANGUAGE] as const;
 
 type TranslationParams = Record<string, string | number | boolean | null | undefined>;
-type LanguageCode = (typeof LANGUAGES)[number]["value"];
+export type LanguageCode = (typeof LANGUAGES)[number]["value"];
 
 const listeners = new Set<() => void>();
 
