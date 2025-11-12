@@ -158,6 +158,9 @@ const resources = {
         adviceTitle: "Рекомендации",
         historyTitle: "Архив липидов и сахара",
         historyRemove: "Удалить запись",
+        compareWithPrevious: "Сравнить с предыдущей записью",
+        compareWithPreviousHelp:
+          "Добавить в запрос прошлые показатели, чтобы ассистент отметил динамику.",
         metrics: {
           date: "Дата анализа: {{value}}",
           cholesterol: "Общий холестерин: {{value}}",
@@ -185,6 +188,15 @@ const resources = {
         advice: "Дай рекомендации, как поддерживать липидный профиль и уровень сахара в безопасных пределах.",
         plan: "Составь план из нескольких пунктов: питание, активность, контроль образа жизни и когда нужно обратиться к врачу.",
         extra: "Дополнительный вопрос пациента: {{question}}.",
+        compareWithPrevious: "Сравни с предыдущими показателями: {{metrics}}.",
+        previousMetrics: {
+          date: "предыдущая дата анализа {{value}}",
+          cholesterol: "предыдущий общий холестерин {{value}} ммоль/л",
+          hdl: "предыдущий ЛПВП {{value}} ммоль/л",
+          ldl: "предыдущий ЛПНП {{value}} ммоль/л",
+          triglycerides: "предыдущие триглицериды {{value}} ммоль/л",
+          glucose: "предыдущая глюкоза {{value}} ммоль/л"
+        },
         saveError: "Укажите дату анализа и хотя бы один показатель, чтобы сохранить запись",
         submitError: "Не удалось получить рекомендации"
       },
@@ -467,6 +479,9 @@ const resources = {
         adviceTitle: "Recommendations",
         historyTitle: "Lipid & glucose archive",
         historyRemove: "Remove entry",
+        compareWithPrevious: "Compare with previous entry",
+        compareWithPreviousHelp:
+          "Include the last saved metrics so the assistant comments on the trend.",
         metrics: {
           date: "Test date: {{value}}",
           cholesterol: "Total cholesterol: {{value}}",
@@ -494,6 +509,15 @@ const resources = {
         advice: "Give guidance on keeping lipid profile and glucose within safe ranges.",
         plan: "Create a plan covering diet, activity, lifestyle monitoring, and when to see a doctor.",
         extra: "Additional patient question: {{question}}.",
+        compareWithPrevious: "Compare against the previous results: {{metrics}}.",
+        previousMetrics: {
+          date: "previous test date {{value}}",
+          cholesterol: "previous total cholesterol {{value}} mmol/L",
+          hdl: "previous HDL {{value}} mmol/L",
+          ldl: "previous LDL {{value}} mmol/L",
+          triglycerides: "previous triglycerides {{value}} mmol/L",
+          glucose: "previous glucose {{value}} mmol/L"
+        },
         saveError: "Provide a test date and at least one metric to save the record",
         submitError: "Failed to get recommendations"
       },
@@ -776,6 +800,9 @@ const resources = {
         adviceTitle: "Empfehlungen",
         historyTitle: "Lipid- & Glukosearchiv",
         historyRemove: "Eintrag löschen",
+        compareWithPrevious: "Mit vorherigem Eintrag vergleichen",
+        compareWithPreviousHelp:
+          "Füge die zuletzt gespeicherten Werte hinzu, damit der Assistent den Trend bewertet.",
         metrics: {
           date: "Analysedatum: {{value}}",
           cholesterol: "Gesamtcholesterin: {{value}}",
@@ -803,6 +830,15 @@ const resources = {
         advice: "Gib Hinweise, wie Lipidprofil und Glukose im sicheren Bereich bleiben.",
         plan: "Erstelle einen Plan mit Ernährung, Aktivität, Lifestyle-Kontrolle und Arztbesuch.",
         extra: "Zusätzliche Frage des Patienten: {{question}}.",
+        compareWithPrevious: "Vergleiche mit den vorherigen Werten: {{metrics}}.",
+        previousMetrics: {
+          date: "vorheriges Analysedatum {{value}}",
+          cholesterol: "vorheriges Gesamtcholesterin {{value}} mmol/L",
+          hdl: "vorheriges HDL {{value}} mmol/L",
+          ldl: "vorheriges LDL {{value}} mmol/L",
+          triglycerides: "vorherige Triglyceride {{value}} mmol/L",
+          glucose: "vorherige Glukose {{value}} mmol/L"
+        },
         saveError: "Gib das Analysedatum und mindestens einen Wert an, um den Eintrag zu speichern",
         submitError: "Empfehlungen konnten nicht abgerufen werden"
       },
@@ -1085,6 +1121,9 @@ const resources = {
         adviceTitle: "Recomendaciones",
         historyTitle: "Archivo de lípidos y glucosa",
         historyRemove: "Eliminar entrada",
+        compareWithPrevious: "Comparar con el registro anterior",
+        compareWithPreviousHelp:
+          "Incluye los últimos valores guardados para que el asistente comente la tendencia.",
         metrics: {
           date: "Fecha del análisis: {{value}}",
           cholesterol: "Colesterol total: {{value}}",
@@ -1112,6 +1151,15 @@ const resources = {
         advice: "Indica cómo mantener el perfil lipídico y la glucosa dentro de rangos seguros.",
         plan: "Crea un plan con alimentación, actividad, seguimiento del estilo de vida y cuándo acudir al médico.",
         extra: "Pregunta adicional del paciente: {{question}}.",
+        compareWithPrevious: "Compara con los resultados anteriores: {{metrics}}.",
+        previousMetrics: {
+          date: "fecha anterior del análisis {{value}}",
+          cholesterol: "colesterol total anterior {{value}} mmol/L",
+          hdl: "HDL anterior {{value}} mmol/L",
+          ldl: "LDL anterior {{value}} mmol/L",
+          triglycerides: "triglicéridos anteriores {{value}} mmol/L",
+          glucose: "glucosa anterior {{value}} mmol/L"
+        },
         saveError: "Indica la fecha del análisis y al menos un valor para guardar el registro",
         submitError: "No se pudieron obtener recomendaciones"
       },

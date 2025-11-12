@@ -14,7 +14,8 @@ const DEFAULT_FORM: LipidFormState = {
   triglycerides: "",
   glucose: "",
   question: "",
-  comment: ""
+  comment: "",
+  compareWithPrevious: false
 };
 
 type HeadersShape = Record<string, string> | undefined;
@@ -288,7 +289,7 @@ export const useLipidFeature = (
     writeArchive("lipid", userId, history);
   }, [authHeaders, history, userId]);
 
-  const updateField = useCallback(<TKey extends keyof LipidFormState>(key: TKey, value: string) => {
+  const updateField = useCallback(<TKey extends keyof LipidFormState>(key: TKey, value: LipidFormState[TKey]) => {
     setForm(prev => ({ ...prev, [key]: value }));
   }, []);
 
@@ -439,6 +440,30 @@ export const useLipidFeature = (
           metrics.push(t("lipidPrompt.metrics.triglycerides", { value: form.triglycerides }));
         if (form.glucose) metrics.push(t("lipidPrompt.metrics.glucose", { value: form.glucose }));
         if (form.comment) metrics.push(t("lipidPrompt.metrics.comment", { value: form.comment }));
+        const previous = history[0];
+        const previousMetrics: string[] = [];
+        if (previous?.date) {
+          previousMetrics.push(t("lipidPrompt.previousMetrics.date", { value: previous.date }));
+        }
+        if (previous?.cholesterol) {
+          previousMetrics.push(
+            t("lipidPrompt.previousMetrics.cholesterol", { value: previous.cholesterol })
+          );
+        }
+        if (previous?.hdl) {
+          previousMetrics.push(t("lipidPrompt.previousMetrics.hdl", { value: previous.hdl }));
+        }
+        if (previous?.ldl) {
+          previousMetrics.push(t("lipidPrompt.previousMetrics.ldl", { value: previous.ldl }));
+        }
+        if (previous?.triglycerides) {
+          previousMetrics.push(
+            t("lipidPrompt.previousMetrics.triglycerides", { value: previous.triglycerides })
+          );
+        }
+        if (previous?.glucose) {
+          previousMetrics.push(t("lipidPrompt.previousMetrics.glucose", { value: previous.glucose }));
+        }
         const prompt = [
           t("lipidPrompt.role"),
           metrics.length > 0
@@ -446,7 +471,10 @@ export const useLipidFeature = (
             : t("lipidPrompt.summaryMissing"),
           t("lipidPrompt.advice"),
           t("lipidPrompt.plan"),
-          form.question ? t("lipidPrompt.extra", { question: form.question }) : ""
+          form.question ? t("lipidPrompt.extra", { question: form.question }) : "",
+          form.compareWithPrevious && previousMetrics.length > 0
+            ? t("lipidPrompt.compareWithPrevious", { metrics: previousMetrics.join(", ") })
+            : ""
         ]
           .filter(Boolean)
           .join("\n");
@@ -473,13 +501,7 @@ export const useLipidFeature = (
         setLoading(false);
       }
     },
-    [
-      form,
-      normalizedMetrics,
-      persistRecord,
-      requestAdvice,
-      t
-    ]
+    [form, history, normalizedMetrics, persistRecord, requestAdvice, t]
   );
 
   const removeRecord = useCallback(
