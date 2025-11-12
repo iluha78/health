@@ -1,7 +1,7 @@
 const rawBase = import.meta.env.VITE_API_BASE_URL;
-const fallbackBase = "http://localhost:8180";
-const trimmedBase = (rawBase && rawBase.trim().length > 0 ? rawBase : fallbackBase).replace(/\/+$/, "");
-export const API_BASE_URL = trimmedBase;
+const configuredBase = typeof rawBase === "string" ? rawBase.trim() : "";
+const normalisedBase = configuredBase.replace(/\/+$/, "");
+export const API_BASE_URL = normalisedBase;
 
 export function apiUrl(
     path: string,
@@ -11,15 +11,11 @@ export function apiUrl(
 
   // 🔧 DEV: ходим относительным путём → попадём в Vite proxy → same-origin, без CORS
   if (import.meta.env.DEV) {
-    const usp = new URLSearchParams();
-    if (params) {
-      for (const [k, v] of Object.entries(params)) {
-        if (v === undefined || v === null) continue;
-        usp.set(k, String(v));
-      }
-    }
-    const q = usp.toString();
-    return q ? `${normalizedPath}?${q}` : normalizedPath;
+    return queryString(normalizedPath, params);
+  }
+
+  if (API_BASE_URL.length === 0) {
+    return queryString(normalizedPath, params);
   }
 
   // PROD: абсолютный адрес из ENV
@@ -31,4 +27,24 @@ export function apiUrl(
     });
   }
   return url.toString();
+}
+
+function queryString(
+  normalizedPath: string,
+  params?: Record<string, string | number | undefined | null>
+): string {
+  if (!params) {
+    return normalizedPath;
+  }
+
+  const usp = new URLSearchParams();
+  Object.entries(params).forEach(([key, value]) => {
+    if (value === undefined || value === null) {
+      return;
+    }
+    usp.set(key, String(value));
+  });
+
+  const q = usp.toString();
+  return q ? `${normalizedPath}?${q}` : normalizedPath;
 }
