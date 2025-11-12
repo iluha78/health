@@ -1462,6 +1462,85 @@ details summary {
   gap: 0.75rem;
 }
 
+.assistant-file-input {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  border: 0;
+}
+
+.assistant-attachment-controls {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  justify-content: flex-start;
+}
+
+.assistant-attachment-preview {
+  display: flex;
+  gap: 0.75rem;
+  align-items: center;
+  background: rgba(47, 70, 175, 0.08);
+  border-radius: 0.85rem;
+  padding: 0.75rem 0.9rem;
+}
+
+.assistant-attachment-image {
+  width: 96px;
+  height: 96px;
+  object-fit: cover;
+  border-radius: 0.7rem;
+  box-shadow: 0 10px 22px -20px rgba(31, 47, 119, 0.6);
+}
+
+.assistant-attachment-meta {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+
+.assistant-attachment-name {
+  font-size: 0.85rem;
+  font-weight: 500;
+  color: #1c2753;
+}
+
+.assistant-attachments {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+}
+
+.assistant-attachment {
+  border-radius: 0.8rem;
+  overflow: hidden;
+  max-width: 220px;
+  box-shadow: 0 14px 32px -26px rgba(31, 47, 119, 0.65);
+  background: rgba(255, 255, 255, 0.92);
+  border: 1px solid rgba(47, 70, 175, 0.1);
+}
+
+.assistant-message.user .assistant-attachment {
+  background: rgba(255, 255, 255, 0.88);
+  border-color: rgba(255, 255, 255, 0.6);
+}
+
+.assistant-attachment img {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+
+.assistant-attachment figcaption {
+  font-size: 0.75rem;
+  padding: 0.55rem 0.7rem 0.7rem;
+  color: rgba(28, 39, 83, 0.78);
+}
+
 .assistant-actions {
   display: flex;
   flex-wrap: wrap;

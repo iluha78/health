@@ -2,7 +2,7 @@ import { useCallback, useEffect, useState } from "react";
 import type { FormEvent, ChangeEvent } from "react";
 import { useTranslation } from "../../i18n";
 import { apiUrl } from "../../lib/api";
-import type { AssistantHistoryItem, AssistantMessage } from "../../types/api";
+import type { AssistantAttachment, AssistantHistoryItem, AssistantMessage } from "../../types/api";
 
 const mapHistoryToMessages = (history: AssistantHistoryItem[]): AssistantMessage[] => {
   if (history.length === 0) {
@@ -22,7 +22,16 @@ const mapHistoryToMessages = (history: AssistantHistoryItem[]): AssistantMessage
   for (const item of sorted) {
     const userMessage = item.user_message?.trim();
     if (userMessage) {
-      messages.push({ role: "user", content: userMessage });
+      const attachments: AssistantAttachment[] | undefined = item.user_image_url
+        ? [
+            {
+              type: "image",
+              url: item.user_image_url,
+              name: item.user_image_name ?? null
+            }
+          ]
+        : undefined;
+      messages.push({ role: "user", content: userMessage, attachments });
     }
     const assistantReply = item.assistant_reply?.trim();
     if (assistantReply) {
@@ -31,6 +40,9 @@ const mapHistoryToMessages = (history: AssistantHistoryItem[]): AssistantMessage
   }
   return messages;
 };
+
+const ALLOWED_IMAGE_TYPES = ["image/jpeg", "image/png", "image/webp"];
+const MAX_IMAGE_SIZE = 5 * 1024 * 1024;
 
 export const useAssistantChat = (
   token: string | null,
@@ -44,6 +56,9 @@ export const useAssistantChat = (
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [attachment, setAttachment] = useState<File | null>(null);
+  const [attachmentPreview, setAttachmentPreview] = useState<string | null>(null);
+  const [attachmentName, setAttachmentName] = useState<string | null>(null);
 
   useEffect(() => {
     if (!token || !headers) {
@@ -92,11 +107,61 @@ export const useAssistantChat = (
     setInput(event.target.value);
   }, []);
 
+  const removeAttachment = useCallback(() => {
+    setAttachment(null);
+    setAttachmentPreview(null);
+    setAttachmentName(null);
+  }, []);
+
+  const handleAttachmentChange = useCallback(
+    (event: ChangeEvent<HTMLInputElement>) => {
+      const file = event.target.files?.[0] ?? null;
+
+      if (!file) {
+        removeAttachment();
+        return;
+      }
+
+      if (file.size > MAX_IMAGE_SIZE) {
+        removeAttachment();
+        setError(t("assistant.photoTooLarge"));
+        return;
+      }
+
+      if (!ALLOWED_IMAGE_TYPES.includes(file.type)) {
+        removeAttachment();
+        setError(t("assistant.photoUnsupported"));
+        return;
+      }
+
+      const reader = new FileReader();
+      reader.onload = () => {
+        const result = typeof reader.result === "string" ? reader.result : null;
+        if (!result) {
+          removeAttachment();
+          setError(t("assistant.photoUnsupported"));
+          return;
+        }
+        setAttachment(file);
+        setAttachmentPreview(result);
+        setAttachmentName(file.name);
+        setError(null);
+      };
+      reader.onerror = () => {
+        removeAttachment();
+        setError(t("assistant.photoUnsupported"));
+      };
+      reader.readAsDataURL(file);
+    },
+    [removeAttachment, t]
+  );
+
   const reset = useCallback(() => {
     setMessages([]);
     setInput("");
     setError(null);
-  }, []);
+    removeAttachment();
+  }, [removeAttachment]);
 
   const submit = useCallback(
     async (event: FormEvent<HTMLFormElement>) => {
@@ -115,16 +180,53 @@ export const useAssistantChat = (
         role: message.role,
         content: message.content
       }));
-      setMessages(prev => [...prev, { role: "user", content: text }]);
+
+      const fileForUpload = attachment;
+      const preview = attachmentPreview;
+      const displayName = attachmentName ?? fileForUpload?.name ?? null;
+      const userMessage: AssistantMessage = preview
+        ? {
+            role: "user",
+            content: text,
+            attachments: [
+              {
+                type: "image",
+                url: preview,
+                name: displayName
+              }
+            ]
+          }
+        : { role: "user", content: text };
+
+      setMessages(prev => [...prev, userMessage]);
       setInput("");
+      removeAttachment();
       setLoading(true);
       setError(null);
+
+      const formData = new FormData();
+      formData.append("message", text);
+      formData.append("history", JSON.stringify(historyPayload));
+      if (fileForUpload) {
+        formData.append("image", fileForUpload);
+      }
+
+      const sanitizedHeaders = headers
+        ? Object.fromEntries(
+            Object.entries(headers).filter(([key]) => key.toLowerCase() !== "content-type")
+          )
+        : undefined;
+
       try {
-        const response = await fetch(apiUrl("/assistant/chat"), {
+        const requestInit: RequestInit = {
           method: "POST",
-          headers,
-          body: JSON.stringify({ message: text, history: historyPayload })
-        });
+          body: formData
+        };
+        if (sanitizedHeaders && Object.keys(sanitizedHeaders).length > 0) {
+          requestInit.headers = sanitizedHeaders;
+        }
+
+        const response = await fetch(apiUrl("/assistant/chat"), requestInit);
         const data = await response.json();
         if (!response.ok || typeof data.reply !== "string") {
           const message = typeof data.error === "string" ? data.error : t("assistant.unavailable");
@@ -140,7 +242,20 @@ export const useAssistantChat = (
         setLoading(false);
       }
     },
-    [disabledReason, enabled, headers, input, messages, onUsage, t, token]
+    [
+      attachment,
+      attachmentName,
+      attachmentPreview,
+      disabledReason,
+      enabled,
+      headers,
+      input,
+      messages,
+      onUsage,
+      removeAttachment,
+      t,
+      token
+    ]
   );
 
   return {
@@ -149,8 +264,12 @@ export const useAssistantChat = (
     loading,
     error,
     handleInputChange,
+    handleAttachmentChange,
     submit,
     reset,
+    removeAttachment,
+    attachmentPreview,
+    attachmentName,
     setInput
   };
 };

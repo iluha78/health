@@ -257,11 +257,15 @@ const App = observer(() => {
     loading: assistantLoading,
     error: assistantError,
     handleInputChange: handleAssistantInput,
+    handleAttachmentChange: handleAssistantAttachment,
     submit: submitAssistant,
-    reset: resetAssistant
+    reset: resetAssistant,
+    removeAttachment: clearAssistantAttachment,
+    attachmentPreview: assistantAttachmentPreview,
+    attachmentName: assistantAttachmentName
   } = useAssistantChat(
     userStore.token,
-    jsonHeaders,
+    authHeaders,
     assistantEnabled,
     assistantDisabledReason,
     async () => {
@@ -680,6 +684,10 @@ const App = observer(() => {
               disabled={!assistantEnabled}
               disabledReason={assistantDisabledReason}
               onInputChange={handleAssistantInput}
+              attachmentPreview={assistantAttachmentPreview}
+              attachmentName={assistantAttachmentName}
+              onAttachmentChange={handleAssistantAttachment}
+              onAttachmentRemove={clearAssistantAttachment}
               onSubmit={submitAssistant}
               onReset={resetAssistant}
             />

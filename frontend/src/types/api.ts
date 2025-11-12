@@ -98,6 +98,14 @@ export interface AssistantHistoryItem {
   user_message: string;
   assistant_reply: string;
   created_at: string | null;
+  user_image_url?: string | null;
+  user_image_name?: string | null;
+}
+
+export interface AssistantAttachment {
+  type: "image";
+  url: string;
+  name?: string | null;
 }
 
 export interface AdviceResponse {
@@ -110,6 +118,7 @@ export interface AdviceResponse {
 export interface AssistantMessage {
   role: "user" | "assistant";
   content: string;
+  attachments?: AssistantAttachment[];
 }
 
 export interface AssistantReply {
