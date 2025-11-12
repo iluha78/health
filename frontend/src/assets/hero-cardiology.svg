@@ -1,0 +1,25 @@
+<svg width="420" height="320" viewBox="0 0 420 320" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="heroGradient" x1="60" y1="32" x2="360" y2="300" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#BFDBFE" />
+      <stop offset="1" stop-color="#EEF2FF" />
+    </linearGradient>
+    <linearGradient id="heartGradient" x1="112" y1="124" x2="244" y2="248" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#2563EB" />
+      <stop offset="1" stop-color="#7C3AED" />
+    </linearGradient>
+  </defs>
+  <rect x="20" y="20" width="380" height="280" rx="36" fill="url(#heroGradient)" />
+  <rect x="44" y="56" width="332" height="212" rx="28" fill="white" opacity="0.9" />
+  <path d="M86 212C102 180 132 150 168 168C192 180 214 220 240 212C272 204 292 148 320 140" stroke="#1D4ED8" stroke-width="6" stroke-linecap="round" stroke-linejoin="round" />
+  <circle cx="112" cy="120" r="34" fill="#DBEAFE" />
+  <path d="M128.5 106C128.5 94.6782 119.322 85.5 108 85.5C96.6782 85.5 87.5 94.6782 87.5 106C87.5 125 112 140.5 112 140.5C112 140.5 136.5 125 136.5 106C136.5 94.6782 127.322 85.5 116 85.5C112.521 85.5 109.221 86.2749 106.25 87.6563" fill="url(#heartGradient)" />
+  <path d="M122 104L114 118L108 108L100 122" stroke="white" stroke-width="5" stroke-linecap="round" stroke-linejoin="round" />
+  <rect x="188" y="92" width="160" height="28" rx="14" fill="#E0E7FF" />
+  <rect x="188" y="132" width="120" height="16" rx="8" fill="#C7D2FE" />
+  <rect x="188" y="160" width="140" height="16" rx="8" fill="#C7D2FE" opacity="0.8" />
+  <rect x="188" y="188" width="110" height="16" rx="8" fill="#C7D2FE" opacity="0.6" />
+  <circle cx="312" cy="150" r="10" fill="#60A5FA" />
+  <circle cx="332" cy="122" r="8" fill="#A5B4FC" />
+  <circle cx="284" cy="198" r="12" fill="#818CF8" />
+</svg>

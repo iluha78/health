@@ -1,27 +1,66 @@
+import { useEffect, useState } from "react";
 import { Link, Navigate, useParams } from "../../lib/router";
-import { AuthPanel, type AuthPanelProps } from "../auth/AuthPanel";
 import { LanguageSelector } from "../../components/LanguageSelector";
 import { useTranslation } from "../../i18n";
-import { newsArticles, getArticleImageAlt, getArticleTranslation } from "./newsData";
+import { fetchNewsArticle } from "./api";
+import { resolveIllustration } from "./imageMap";
+import type { ArticleBlock, NewsArticleResponse } from "./types";
 
-type NewsArticlePageProps = AuthPanelProps;
-
-export const NewsArticlePage = (props: NewsArticlePageProps) => {
+export const NewsArticlePage = () => {
   const { slug } = useParams();
-  const { t, i18n } = useTranslation();
+  const { i18n } = useTranslation();
   const language = i18n.language;
-  const article = newsArticles.find(item => item.slug === slug);
+  const [data, setData] = useState<NewsArticleResponse | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [notFound, setNotFound] = useState(false);
 
-  if (!article) {
+  useEffect(() => {
+    if (!slug) {
+      return;
+    }
+
+    let cancelled = false;
+    setLoading(true);
+    setError(null);
+    setNotFound(false);
+
+    fetchNewsArticle(slug, language)
+      .then(response => {
+        if (!cancelled) {
+          setData(response);
+        }
+      })
+      .catch(error => {
+        if (cancelled) {
+          return;
+        }
+        const status = (error as Error & { status?: number }).status;
+        if (status === 404) {
+          setNotFound(true);
+        } else {
+          setError(language === "ru" ? "Не удалось загрузить новость" : "Failed to load the article");
+        }
+        setData(null);
+      })
+      .finally(() => {
+        if (!cancelled) {
+          setLoading(false);
+        }
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [language, slug]);
+
+  if (!slug || notFound) {
     return <Navigate to="/" replace />;
   }
 
-  const translation = getArticleTranslation(article, language);
-  const formattedDate = new Date(article.date).toLocaleDateString(language, {
-    day: "2-digit",
-    month: "long",
-    year: "numeric",
-  });
+  const labels = data?.labels;
+  const article = data?.article;
+  const publishedDate = article ? new Date(article.publishedAt) : null;
 
   return (
     <div className="public-shell">
@@ -31,55 +70,70 @@ export const NewsArticlePage = (props: NewsArticlePageProps) => {
             <div className="public-top-row">
               <span className="public-brand">HlCoAi</span>
               <LanguageSelector className="public-language" />
+              {labels && (
+                <Link to="/login" className="public-hero-login">
+                  {labels.loginLabel}
+                </Link>
+              )}
             </div>
             <nav className="public-breadcrumbs">
               <Link to="/" className="public-back-link">
-                {t("landing.news.back")}
+                {labels?.backLabel ?? "← Back"}
               </Link>
             </nav>
-            <h1>{translation.title}</h1>
-            <p className="public-hero-lead">
-              {t("landing.news.published", { date: formattedDate })}
-            </p>
-          </div>
-          <div className="public-hero-auth">
-            <AuthPanel
-              {...props}
-              showHeader={false}
-              showLanguageSelector={false}
-              className="public-auth"
-            />
+            {loading && <h1>…</h1>}
+            {!loading && article && <h1>{article.title}</h1>}
+            {!loading && article && labels && publishedDate && (
+              <p className="public-hero-lead">
+                {labels.publishedLabel}: {publishedDate.toLocaleDateString(language, {
+                  day: "2-digit",
+                  month: "long",
+                  year: "numeric",
+                })}
+              </p>
+            )}
+            {error && <p className="public-error-text">{error}</p>}
           </div>
         </div>
       </header>
 
-      <main className="public-content">
-        <article className="public-article">
-          <img
-            src={article.image}
-            alt={getArticleImageAlt(article, language)}
-            className="public-article-image"
-          />
-          <div className="public-article-body">
-            {translation.content.map((block, index) => {
-              if (block.type === "list") {
+      {!loading && article && (
+        <main className="public-content">
+          <article className="public-article">
+            <img
+              src={resolveIllustration(article.imageKey)}
+              alt={article.imageAlt}
+              className="public-article-image"
+            />
+            <div className="public-article-body">
+              {article.content.map((block: ArticleBlock, index) => {
+                if (block.type === "list") {
+                  return (
+                    <ul key={`${block.type}-${index}`} className="public-article-list">
+                      {block.items.map(item => (
+                        <li key={item}>{item}</li>
+                      ))}
+                    </ul>
+                  );
+                }
+                if (block.type === "quote") {
+                  return (
+                    <blockquote key={`${block.type}-${index}`} className="public-article-quote">
+                      {block.text}
+                      {block.attribution && <cite>{block.attribution}</cite>}
+                    </blockquote>
+                  );
+                }
                 return (
-                  <ul key={index} className="public-article-list">
-                    {block.items.map(item => (
-                      <li key={item}>{item}</li>
-                    ))}
-                  </ul>
+                  <p key={`${block.type}-${index}`}>
+                    {block.text}
+                  </p>
                 );
-              }
-              return (
-                <p key={index}>
-                  {block.text}
-                </p>
-              );
-            })}
-          </div>
-        </article>
-      </main>
+              })}
+            </div>
+          </article>
+        </main>
+      )}
     </div>
   );
 };

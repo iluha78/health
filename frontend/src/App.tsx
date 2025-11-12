@@ -23,6 +23,7 @@ import { requestNutritionPhotoCalories } from "./lib/nutrition";
 import { LanguageSelector } from "./components/LanguageSelector";
 import { PublicLanding } from "./features/public/PublicLanding";
 import { NewsArticlePage } from "./features/public/NewsArticlePage";
+import { LoginPage } from "./features/public/LoginPage";
 import "./App.css";
 
 const SettingsIcon = (props: SVGProps<SVGSVGElement>) => (
@@ -582,8 +583,9 @@ const App = observer(() => {
   if (!userStore.token) {
     return (
       <Routes>
-        <Route path="/" element={<PublicLanding {...authPanelProps} />} />
-        <Route path="/news/:slug" element={<NewsArticlePage {...authPanelProps} />} />
+        <Route path="/" element={<PublicLanding />} />
+        <Route path="/login" element={<LoginPage {...authPanelProps} />} />
+        <Route path="/news/:slug" element={<NewsArticlePage />} />
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
     );
