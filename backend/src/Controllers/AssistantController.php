@@ -158,7 +158,9 @@ class AssistantController
         if ($imageData !== null) {
             $userContent[] = [
                 'type' => 'image_url',
-                'image_url' => $imageData,
+                'image_url' => [
+                    'url' => $imageData,
+                ],
             ];
         }
 
