@@ -49,7 +49,7 @@ export const LipidTab = ({
             {t("lipid.cholesterol")}
             <input
               type="number"
-              step="0.1"
+              step="0.01"
               min="0"
               value={form.cholesterol}
               onChange={handleChange("cholesterol", onFieldChange)}
@@ -59,7 +59,7 @@ export const LipidTab = ({
             {t("lipid.hdl")}
             <input
               type="number"
-              step="0.1"
+              step="0.01"
               min="0"
               value={form.hdl}
               onChange={handleChange("hdl", onFieldChange)}
@@ -69,7 +69,7 @@ export const LipidTab = ({
             {t("lipid.ldl")}
             <input
               type="number"
-              step="0.1"
+              step="0.01"
               min="0"
               value={form.ldl}
               onChange={handleChange("ldl", onFieldChange)}
@@ -79,7 +79,7 @@ export const LipidTab = ({
             {t("lipid.triglycerides")}
             <input
               type="number"
-              step="0.1"
+              step="0.01"
               min="0"
               value={form.triglycerides}
               onChange={handleChange("triglycerides", onFieldChange)}
@@ -89,7 +89,7 @@ export const LipidTab = ({
             {t("lipid.glucose")}
             <input
               type="number"
-              step="0.1"
+              step="0.01"
               min="0"
               value={form.glucose}
               onChange={handleChange("glucose", onFieldChange)}
