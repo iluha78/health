@@ -3,6 +3,7 @@ import { Link } from "../../lib/router";
 import { LanguageSelector } from "../../components/LanguageSelector";
 import { useTranslation } from "../../i18n";
 import { fetchLandingContent } from "./api";
+import { formatPublishedDate, parsePublishedDate } from "./date";
 import { resolveIllustration } from "./imageMap";
 import type { LandingContent, NewsSummary } from "./types";
 
@@ -61,10 +62,19 @@ export const PublicLanding = () => {
   const hero = content?.hero;
   const newsSection = content?.newsSection;
 
-  const newsItems = useMemo(() => news.map(item => ({
-    ...item,
-    publishedDate: new Date(item.publishedAt),
-  })), [news]);
+  const newsItems = useMemo(
+    () =>
+      news.map(item => ({
+        ...item,
+        publishedDate: parsePublishedDate(item.publishedAt),
+      })),
+    [news],
+  );
+
+  const renderPublishedDate = (date: Date | null, fallback: string) => {
+    const safeFallback = fallback && fallback.trim().length > 0 ? fallback : "—";
+    return formatPublishedDate(date, language, safeFallback);
+  };
 
   return (
     <div className="public-shell">
@@ -242,11 +252,7 @@ export const PublicLanding = () => {
                     />
                     <div className="public-news-content">
                       <p className="public-news-date">
-                        {newsSection.dateLabel}: {article.publishedDate.toLocaleDateString(language, {
-                          day: "2-digit",
-                          month: "long",
-                          year: "numeric",
-                        })}
+                        {newsSection.dateLabel}: {renderPublishedDate(article.publishedDate, article.publishedAt)}
                       </p>
                       <h3>{article.title}</h3>
                       <p>{article.summary}</p>

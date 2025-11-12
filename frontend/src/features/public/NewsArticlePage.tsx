@@ -3,6 +3,7 @@ import { Link, Navigate, useParams } from "../../lib/router";
 import { LanguageSelector } from "../../components/LanguageSelector";
 import { useTranslation } from "../../i18n";
 import { fetchNewsArticle } from "./api";
+import { formatPublishedDate, parsePublishedDate } from "./date";
 import { resolveIllustration } from "./imageMap";
 import type { ArticleBlock, NewsArticleResponse } from "./types";
 
@@ -60,7 +61,10 @@ export const NewsArticlePage = () => {
 
   const labels = data?.labels;
   const article = data?.article;
-  const publishedDate = article ? new Date(article.publishedAt) : null;
+  const publishedDate = article ? parsePublishedDate(article.publishedAt) : null;
+  const formattedPublishedDate = article
+    ? formatPublishedDate(publishedDate, language, article.publishedAt?.trim() || "—")
+    : null;
 
   return (
     <div className="public-shell">
@@ -83,13 +87,9 @@ export const NewsArticlePage = () => {
             </nav>
             {loading && <h1>…</h1>}
             {!loading && article && <h1>{article.title}</h1>}
-            {!loading && article && labels && publishedDate && (
+            {!loading && article && labels && formattedPublishedDate && (
               <p className="public-hero-lead">
-                {labels.publishedLabel}: {publishedDate.toLocaleDateString(language, {
-                  day: "2-digit",
-                  month: "long",
-                  year: "numeric",
-                })}
+                {labels.publishedLabel}: {formattedPublishedDate}
               </p>
             )}
             {error && <p className="public-error-text">{error}</p>}
