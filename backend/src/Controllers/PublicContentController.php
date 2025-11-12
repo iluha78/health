@@ -113,21 +113,25 @@ class PublicContentController
         }
 
         if ($page !== null) {
-            return [
-                'locale' => $page->locale,
-                'payload' => $this->decodeJson($page->payload),
-            ];
+            $payload = $this->decodeJson($page->payload);
+
+            if ($this->isValidLandingPayload($payload)) {
+                return [
+                    'locale' => $page->locale,
+                    'payload' => $payload,
+                ];
+            }
         }
 
         $payload = $this->loadFallbackJson("landing.{$locale}.json");
         $resolvedLocale = $locale;
 
-        if (!is_array($payload) && $locale !== 'en') {
+        if ((!is_array($payload) || !$this->isValidLandingPayload($payload)) && $locale !== 'en') {
             $payload = $this->loadFallbackJson('landing.en.json');
             $resolvedLocale = 'en';
         }
 
-        if (!is_array($payload)) {
+        if (!is_array($payload) || !$this->isValidLandingPayload($payload)) {
             return null;
         }
 
@@ -262,6 +266,39 @@ class PublicContentController
             'dateLabel' => (string) ($newsSection['dateLabel'] ?? $defaults['dateLabel']),
             'loginLabel' => (string) ($hero['loginLabel'] ?? $defaults['loginLabel']),
         ];
+    }
+
+    /**
+     * @param array<string, mixed> $payload
+     */
+    private function isValidLandingPayload(array $payload): bool
+    {
+        if ($payload === []) {
+            return false;
+        }
+
+        $requiredSections = [
+            'hero',
+            'introduction',
+            'pillars',
+            'journey',
+            'stories',
+            'metrics',
+            'support',
+            'closing',
+        ];
+
+        foreach ($requiredSections as $section) {
+            if (!isset($payload[$section]) || !is_array($payload[$section])) {
+                return false;
+            }
+        }
+
+        if (isset($payload['newsSection']) && !is_array($payload['newsSection'])) {
+            return false;
+        }
+
+        return true;
     }
 
     private function loadFallbackJson(string $fileName): ?array
