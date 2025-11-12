@@ -82,12 +82,14 @@ export const PublicLanding = () => {
         <div className="public-hero-inner">
           <div className="public-top-row">
             <span className="public-brand">HlCoAi</span>
-            <LanguageSelector className="public-language" />
-            {hero && (
-              <Link to="/login" className="public-hero-login">
-                {hero.loginLabel}
-              </Link>
-            )}
+            <div className="public-top-actions">
+              <LanguageSelector className="public-language" />
+              {hero && (
+                <Link to="/login" className="public-hero-login">
+                  {hero.loginLabel}
+                </Link>
+              )}
+            </div>
           </div>
           {loading && (
             <div className="public-hero-copy">
