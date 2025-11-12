@@ -1,5 +1,1 @@
 /backend/vendor
-.env
-backend/bin/migrate.php
-backend/.env
-frontend/.env

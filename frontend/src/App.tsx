@@ -1,11 +1,10 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { FormEvent, MouseEvent as ReactMouseEvent, SVGProps } from "react";
-import { Navigate, Route, Routes } from "./lib/router";
 import { observer } from "mobx-react-lite";
 import { useTranslation } from "./i18n";
 import { userStore } from "./stores/user";
 import type { TabKey } from "./types/forms";
-import type { AuthView } from "./features/auth/AuthPanel";
+import { AuthPanel, type AuthView } from "./features/auth/AuthPanel";
 import { TabNavigation, type TabItem } from "./components/TabNavigation";
 import { useBloodPressureFeature } from "./features/blood-pressure/useBloodPressureFeature";
 import { BloodPressureTab } from "./features/blood-pressure/BloodPressureTab";
@@ -21,9 +20,6 @@ import { useBillingControls } from "./features/settings/useBillingControls";
 import { requestAssistantPrompt } from "./lib/assistant";
 import { requestNutritionPhotoCalories } from "./lib/nutrition";
 import { LanguageSelector } from "./components/LanguageSelector";
-import { PublicLanding } from "./features/public/PublicLanding";
-import { NewsArticlePage } from "./features/public/NewsArticlePage";
-import { LoginPage } from "./features/public/LoginPage";
 import "./App.css";
 
 const SettingsIcon = (props: SVGProps<SVGSVGElement>) => (
@@ -558,36 +554,29 @@ const App = observer(() => {
 
   const authError = localError ?? userStore.error;
 
-  const authPanelProps = {
-    view: authView,
-    email,
-    password,
-    resetPassword,
-    resetPasswordConfirm,
-    showPassword,
-    showResetPassword,
-    error: authError,
-    verificationCode,
-    info: infoMessage,
-    onEmailChange: handleEmailChange,
-    onPasswordChange: handlePasswordChange,
-    onTogglePassword: () => setShowPassword(prev => !prev),
-    onResetPasswordChange: handleResetPasswordChange,
-    onResetPasswordConfirmChange: handleResetPasswordConfirmChange,
-    onToggleResetPassword: () => setShowResetPassword(prev => !prev),
-    onSubmit: handleAuthSubmit,
-    onVerificationCodeChange: handleVerificationCodeChange,
-    onSwitchView: handleSwitchView,
-  } as const;
-
   if (!userStore.token) {
     return (
-      <Routes>
-        <Route path="/" element={<PublicLanding />} />
-        <Route path="/login" element={<LoginPage {...authPanelProps} />} />
-        <Route path="/news/:slug" element={<NewsArticlePage />} />
-        <Route path="*" element={<Navigate to="/" replace />} />
-      </Routes>
+      <AuthPanel
+        view={authView}
+        email={email}
+        password={password}
+        resetPassword={resetPassword}
+        resetPasswordConfirm={resetPasswordConfirm}
+        showPassword={showPassword}
+        showResetPassword={showResetPassword}
+        error={authError}
+        verificationCode={verificationCode}
+        info={infoMessage}
+        onEmailChange={handleEmailChange}
+        onPasswordChange={handlePasswordChange}
+        onTogglePassword={() => setShowPassword(prev => !prev)}
+        onResetPasswordChange={handleResetPasswordChange}
+        onResetPasswordConfirmChange={handleResetPasswordConfirmChange}
+        onToggleResetPassword={() => setShowResetPassword(prev => !prev)}
+        onSubmit={handleAuthSubmit}
+        onVerificationCodeChange={handleVerificationCodeChange}
+        onSwitchView={handleSwitchView}
+      />
     );
   }
 

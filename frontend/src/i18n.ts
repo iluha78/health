@@ -85,12 +85,7 @@ const resources = {
         resetError: "Не удалось сбросить пароль",
         backToLogin: "Вернуться ко входу",
         backToRegister: "Назад к регистрации",
-        resendCode: "Отправить код ещё раз",
-        backToLanding: "← На главную",
-        loginTitle: "Вход в HlCoAi",
-        loginSubtitle: "Доступ к рекомендациям и истории здоровья",
-        loginDescription:
-          "Введите email и пароль, чтобы продолжить наблюдение. После входа вы сможете управлять подпиской, делиться отчётами и получать поддержку кураторов."
+        resendCode: "Отправить код ещё раз"
       },
       assistant: {
         title: "AI ассистент",
@@ -399,12 +394,7 @@ const resources = {
         resetError: "Could not reset the password",
         backToLogin: "Back to sign in",
         backToRegister: "Back to registration",
-        resendCode: "Send the code again",
-        backToLanding: "← Back to home",
-        loginTitle: "Sign in to HlCoAi",
-        loginSubtitle: "Access guidance and your health story",
-        loginDescription:
-          "Use your email and password to continue. Once signed in you can manage your plan, share reports, and receive coach support."
+        resendCode: "Send the code again"
       },
       assistant: {
         title: "AI assistant",
@@ -713,12 +703,7 @@ const resources = {
         resetError: "Passwort konnte nicht zurückgesetzt werden",
         backToLogin: "Zurück zur Anmeldung",
         backToRegister: "Zurück zur Registrierung",
-        resendCode: "Code erneut senden",
-        backToLanding: "← Zur Startseite",
-        loginTitle: "Anmeldung bei HlCoAi",
-        loginSubtitle: "Zugriff auf Empfehlungen und Ihre Gesundheitsdaten",
-        loginDescription:
-          "Melden Sie sich mit Ihrer E-Mail und Ihrem Passwort an. Danach können Sie Pläne verwalten, Berichte teilen und Coach-Unterstützung erhalten."
+        resendCode: "Code erneut senden"
       },
       assistant: {
         title: "KI-Assistent",
@@ -1027,12 +1012,7 @@ const resources = {
         resetError: "No se pudo restablecer la contraseña",
         backToLogin: "Volver a iniciar sesión",
         backToRegister: "Volver al registro",
-        resendCode: "Enviar el código de nuevo",
-        backToLanding: "← Volver al inicio",
-        loginTitle: "Inicia sesión en HlCoAi",
-        loginSubtitle: "Accede a las recomendaciones y tu historial de salud",
-        loginDescription:
-          "Usa tu correo y contraseña para continuar. Después podrás gestionar el plan, compartir informes y recibir apoyo del equipo."
+        resendCode: "Enviar el código de nuevo"
       },
       assistant: {
         title: "Asistente IA",
@@ -1271,7 +1251,7 @@ const DEFAULT_LANGUAGE = "ru";
 const FALLBACK_LANGUAGES = ["en", DEFAULT_LANGUAGE] as const;
 
 type TranslationParams = Record<string, string | number | boolean | null | undefined>;
-export type LanguageCode = (typeof LANGUAGES)[number]["value"];
+type LanguageCode = (typeof LANGUAGES)[number]["value"];
 
 const listeners = new Set<() => void>();
 
