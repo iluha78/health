@@ -64,7 +64,7 @@ export const BLOOD_PRESSURE_RANGES = {
 } as const satisfies Record<string, MetricRange>;
 
 export const LIPID_RANGES = {
-  cholesterol: { max: 200, mildMargin: 30 },
+  cholesterol: { max: 5.2, mildMargin: 0.8 },
   hdl: { min: 40, max: 60, mildMargin: 10 },
   ldl: { max: 130, mildMargin: 20 },
   triglycerides: { max: 150, mildMargin: 50 },

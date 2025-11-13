@@ -16,6 +16,7 @@ class NutritionPhotoEstimate extends Model
         'calories',
         'confidence',
         'notes',
+        'description',
         'ingredients',
         'original_filename',
     ];

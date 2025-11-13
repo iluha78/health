@@ -171,6 +171,12 @@ class AdviceController
             ], $e->getStatus());
         }
 
+        $data = (array) $request->getParsedBody();
+        $description = '';
+        if (isset($data['description']) && is_string($data['description'])) {
+            $description = trim($data['description']);
+        }
+
         $files = $request->getUploadedFiles();
         $originalName = null;
         if (isset($files['photo']) && $files['photo'] instanceof UploadedFileInterface) {
@@ -207,6 +213,12 @@ class AdviceController
 
         $dataUrl = 'data:' . $mediaType . ';base64,' . base64_encode($imageBinary);
 
+        $prompt = 'Оцени примерную калорийность блюда на фото. '
+            . 'Если блюдо сложно распознать, опиши сомнения. Ответь только JSON.';
+        if ($description !== '') {
+            $prompt .= "\n\nДополнительное описание блюда: " . $description;
+        }
+
         $messages = [
             [
                 'role' => 'system',
@@ -218,8 +230,7 @@ class AdviceController
                 'content' => [
                     [
                         'type' => 'text',
-                        'text' => 'Оцени примерную калорийность блюда на фото. ' .
-                            'Если блюдо сложно распознать, опиши сомнения. Ответь только JSON.',
+                        'text' => $prompt,
                     ],
                     [
                         'type' => 'image_url',
@@ -317,6 +328,7 @@ class AdviceController
             'calories' => $calories,
             'confidence' => $confidence,
             'notes' => $notes,
+            'description' => $description !== '' ? $description : null,
             'ingredients' => $ingredients,
             'original_filename' => $originalName ?: null,
         ]);
@@ -336,6 +348,7 @@ class AdviceController
             'calories' => $calories,
             'confidence' => $confidence,
             'notes' => $notes,
+            'description' => $description !== '' ? $description : null,
             'ingredients' => $ingredients,
             'debug' => $debug,
             'history' => $this->serializePhotoHistory($history->all()),
@@ -473,6 +486,7 @@ class AdviceController
                 'calories' => $analysis->calories !== null ? (float) $analysis->calories : null,
                 'confidence' => $analysis->confidence ?: null,
                 'notes' => $analysis->notes ?: '',
+                'description' => $analysis->description ?: '',
                 'ingredients' => $analysis->ingredients ?: [],
                 'file_name' => $analysis->original_filename ?: null,
                 'created_at' => $analysis->created_at instanceof \DateTimeInterface
