@@ -47,6 +47,9 @@ body {
   align-items: center;
   gap: 1.5rem;
   flex-wrap: wrap;
+  width: 100%;
+  max-width: 960px;
+  margin: 0 auto;
 }
 
 .brand h1 {
@@ -88,8 +91,12 @@ body {
 }
 
 .language-selector.topbar-language {
-  margin-left: auto;
-  flex: 0 0 auto;
+  flex: 1 1 220px;
+  justify-content: center;
+}
+
+.language-selector.topbar-language > * {
+  flex: 0 1 auto;
 }
 
 .language-selector select {
@@ -100,6 +107,10 @@ body {
   color: inherit;
   font-weight: 500;
   appearance: none;
+}
+
+.language-selector.topbar-language select {
+  width: min(100%, 280px);
 }
 
 .language-selector select:focus-visible {
@@ -194,6 +205,11 @@ button.small {
   flex: 1;
   display: flex;
   justify-content: center;
+  width: 100%;
+}
+
+.content.topbar {
+  justify-content: space-between;
 }
 
 .tab-container {
