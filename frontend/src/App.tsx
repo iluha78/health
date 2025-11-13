@@ -590,8 +590,11 @@ const App = observer(() => {
     <div className="app-shell text-slate-900">
       <header className="topbar content rounded-2xl bg-white/70 px-4 py-3 shadow-sm backdrop-blur md:px-6 md:py-4">
         <div className="brand">
-          <h1>HlCoAi</h1>
-          <p>{t("common.tagline")}</p>
+          <div className="brand-text">
+            <h1>HlCoAi</h1>
+            <p>{t("common.tagline")}</p>
+          </div>
+          <LanguageSelector className="topbar-language" />
         </div>
         <div className="topbar-profile">
           <div className="topbar-profile-text">
@@ -599,7 +602,6 @@ const App = observer(() => {
             <span className="topbar-profile-meta">{t("common.balanceLabel")}: {balanceLabel}</span>
           </div>
           <div className="topbar-actions">
-            <LanguageSelector className="topbar-language" />
             <button
               className="ghost topbar-icon-button"
               onClick={handleOpenSettings}
