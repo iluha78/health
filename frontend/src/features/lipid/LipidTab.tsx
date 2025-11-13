@@ -1,6 +1,7 @@
 import type { ChangeEvent, FormEvent } from "react";
 import { useTranslation } from "../../i18n";
 import { formatDateTime } from "../../lib/datetime";
+import { getLipidMetricLevel, getMetricTagClassName } from "../../lib/metrics";
 import type { LipidFormState, LipidRecord } from "../../types/forms";
 
 export type LipidTabProps = {
@@ -152,17 +153,49 @@ export const LipidTab = ({
                   <div className="history-meta">
                     <span className="history-tag">{formatDateTime(entry.createdAt)}</span>
                     <div className="metric-tags">
-                      {entry.date && <span className="metric-tag">{t("lipid.metrics.date", { value: entry.date })}</span>}
-                      {entry.cholesterol && (
-                        <span className="metric-tag">{t("lipid.metrics.cholesterol", { value: entry.cholesterol })}</span>
+                      {entry.date && (
+                        <span className="metric-tag">{t("lipid.metrics.date", { value: entry.date })}</span>
                       )}
-                      {entry.hdl && <span className="metric-tag">{t("lipid.metrics.hdl", { value: entry.hdl })}</span>}
-                      {entry.ldl && <span className="metric-tag">{t("lipid.metrics.ldl", { value: entry.ldl })}</span>}
+                      {entry.cholesterol && (
+                        <span
+                          className={getMetricTagClassName(
+                            getLipidMetricLevel("cholesterol", entry.cholesterol)
+                          )}
+                        >
+                          {t("lipid.metrics.cholesterol", { value: entry.cholesterol })}
+                        </span>
+                      )}
+                      {entry.hdl && (
+                        <span
+                          className={getMetricTagClassName(getLipidMetricLevel("hdl", entry.hdl))}
+                        >
+                          {t("lipid.metrics.hdl", { value: entry.hdl })}
+                        </span>
+                      )}
+                      {entry.ldl && (
+                        <span
+                          className={getMetricTagClassName(getLipidMetricLevel("ldl", entry.ldl))}
+                        >
+                          {t("lipid.metrics.ldl", { value: entry.ldl })}
+                        </span>
+                      )}
                       {entry.triglycerides && (
-                        <span className="metric-tag">{t("lipid.metrics.triglycerides", { value: entry.triglycerides })}</span>
+                        <span
+                          className={getMetricTagClassName(
+                            getLipidMetricLevel("triglycerides", entry.triglycerides)
+                          )}
+                        >
+                          {t("lipid.metrics.triglycerides", { value: entry.triglycerides })}
+                        </span>
                       )}
                       {entry.glucose && (
-                        <span className="metric-tag">{t("lipid.metrics.glucose", { value: entry.glucose })}</span>
+                        <span
+                          className={getMetricTagClassName(
+                            getLipidMetricLevel("glucose", entry.glucose)
+                          )}
+                        >
+                          {t("lipid.metrics.glucose", { value: entry.glucose })}
+                        </span>
                       )}
                     </div>
                   </div>

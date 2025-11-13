@@ -963,6 +963,9 @@ section h2 {
   color: #1c2753;
   font-size: 0.85rem;
   font-weight: 600;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .metric-tags {
@@ -978,6 +981,24 @@ section h2 {
   color: #1c2753;
   font-weight: 600;
   font-size: 0.85rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.metric-tag--normal {
+  background: #e3f9e5;
+  color: #1f7a36;
+}
+
+.metric-tag--mild {
+  background: #e4ebff;
+  color: #2f46af;
+}
+
+.metric-tag--severe {
+  background: #ffe5e5;
+  color: #b42318;
 }
 
 .history-question {
@@ -1053,6 +1074,23 @@ section h2 {
   font-family: inherit;
   font-size: 0.95rem;
   max-width: 625px;
+}
+
+@media (max-width: 640px) {
+  .history-meta {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 0.5rem;
+  }
+
+  .history-tag {
+    display: flex;
+    width: 100%;
+  }
+
+  .metric-tags {
+    width: 100%;
+  }
 }
 
 .photo-history-item h4 {

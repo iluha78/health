@@ -1,6 +1,7 @@
 import type { ChangeEvent, FormEvent } from "react";
 import { useTranslation } from "../../i18n";
 import { formatDateTime } from "../../lib/datetime";
+import { getBloodPressureMetricLevel, getMetricTagClassName } from "../../lib/metrics";
 import type { BloodPressureFormState, BloodPressureRecord } from "../../types/forms";
 
 export type BloodPressureTabProps = {
@@ -117,12 +118,32 @@ export const BloodPressureTab = ({
                     <span className="history-tag">{formatDateTime(entry.createdAt)}</span>
                     <div className="metric-tags">
                       {entry.systolic && (
-                        <span className="metric-tag">{t("bp.metrics.systolic", { value: entry.systolic })}</span>
+                        <span
+                          className={getMetricTagClassName(
+                            getBloodPressureMetricLevel("systolic", entry.systolic)
+                          )}
+                        >
+                          {t("bp.metrics.systolic", { value: entry.systolic })}
+                        </span>
                       )}
                       {entry.diastolic && (
-                        <span className="metric-tag">{t("bp.metrics.diastolic", { value: entry.diastolic })}</span>
+                        <span
+                          className={getMetricTagClassName(
+                            getBloodPressureMetricLevel("diastolic", entry.diastolic)
+                          )}
+                        >
+                          {t("bp.metrics.diastolic", { value: entry.diastolic })}
+                        </span>
                       )}
-                      {entry.pulse && <span className="metric-tag">{t("bp.metrics.pulse", { value: entry.pulse })}</span>}
+                      {entry.pulse && (
+                        <span
+                          className={getMetricTagClassName(
+                            getBloodPressureMetricLevel("pulse", entry.pulse)
+                          )}
+                        >
+                          {t("bp.metrics.pulse", { value: entry.pulse })}
+                        </span>
+                      )}
                     </div>
                   </div>
                   <button
