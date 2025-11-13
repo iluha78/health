@@ -1269,7 +1269,6 @@ details summary {
   .topbar-profile .button,
   .topbar-profile button {
     flex: 1 1 48%;
-    width: 100%;
   }
 
   .tab-container {
