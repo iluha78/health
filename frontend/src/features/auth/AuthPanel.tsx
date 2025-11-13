@@ -26,6 +26,9 @@ export type AuthPanelProps = {
   onSubmit: (event: FormEvent<HTMLFormElement>) => void;
   onVerificationCodeChange: (value: string) => void;
   onSwitchView: (target: AuthNavigationTarget) => void;
+  className?: string;
+  showHeader?: boolean;
+  showLanguageSelector?: boolean;
 };
 
 export const AuthPanel = ({
@@ -47,7 +50,10 @@ export const AuthPanel = ({
   onToggleResetPassword,
   onSubmit,
   onVerificationCodeChange,
-  onSwitchView
+  onSwitchView,
+  className,
+  showHeader = true,
+  showLanguageSelector = true
 }: AuthPanelProps) => {
   const { t } = useTranslation();
 
@@ -71,10 +77,14 @@ export const AuthPanel = ({
   const emailReadOnly = view === "registerVerify" || view === "forgotVerify";
 
   return (
-    <div className="auth">
-      <LanguageSelector className="auth-language" />
-      <h1>HlCoAi</h1>
-      <p>{t("auth.subtitle")}</p>
+    <div className={className ? `auth ${className}` : "auth"}>
+      {showLanguageSelector && <LanguageSelector className="auth-language" />}
+      {showHeader && (
+        <>
+          <h1>HlCoAi</h1>
+          <p>{t("auth.subtitle")}</p>
+        </>
+      )}
       <form className="card" onSubmit={onSubmit}>
         <label>
           {t("auth.email")}
