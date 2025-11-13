@@ -1,10 +1,10 @@
 import { useCallback, useMemo, useSyncExternalStore } from "react";
 
 export const LANGUAGES = [
-  { value: "ru", label: "Русский" },
-  { value: "en", label: "English" },
-  { value: "de", label: "Deutsch" },
-  { value: "es", label: "Español" }
+  { value: "ru", label: "🇷🇺" },
+  { value: "en", label: "🇬🇧" },
+  { value: "de", label: "🇩🇪" },
+  { value: "es", label: "🇪🇸" }
 ] as const;
 
 const resources = {
