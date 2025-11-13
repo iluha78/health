@@ -26,8 +26,10 @@ export type NutritionTabProps = {
   photoError: string | null;
   photoLoading: boolean;
   photoDebug: string[];
+  photoDescription: string;
   onPhotoChange: (file: File | null) => void;
   onPhotoClear: () => void;
+  onPhotoDescriptionChange: (value: string) => void;
   onPhotoAnalyze: () => void;
   onPhotoHistoryRemove: (id: string) => void;
 };
@@ -52,8 +54,10 @@ export const NutritionTab = ({
   photoError,
   photoLoading,
   photoDebug,
+  photoDescription,
   onPhotoChange,
   onPhotoClear,
+  onPhotoDescriptionChange,
   onPhotoAnalyze,
   onPhotoHistoryRemove
 }: NutritionTabProps) => {
@@ -172,6 +176,15 @@ export const NutritionTab = ({
             {photoLoading ? t("nutrition.photo.analyzing") : t("nutrition.photo.analyze")}
           </button>
         </div>
+        <label>
+          {t("nutrition.photo.descriptionLabel")}
+          <textarea
+            placeholder={t("nutrition.photo.descriptionPlaceholder")}
+            value={photoDescription}
+            onChange={event => onPhotoDescriptionChange(event.target.value)}
+            disabled={disabled || photoLoading}
+          />
+        </label>
         {photoError && <p className="error">{photoError}</p>}
         {photoDebug.length > 0 && (
           <details className="photo-debug" open>
@@ -195,6 +208,12 @@ export const NutritionTab = ({
               <div className="photo-notes">
                 <h4>{t("nutrition.photo.notesTitle")}</h4>
                 <p>{photoResult.notes}</p>
+              </div>
+            )}
+            {photoDescription && (
+              <div className="photo-description">
+                <h4>{t("nutrition.photo.descriptionTitle")}</h4>
+                <p>{photoDescription}</p>
               </div>
             )}
             {photoResult.ingredients.length > 0 && (
@@ -244,6 +263,12 @@ export const NutritionTab = ({
                     <div className="photo-history-notes">
                       <h4>{t("nutrition.photo.notesTitle")}</h4>
                       <p>{entry.notes}</p>
+                    </div>
+                  )}
+                  {entry.description && (
+                    <div className="photo-history-description">
+                      <h4>{t("nutrition.photo.descriptionTitle")}</h4>
+                      <p>{entry.description}</p>
                     </div>
                   )}
                   {entry.ingredients.length > 0 && (

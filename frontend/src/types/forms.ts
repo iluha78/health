@@ -76,6 +76,7 @@ export type NutritionPhotoRecord = {
   calories: number | null;
   confidence: string | null;
   notes: string;
+  description: string;
   ingredients: string[];
 };
 

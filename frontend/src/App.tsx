@@ -209,14 +209,14 @@ const App = observer(() => {
   );
 
   const analyzeNutritionPhoto = useCallback(
-    async (file: File) => {
+    async (file: File, description: string) => {
       if (!authHeaders) {
         throw new Error(t("common.loginRequired"));
       }
       if (!adviceEnabled) {
         throw new Error(adviceDisabledReason ?? t("common.aiAdviceUnavailable"));
       }
-      const result = await requestNutritionPhotoCalories(authHeaders, file);
+      const result = await requestNutritionPhotoCalories(authHeaders, file, description);
       await userStore.refresh();
       return result;
     },
@@ -239,8 +239,10 @@ const App = observer(() => {
     photoLoading: nutritionPhotoLoading,
     photoDebug: nutritionPhotoDebug,
     photoHistory: nutritionPhotoHistory,
+    photoDescription: nutritionPhotoDescription,
     selectPhoto: selectNutritionPhoto,
     clearPhoto: clearNutritionPhoto,
+    updatePhotoDescription: setNutritionPhotoDescription,
     analyzePhoto: analyzeNutritionPhotoRequest,
     removePhotoHistoryEntry: removeNutritionPhotoHistoryEntry
   } = useNutritionFeature({
@@ -669,8 +671,10 @@ const App = observer(() => {
               photoError={nutritionPhotoError}
               photoLoading={nutritionPhotoLoading}
               photoDebug={nutritionPhotoDebug}
+              photoDescription={nutritionPhotoDescription}
               onPhotoChange={selectNutritionPhoto}
               onPhotoClear={clearNutritionPhoto}
+              onPhotoDescriptionChange={setNutritionPhotoDescription}
               onPhotoAnalyze={analyzeNutritionPhotoRequest}
               onPhotoHistoryRemove={removeNutritionPhotoHistoryEntry}
             />

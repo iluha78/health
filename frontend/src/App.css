@@ -569,13 +569,15 @@ button.small {
 }
 
 .photo-notes h4,
+.photo-description h4,
 .photo-ingredients h4 {
   margin: 0;
   color: #2f3a4c;
   font-size: 1rem;
 }
 
-.photo-notes p {
+.photo-notes p,
+.photo-description p {
   margin: 0.35rem 0 0;
 }
 
@@ -1945,6 +1947,7 @@ details summary {
 }
 
 .photo-history-notes p,
+.photo-history-description p,
 .photo-history-ingredients ul {
   margin: 0.5rem 0 0;
   color: #3a4d7a;
@@ -1959,6 +1962,7 @@ details summary {
 }
 
 .photo-history-notes h4,
+.photo-history-description h4,
 .photo-history-ingredients h4 {
   margin: 0;
   color: #1f2a4b;

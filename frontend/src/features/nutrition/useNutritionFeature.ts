@@ -46,6 +46,7 @@ const mapPhotoHistory = (entries: NutritionPhotoHistoryItem[]): NutritionPhotoRe
     calories: entry.calories,
     confidence: entry.confidence,
     notes: entry.notes,
+    description: entry.description,
     ingredients: entry.ingredients
   }));
 
@@ -59,7 +60,10 @@ type NutritionDefaults = {
 type NutritionFeatureOptions = {
   userId: number | null;
   defaults: NutritionDefaults;
-  analyzePhoto: (file: File) => Promise<{ analysis: NutritionPhotoAnalysis; history: NutritionPhotoHistoryItem[] }>;
+  analyzePhoto: (
+    file: File,
+    description: string
+  ) => Promise<{ analysis: NutritionPhotoAnalysis; history: NutritionPhotoHistoryItem[] }>;
   jsonHeaders: Record<string, string> | undefined;
   authHeaders: Record<string, string> | undefined;
 };
@@ -84,6 +88,10 @@ export const useNutritionFeature = ({
   const [photoLoading, setPhotoLoading] = useState(false);
   const [photoDebug, setPhotoDebug] = useState<string[]>([]);
   const [photoHistory, setPhotoHistory] = useState<NutritionPhotoRecord[]>([]);
+  const [photoDescription, setPhotoDescription] = useState("");
+  const updatePhotoDescription = useCallback((value: string) => {
+    setPhotoDescription(value);
+  }, []);
 
   useEffect(() => {
     if (!photoFile) {
@@ -174,6 +182,7 @@ export const useNutritionFeature = ({
     setPhotoLoading(false);
     setPhotoDebug([]);
     setPhotoHistory([]);
+    setPhotoDescription("");
   }, []);
 
   const selectPhoto = useCallback((file: File | null) => {
@@ -187,6 +196,7 @@ export const useNutritionFeature = ({
     setPhotoError(null);
     setPhotoLoading(false);
     setPhotoDebug([]);
+    setPhotoDescription("");
   }, []);
 
   const analyzeSelectedPhoto = useCallback(async () => {
@@ -198,10 +208,12 @@ export const useNutritionFeature = ({
     setPhotoError(null);
     setPhotoDebug([]);
     try {
-      const { analysis, history: historyItems } = await analyzePhoto(photoFile);
+      const description = photoDescription.trim();
+      const { analysis, history: historyItems } = await analyzePhoto(photoFile, description);
       setPhotoResult(analysis);
       setPhotoDebug(analysis.debug ?? []);
       setPhotoHistory(mapPhotoHistory(historyItems));
+      setPhotoDescription(analysis.description || description);
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : t("nutrition.photo.error");
       const debug = err && typeof err === "object" && err !== null && "debug" in err
@@ -213,7 +225,7 @@ export const useNutritionFeature = ({
     } finally {
       setPhotoLoading(false);
     }
-  }, [analyzePhoto, photoFile, t]);
+  }, [analyzePhoto, photoDescription, photoFile, t]);
 
   const removePhotoHistoryEntry = useCallback(
     async (id: string) => {
@@ -280,8 +292,10 @@ export const useNutritionFeature = ({
     photoLoading,
     photoDebug,
     photoHistory,
+    photoDescription,
     selectPhoto,
     clearPhoto,
+    updatePhotoDescription,
     analyzePhoto: analyzeSelectedPhoto,
     removePhotoHistoryEntry
   };

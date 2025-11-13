@@ -5,6 +5,7 @@ export type NutritionPhotoAnalysis = {
   calories: number | null;
   confidence: string | null;
   notes: string;
+  description: string;
   ingredients: string[];
   debug: string[];
 };
@@ -28,6 +29,7 @@ export type NutritionPhotoHistoryItem = {
   calories: number | null;
   confidence: string | null;
   notes: string;
+  description: string;
   ingredients: string[];
 };
 
@@ -44,9 +46,12 @@ const parseJsonSafely = async (response: Response): Promise<unknown> => {
   }
 };
 
-const buildFormData = (file: File): FormData => {
+const buildFormData = (file: File, description: string): FormData => {
   const formData = new FormData();
   formData.append("photo", file);
+  if (description) {
+    formData.append("description", description);
+  }
   return formData;
 };
 
@@ -55,12 +60,13 @@ type PhotoEndpoint = "/advice/nutrition/photo" | "/advice/nutrition/photo/analyz
 const postPhoto = async (
   endpoint: PhotoEndpoint,
   headers: Record<string, string>,
-  file: File
+  file: File,
+  description: string
 ): Promise<{ response: Response; data: unknown }> => {
   const response = await fetch(apiUrl(endpoint), {
     method: "POST",
     headers,
-    body: buildFormData(file)
+    body: buildFormData(file, description)
   });
 
   const data = await parseJsonSafely(response);
@@ -70,19 +76,20 @@ const postPhoto = async (
 
 export const requestNutritionPhotoCalories = async (
   headers: Record<string, string> | undefined,
-  file: File
+  file: File,
+  description: string
 ): Promise<{ analysis: NutritionPhotoAnalysis; history: NutritionPhotoHistoryItem[] }> => {
   if (!headers) {
     throw new Error(i18n.t("common.loginRequired"));
   }
 
-  const primary = await postPhoto("/advice/nutrition/photo/analyze", headers, file);
+  const primary = await postPhoto("/advice/nutrition/photo/analyze", headers, file, description);
 
   const { response: primaryResponse } = primary;
 
   const { response, data } =
     primaryResponse.status === 404
-      ? await postPhoto("/advice/nutrition/photo", headers, file)
+      ? await postPhoto("/advice/nutrition/photo", headers, file, description)
       : primary;
 
   if (!response.ok) {
@@ -106,6 +113,8 @@ export const requestNutritionPhotoCalories = async (
   const calories = typeof payload.calories === "number" ? payload.calories : null;
   const confidence = typeof payload.confidence === "string" ? payload.confidence : null;
   const notes = typeof payload.notes === "string" ? payload.notes : "";
+  const responseDescription =
+    typeof payload.description === "string" ? payload.description : "";
   const ingredients = Array.isArray(payload.ingredients)
     ? payload.ingredients.filter((item: unknown): item is string => typeof item === "string")
     : [];
@@ -116,7 +125,14 @@ export const requestNutritionPhotoCalories = async (
   const history = parsePhotoHistory(payload.history);
 
   return {
-    analysis: { calories, confidence, notes, ingredients, debug },
+    analysis: {
+      calories,
+      confidence,
+      notes,
+      description: responseDescription,
+      ingredients,
+      debug
+    },
     history
   };
 };
@@ -292,6 +308,7 @@ const parsePhotoHistory = (input: unknown): NutritionPhotoHistoryItem[] => {
       const calories = typeof record.calories === "number" ? record.calories : null;
       const confidence = typeof record.confidence === "string" ? record.confidence : null;
       const notes = typeof record.notes === "string" ? record.notes : "";
+      const description = typeof record.description === "string" ? record.description : "";
       const ingredientsRaw = Array.isArray(record.ingredients) ? record.ingredients : [];
       const ingredients = ingredientsRaw.filter((item): item is string => typeof item === "string");
 
@@ -306,6 +323,7 @@ const parsePhotoHistory = (input: unknown): NutritionPhotoHistoryItem[] => {
         calories,
         confidence,
         notes,
+        description,
         ingredients
       };
     })
