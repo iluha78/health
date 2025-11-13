@@ -36,6 +36,70 @@ const resources = {
       parseError: "Не удалось разобрать ответ",
       requestError: "Ошибка запроса ({{status}})"
       },
+      landing: {
+        nav: {
+          aria: "Основные ссылки по странице",
+          features: "Возможности",
+          pricing: "Тариф",
+          news: "Новости",
+        },
+        hero: {
+          title: "Ваш цифровой контроль холестерина, давления и пульса",
+          subtitle:
+            "Следите за важными показателями, получайте советы нутрициолога и AI-ассистента в одном приложении.",
+          primaryCta: "Попробовать сейчас",
+          secondaryCta: "Войти",
+          priceLabel: "$10 в месяц",
+          highlight:
+            "Бесшовный мониторинг показателей, анализ питания по фото и поддержка экспертов.",
+        },
+        features: {
+          title: "Что вы получаете",
+          subtitle:
+            "Платформа совмещает медицинские метрики, питание и умного помощника, чтобы вы держали здоровье под контролем.",
+          tracking: {
+            title: "Отслеживание давления и пульса",
+            description:
+              "Записывайте показатели, просматривайте динамику и получайте рекомендации по стабилизации.",
+          },
+          nutrition: {
+            title: "Умный нутрициолог",
+            description:
+              "Фотографируйте блюда и получайте мгновенную оценку калорий и советы по рациону.",
+          },
+          ai: {
+            title: "AI-ассистент 24/7",
+            description:
+              "Задавайте вопросы и получайте персональные рекомендации, основанные на ваших данных.",
+          },
+          subscription: {
+            title: "Прозрачная подписка",
+            description:
+              "Один тариф включает все функции и ежемесячный лимит AI-запросов.",
+          },
+        },
+        subscription: {
+          title: "Подписка HlCoAi",
+          priceLabel: "$10/мес · можно отменить в любой момент",
+          note: "Получаете полный доступ ко всем аналитикам и персональным подсказкам.",
+          points: {
+            one: "Безлимитные записи давления, холестерина и сахара",
+            two: "Оценка калорий по фото и рекомендации нутрициолога",
+            three: "До 120 AI-ответов в месяц и доступ к ассистенту",
+          },
+          cta: "Оформить подписку",
+        },
+        news: {
+          title: "Новости и обновления",
+          subtitle: "Рассказываем о новых возможностях и исследованиях команды.",
+          readMore: "Подробнее",
+          empty: "Скоро поделимся новостями — следите за обновлениями.",
+        },
+        footer: {
+          rights: "Все права защищены.",
+          contact: "Написать команде",
+        },
+      },
       tabs: {
         bp: "Давление и пульс",
         lipid: "Липидный профиль и сахар",
@@ -377,6 +441,70 @@ const resources = {
       networkError: "Network/CORS: {{message}}",
       parseError: "Failed to parse response",
       requestError: "Request error ({{status}})"
+      },
+      landing: {
+        nav: {
+          aria: "Primary site navigation",
+          features: "Features",
+          pricing: "Pricing",
+          news: "News",
+        },
+        hero: {
+          title: "Your digital coach for cholesterol, blood pressure and pulse",
+          subtitle:
+            "Track critical metrics, analyse meals with our nutritionist and get AI-powered guidance in one place.",
+          primaryCta: "Start now",
+          secondaryCta: "Sign in",
+          priceLabel: "$10 / month",
+          highlight:
+            "Seamless monitoring, photo calorie estimation and expert guidance working together.",
+        },
+        features: {
+          title: "What you get",
+          subtitle:
+            "The platform blends medical metrics, nutrition insights and an intelligent assistant to keep your health on track.",
+          tracking: {
+            title: "Blood pressure & pulse tracking",
+            description:
+              "Log readings, watch your trends and receive recommendations for a stable routine.",
+          },
+          nutrition: {
+            title: "Smart nutritionist",
+            description:
+              "Snap your meals to get instant calorie estimates and tailored meal advice.",
+          },
+          ai: {
+            title: "AI assistant 24/7",
+            description:
+              "Ask questions and receive personalised guidance grounded in your own data.",
+          },
+          subscription: {
+            title: "Transparent subscription",
+            description:
+              "One plan unlocks every feature and a generous monthly AI allowance.",
+          },
+        },
+        subscription: {
+          title: "HlCoAi subscription",
+          priceLabel: "$10/month · cancel anytime",
+          note: "Unlock full analytics, progress reports and personalised coaching.",
+          points: {
+            one: "Unlimited logging for blood pressure, cholesterol and glucose",
+            two: "Photo calorie estimation with expert nutrition guidance",
+            three: "Up to 120 AI answers each month plus live assistant access",
+          },
+          cta: "Subscribe now",
+        },
+        news: {
+          title: "News & updates",
+          subtitle: "Sharing feature launches and research from the team.",
+          readMore: "Read more",
+          empty: "Fresh updates are coming soon — stay tuned.",
+        },
+        footer: {
+          rights: "All rights reserved.",
+          contact: "Contact the team",
+        },
       },
       tabs: {
         bp: "Blood pressure",
@@ -720,6 +848,70 @@ const resources = {
       parseError: "Antwort konnte nicht analysiert werden",
       requestError: "Anfragefehler ({{status}})"
       },
+      landing: {
+        nav: {
+          aria: "Hauptnavigation der Seite",
+          features: "Funktionen",
+          pricing: "Preis",
+          news: "Neuigkeiten",
+        },
+        hero: {
+          title: "Ihr digitaler Coach für Cholesterin, Blutdruck und Puls",
+          subtitle:
+            "Verfolgen Sie wichtige Werte, lassen Sie Mahlzeiten vom Ernährungscoach analysieren und erhalten Sie KI-Unterstützung in einer App.",
+          primaryCta: "Jetzt starten",
+          secondaryCta: "Anmelden",
+          priceLabel: "$10 pro Monat",
+          highlight:
+            "Nahtloses Monitoring, Kalorienanalyse per Foto und Expertenwissen im Paket.",
+        },
+        features: {
+          title: "Das bietet HlCoAi",
+          subtitle:
+            "Die Plattform verbindet medizinische Kennzahlen, Ernährung und KI, damit Sie Ihre Gesundheit im Griff behalten.",
+          tracking: {
+            title: "Überwachung von Blutdruck und Puls",
+            description:
+              "Protokollieren Sie Messwerte, verfolgen Sie Trends und erhalten Sie Empfehlungen zur Stabilisierung.",
+          },
+          nutrition: {
+            title: "Intelligenter Ernährungscoach",
+            description:
+              "Fotografieren Sie Mahlzeiten und bekommen Sie sofort Kalorienangaben und Ernährungstipps.",
+          },
+          ai: {
+            title: "KI-Assistent rund um die Uhr",
+            description:
+              "Stellen Sie Fragen und erhalten Sie personalisierte Antworten auf Basis Ihrer Daten.",
+          },
+          subscription: {
+            title: "Transparenter Tarif",
+            description:
+              "Ein Preis umfasst alle Funktionen sowie das monatliche KI-Kontingent.",
+          },
+        },
+        subscription: {
+          title: "HlCoAi Abonnement",
+          priceLabel: "$10/Monat · jederzeit kündbar",
+          note: "Vollzugriff auf Analysen, Berichte und persönliche Empfehlungen.",
+          points: {
+            one: "Unbegrenzte Erfassung von Blutdruck-, Cholesterin- und Zuckerwerten",
+            two: "Kalorienbewertung per Foto und Ernährungsratgeber",
+            three: "Bis zu 120 KI-Antworten pro Monat und Zugang zum Assistenten",
+          },
+          cta: "Abo abschließen",
+        },
+        news: {
+          title: "Neuigkeiten & Updates",
+          subtitle: "Wir berichten über neue Funktionen und Forschungsergebnisse.",
+          readMore: "Mehr erfahren",
+          empty: "Bald gibt es frische Neuigkeiten – bleiben Sie dran.",
+        },
+        footer: {
+          rights: "Alle Rechte vorbehalten.",
+          contact: "Team kontaktieren",
+        },
+      },
       tabs: {
         bp: "Blutdruck",
         lipid: "Lipidprofil & Glukose",
@@ -1061,6 +1253,70 @@ const resources = {
       networkError: "Red/CORS: {{message}}",
       parseError: "No se pudo analizar la respuesta",
       requestError: "Error de solicitud ({{status}})"
+      },
+      landing: {
+        nav: {
+          aria: "Navegación principal del sitio",
+          features: "Funciones",
+          pricing: "Precio",
+          news: "Noticias",
+        },
+        hero: {
+          title: "Tu entrenador digital para colesterol, presión y pulso",
+          subtitle:
+            "Controla indicadores clave, analiza comidas con nuestra nutricionista y recibe orientación con IA en un solo lugar.",
+          primaryCta: "Comenzar ahora",
+          secondaryCta: "Iniciar sesión",
+          priceLabel: "10 USD al mes",
+          highlight:
+            "Seguimiento continuo, estimación de calorías por foto y consejos expertos trabajando juntos.",
+        },
+        features: {
+          title: "Todo lo que incluye HlCoAi",
+          subtitle:
+            "La plataforma une métricas médicas, nutrición y un asistente inteligente para mantener tu salud bajo control.",
+          tracking: {
+            title: "Seguimiento de presión y pulso",
+            description:
+              "Registra tus mediciones, visualiza tendencias y recibe sugerencias para estabilizarlas.",
+          },
+          nutrition: {
+            title: "Nutricionista inteligente",
+            description:
+              "Fotografía tus platos para obtener calorías al instante y recomendaciones de menú.",
+          },
+          ai: {
+            title: "Asistente con IA 24/7",
+            description:
+              "Haz preguntas y obtén respuestas personalizadas basadas en tus datos.",
+          },
+          subscription: {
+            title: "Suscripción transparente",
+            description:
+              "Un solo plan con todas las funciones y una cuota mensual de consultas de IA.",
+          },
+        },
+        subscription: {
+          title: "Suscripción HlCoAi",
+          priceLabel: "10 USD/mes · cancela cuando quieras",
+          note: "Accede a todos los análisis, reportes y acompañamiento personalizado.",
+          points: {
+            one: "Registros ilimitados de presión, colesterol y glucosa",
+            two: "Estimación de calorías por foto y guía de la nutricionista",
+            three: "Hasta 120 respuestas de IA al mes y acceso al asistente",
+          },
+          cta: "Suscribirme",
+        },
+        news: {
+          title: "Noticias y actualizaciones",
+          subtitle: "Compartimos nuevos lanzamientos y hallazgos del equipo.",
+          readMore: "Leer más",
+          empty: "Muy pronto habrá novedades — mantente al tanto.",
+        },
+        footer: {
+          rights: "Todos los derechos reservados.",
+          contact: "Escribir al equipo",
+        },
       },
       tabs: {
         bp: "Presión arterial",
