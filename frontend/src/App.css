@@ -47,7 +47,6 @@ body {
   align-items: center;
   gap: 1.5rem;
   flex-wrap: wrap;
-  width: 100%;
   max-width: 960px;
 }
 
@@ -90,7 +89,6 @@ body {
 }
 
 .language-selector.topbar-language {
-  flex: 1 1 220px;
   justify-content: center;
 }
 
@@ -204,17 +202,7 @@ body {
     row-gap: 1rem;
   }
 
-  .topbar .brand {
-    grid-area: brand;
-    justify-self: end;
-    text-align: right;
-  }
 
-  .language-selector.topbar-language {
-    grid-area: language;
-    justify-self: start;
-    justify-content: flex-start;
-  }
 
   .topbar-profile {
     grid-area: profile;
@@ -1281,7 +1269,7 @@ details summary {
   }
 
   .content {
-    padding-bottom: 1rem;
+    padding-bottom: 3rem;
   }
 
   .form-card {
