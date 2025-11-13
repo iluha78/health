@@ -1,6 +1,7 @@
 import type { ChangeEvent, FormEvent } from "react";
 import { useTranslation } from "../../i18n";
 import { formatDateTime } from "../../lib/datetime";
+import { LIPID_RANGES, getMetricTagClassName } from "../../lib/metrics";
 import type { LipidFormState, LipidRecord } from "../../types/forms";
 
 export type LipidTabProps = {
@@ -154,15 +155,33 @@ export const LipidTab = ({
                     <div className="metric-tags">
                       {entry.date && <span className="metric-tag">{t("lipid.metrics.date", { value: entry.date })}</span>}
                       {entry.cholesterol && (
-                        <span className="metric-tag">{t("lipid.metrics.cholesterol", { value: entry.cholesterol })}</span>
+                        <span
+                          className={getMetricTagClassName(entry.cholesterol, LIPID_RANGES.cholesterol)}
+                        >
+                          {t("lipid.metrics.cholesterol", { value: entry.cholesterol })}
+                        </span>
                       )}
-                      {entry.hdl && <span className="metric-tag">{t("lipid.metrics.hdl", { value: entry.hdl })}</span>}
-                      {entry.ldl && <span className="metric-tag">{t("lipid.metrics.ldl", { value: entry.ldl })}</span>}
+                      {entry.hdl && (
+                        <span className={getMetricTagClassName(entry.hdl, LIPID_RANGES.hdl)}>
+                          {t("lipid.metrics.hdl", { value: entry.hdl })}
+                        </span>
+                      )}
+                      {entry.ldl && (
+                        <span className={getMetricTagClassName(entry.ldl, LIPID_RANGES.ldl)}>
+                          {t("lipid.metrics.ldl", { value: entry.ldl })}
+                        </span>
+                      )}
                       {entry.triglycerides && (
-                        <span className="metric-tag">{t("lipid.metrics.triglycerides", { value: entry.triglycerides })}</span>
+                        <span
+                          className={getMetricTagClassName(entry.triglycerides, LIPID_RANGES.triglycerides)}
+                        >
+                          {t("lipid.metrics.triglycerides", { value: entry.triglycerides })}
+                        </span>
                       )}
                       {entry.glucose && (
-                        <span className="metric-tag">{t("lipid.metrics.glucose", { value: entry.glucose })}</span>
+                        <span className={getMetricTagClassName(entry.glucose, LIPID_RANGES.glucose)}>
+                          {t("lipid.metrics.glucose", { value: entry.glucose })}
+                        </span>
                       )}
                     </div>
                   </div>
