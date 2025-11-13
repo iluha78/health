@@ -113,7 +113,8 @@ export const requestNutritionPhotoCalories = async (
   const calories = typeof payload.calories === "number" ? payload.calories : null;
   const confidence = typeof payload.confidence === "string" ? payload.confidence : null;
   const notes = typeof payload.notes === "string" ? payload.notes : "";
-  const description = typeof payload.description === "string" ? payload.description : "";
+  const responseDescription =
+    typeof payload.description === "string" ? payload.description : "";
   const ingredients = Array.isArray(payload.ingredients)
     ? payload.ingredients.filter((item: unknown): item is string => typeof item === "string")
     : [];
@@ -124,7 +125,14 @@ export const requestNutritionPhotoCalories = async (
   const history = parsePhotoHistory(payload.history);
 
   return {
-    analysis: { calories, confidence, notes, description, ingredients, debug },
+    analysis: {
+      calories,
+      confidence,
+      notes,
+      description: responseDescription,
+      ingredients,
+      debug
+    },
     history
   };
 };
