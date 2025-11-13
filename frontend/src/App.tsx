@@ -593,13 +593,13 @@ const App = observer(() => {
           <h1>HlCoAi</h1>
           <p>{t("common.tagline")}</p>
         </div>
+        <LanguageSelector className="topbar-language" />
         <div className="topbar-profile">
           <div className="topbar-profile-text">
             <span className="topbar-profile-email">{userStore.me?.email ?? email}</span>
             <span className="topbar-profile-meta">{t("common.balanceLabel")}: {balanceLabel}</span>
           </div>
           <div className="topbar-actions">
-            <LanguageSelector className="topbar-language" />
             <button
               className="ghost topbar-icon-button"
               onClick={handleOpenSettings}
