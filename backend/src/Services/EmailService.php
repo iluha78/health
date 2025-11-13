@@ -64,10 +64,28 @@ class EmailService
         $headers[] = 'Content-Type: text/plain; charset=UTF-8';
         $headers[] = 'Content-Transfer-Encoding: 8bit';
 
-        $result = mail($email, $encodedSubject, $message, implode("\r\n", $headers));
+        $normalizedMessage = str_replace(["\r\n", "\r"], "\n", $message);
+        $normalizedMessage = str_replace("\n", "\r\n", $normalizedMessage);
+
+        $headersString = implode("\r\n", $headers);
+        $additionalParameters = $this->buildAdditionalParameters($fromAddress);
+
+        $this->logMailAttempt($email, $subject, $driver);
+
+        $result = $additionalParameters === null
+            ? mail($email, $encodedSubject, $normalizedMessage, $headersString)
+            : mail($email, $encodedSubject, $normalizedMessage, $headersString, $additionalParameters);
+
         if ($result === false) {
-            throw new RuntimeException($errorMessage);
+            $phpMailError = error_get_last();
+            $reason = $phpMailError['message'] ?? 'unknown error';
+
+            $this->logMailFailure($email, $subject, $reason);
+
+            throw new RuntimeException($errorMessage . ': ' . $reason);
         }
+
+        $this->logMailSuccess($email, $subject);
 
         return [
             'driver' => 'mail',
@@ -75,13 +93,28 @@ class EmailService
         ];
     }
 
+    private function buildAdditionalParameters(?string $fromAddress): ?string
+    {
+        if ($fromAddress === null || $fromAddress === '') {
+            return null;
+        }
+
+        if (!filter_var($fromAddress, FILTER_VALIDATE_EMAIL)) {
+            return null;
+        }
+
+        $sanitizedAddress = preg_replace('/[^A-Za-z0-9@._+-]/', '', $fromAddress);
+        if ($sanitizedAddress === null || $sanitizedAddress === '') {
+            return null;
+        }
+
+        return '-f' . $sanitizedAddress;
+    }
+
     private function logEmail(string $email, string $subject, string $message): string
     {
         $timestamp = date('Y-m-d H:i:s');
-        $logDir = dirname(__DIR__, 2) . '/storage/logs';
-        if (!is_dir($logDir) && !mkdir($logDir, 0775, true) && !is_dir($logDir)) {
-            throw new RuntimeException('Unable to create mail log directory');
-        }
+        $logDir = $this->resolveLogDirectory();
 
         $entry = <<<LOG
 [{$timestamp}] To: {$email}
@@ -100,6 +133,38 @@ LOG;
         return $realPath !== false ? $realPath : $logFile;
     }
 
+    private function resolveLogDirectory(): string
+    {
+        $primaryDir = dirname(__DIR__, 2) . '/storage/logs';
+        if ($this->ensureWritableDirectory($primaryDir)) {
+            return $primaryDir;
+        }
+
+        $fallbackDir = rtrim(sys_get_temp_dir(), DIRECTORY_SEPARATOR) . DIRECTORY_SEPARATOR . 'cholestofit-mail-logs';
+        if ($this->ensureWritableDirectory($fallbackDir)) {
+            return $fallbackDir;
+        }
+
+        throw new RuntimeException('Unable to create mail log directory');
+    }
+
+    private function ensureWritableDirectory(string $directory): bool
+    {
+        if (!is_dir($directory)) {
+            if (!mkdir($directory, 0775, true) && !is_dir($directory)) {
+                return false;
+            }
+        }
+
+        if (is_writable($directory)) {
+            return true;
+        }
+
+        @chmod($directory, 0775);
+
+        return is_writable($directory);
+    }
+
     private function formatAddress(?string $name, string $address): string
     {
         if ($name === null || $name === '') {
@@ -109,5 +174,26 @@ LOG;
         $escapedName = addcslashes($name, "\"\\");
 
         return sprintf('"%s" <%s>', $escapedName, $address);
+    }
+
+    private function logMailAttempt(string $email, string $subject, string $driver): void
+    {
+        $message = sprintf('[mail] Attempting to send email via "%s" driver to %s with subject "%s"', $driver, $email, $subject);
+
+        error_log($message);
+    }
+
+    private function logMailFailure(string $email, string $subject, string $reason): void
+    {
+        $message = sprintf('[mail] Failed to send email to %s with subject "%s": %s', $email, $subject, $reason);
+
+        error_log($message);
+    }
+
+    private function logMailSuccess(string $email, string $subject): void
+    {
+        $message = sprintf('[mail] Successfully sent email to %s with subject "%s"', $email, $subject);
+
+        error_log($message);
     }
 }
