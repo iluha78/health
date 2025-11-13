@@ -53,6 +53,23 @@ MAIL_DRIVER=mail
 
 Если необходимо очистить журнал, просто удалите файл `mail.log` (он будет создан вновь при следующей отправке). При использовании драйвера `mail` важно корректно настроить системный MTA, иначе отправка завершится ошибкой.
 
+Для отправки через SMTP задайте:
+
+```
+MAIL_DRIVER=smtp
+MAIL_SMTP_HOST=smtp.example.com
+MAIL_SMTP_PORT=587
+MAIL_SMTP_ENCRYPTION=tls # допустимые варианты: tls/starttls, ssl, none
+MAIL_SMTP_AUTH=true
+MAIL_SMTP_USERNAME=your-login
+MAIL_SMTP_PASSWORD=your-password
+MAIL_SMTP_TIMEOUT=30
+MAIL_SMTP_EHLO_DOMAIN=localhost
+```
+
+Если SMTP-сервер не требует авторизации, установите `MAIL_SMTP_AUTH=false`. При значении `MAIL_SMTP_ENCRYPTION=none` шифрование будет отключено (и автоматическое повышение до TLS также), для SMTPS используйте `ssl`, для StartTLS — `tls` или `starttls`.
+При необходимости скорректируйте таймаут подключения через `MAIL_SMTP_TIMEOUT` (значение в секундах) и укажите домен, который будет отправлен в команде `EHLO`, через `MAIL_SMTP_EHLO_DOMAIN`.
+
 > **Подсказка.** При активном драйвере `log` API дополнительно возвращает сам код подтверждения/восстановления в тексте ответа, чтобы вы могли сразу завершить сценарий даже без просмотра файла журнала.
 
 ### Автоматический запуск миграций

@@ -45,6 +45,133 @@ class EmailService
             ];
         }
 
+        if ($driver === 'smtp') {
+            return $this->sendSmtp($email, $subject, $message, $errorMessage);
+        }
+
+        return $this->sendNativeMail($email, $subject, $message, $errorMessage);
+    }
+
+    /**
+     * @return array{driver: string, log_path: string|null}
+     */
+    private function sendSmtp(string $email, string $subject, string $message, string $errorMessage): array
+    {
+        $fromAddress = Env::string('MAIL_FROM_ADDRESS', 'no-reply@example.com');
+        $fromName = Env::string('MAIL_FROM_NAME', 'CholestoFit');
+        $host = Env::string('MAIL_SMTP_HOST');
+
+        if ($host === null || $host === '') {
+            throw new RuntimeException('MAIL_SMTP_HOST is not configured');
+        }
+
+        if ($fromAddress === null || $fromAddress === '') {
+            throw new RuntimeException('MAIL_FROM_ADDRESS is required for SMTP driver');
+        }
+
+        $port = Env::int('MAIL_SMTP_PORT', 587);
+        $encryption = strtolower(Env::string('MAIL_SMTP_ENCRYPTION', 'tls') ?? '');
+        $username = Env::string('MAIL_SMTP_USERNAME');
+        $password = Env::string('MAIL_SMTP_PASSWORD');
+        $smtpAuth = Env::bool('MAIL_SMTP_AUTH', true);
+        $timeout = Env::int('MAIL_SMTP_TIMEOUT', 30);
+        $ehloDomain = Env::string('MAIL_SMTP_EHLO_DOMAIN', gethostname() ?: 'localhost') ?? 'localhost';
+
+        $allowedEncryption = ['', 'none', 'ssl', 'smtps', 'tls', 'starttls'];
+        if (!in_array($encryption, $allowedEncryption, true)) {
+            throw new RuntimeException('Unsupported MAIL_SMTP_ENCRYPTION value');
+        }
+
+        if ($smtpAuth && (($username === null || $username === '') || ($password === null || $password === ''))) {
+            throw new RuntimeException('SMTP authentication requires MAIL_SMTP_USERNAME and MAIL_SMTP_PASSWORD');
+        }
+
+        $stream = $this->openSmtpStream($host, $port, $encryption, $timeout);
+
+        try {
+            $this->expectResponse($stream, [220], 'SMTP greeting');
+
+            $this->sendCommand($stream, sprintf('EHLO %s', $ehloDomain));
+            $ehloResponse = $this->expectResponse($stream, [250], 'EHLO command');
+
+            if (in_array($encryption, ['tls', 'starttls'], true)) {
+                if (stripos($ehloResponse, 'STARTTLS') === false) {
+                    throw new RuntimeException('SMTP server does not support STARTTLS');
+                }
+
+                $this->sendCommand($stream, 'STARTTLS');
+                $this->expectResponse($stream, [220], 'STARTTLS negotiation');
+
+                if (defined('STREAM_CRYPTO_METHOD_TLS_CLIENT')) {
+                    $cryptoMethod = STREAM_CRYPTO_METHOD_TLS_CLIENT;
+                } else {
+                    $cryptoMethod = 0;
+                    foreach ([
+                        'STREAM_CRYPTO_METHOD_TLSv1_3_CLIENT',
+                        'STREAM_CRYPTO_METHOD_TLSv1_2_CLIENT',
+                        'STREAM_CRYPTO_METHOD_TLSv1_1_CLIENT',
+                        'STREAM_CRYPTO_METHOD_TLSv1_0_CLIENT',
+                    ] as $methodConstant) {
+                        if (defined($methodConstant)) {
+                            $cryptoMethod |= (int) constant($methodConstant);
+                        }
+                    }
+
+                    if ($cryptoMethod === 0) {
+                        throw new RuntimeException('No supported TLS crypto method available for STARTTLS');
+                    }
+                }
+
+                if (!stream_socket_enable_crypto($stream, true, $cryptoMethod)) {
+                    throw new RuntimeException('Unable to establish TLS encryption');
+                }
+
+                $this->sendCommand($stream, sprintf('EHLO %s', $ehloDomain));
+                $this->expectResponse($stream, [250], 'EHLO after STARTTLS');
+            }
+
+            if ($smtpAuth) {
+                $this->sendCommand($stream, 'AUTH LOGIN');
+                $this->expectResponse($stream, [334], 'AUTH LOGIN command');
+
+                $this->sendCommand($stream, base64_encode((string) $username));
+                $this->expectResponse($stream, [334], 'SMTP username acceptance');
+
+                $this->sendCommand($stream, base64_encode((string) $password));
+                $this->expectResponse($stream, [235], 'SMTP authentication');
+            }
+
+            $this->sendCommand($stream, sprintf('MAIL FROM:<%s>', $fromAddress));
+            $this->expectResponse($stream, [250], 'MAIL FROM command');
+
+            $this->sendCommand($stream, sprintf('RCPT TO:<%s>', $email));
+            $this->expectResponse($stream, [250, 251], 'RCPT TO command');
+
+            $this->sendCommand($stream, 'DATA');
+            $this->expectResponse($stream, [354], 'DATA command');
+
+            $this->sendData($stream, $email, $fromName, $fromAddress, $subject, $message);
+            $this->expectResponse($stream, [250], 'Message transmission');
+
+            $this->sendCommand($stream, 'QUIT');
+            $this->expectResponse($stream, [221], 'QUIT command');
+        } catch (RuntimeException $exception) {
+            throw new RuntimeException($errorMessage . ': ' . $exception->getMessage(), 0, $exception);
+        } finally {
+            fclose($stream);
+        }
+
+        return [
+            'driver' => 'smtp',
+            'log_path' => null,
+        ];
+    }
+
+    /**
+     * @return array{driver: string, log_path: string|null}
+     */
+    private function sendNativeMail(string $email, string $subject, string $message, string $errorMessage): array
+    {
         $fromAddress = Env::string('MAIL_FROM_ADDRESS', 'no-reply@example.com');
         $fromName = Env::string('MAIL_FROM_NAME', 'CholestoFit');
 
@@ -109,5 +236,152 @@ LOG;
         $escapedName = addcslashes($name, "\"\\");
 
         return sprintf('"%s" <%s>', $escapedName, $address);
+    }
+
+    /**
+     * @param resource $stream
+     */
+    private function openSmtpStream(string $host, int $port, string $encryption, int $timeout)
+    {
+        $remote = sprintf('%s:%d', $host, $port);
+        if (in_array($encryption, ['ssl', 'smtps'], true)) {
+            $remote = sprintf('ssl://%s:%d', $host, $port);
+        }
+
+        $stream = @stream_socket_client($remote, $errno, $errstr, $timeout, STREAM_CLIENT_CONNECT);
+        if ($stream === false) {
+            throw new RuntimeException(sprintf('Unable to connect to SMTP server: %s (%d)', $errstr ?: 'unknown error', $errno));
+        }
+
+        stream_set_timeout($stream, $timeout);
+
+        return $stream;
+    }
+
+    /**
+     * @param resource $stream
+     */
+    private function sendCommand($stream, string $command): void
+    {
+        $this->writeToStream($stream, $command . "\r\n");
+    }
+
+    /**
+     * @param resource $stream
+     * @param array<int, int> $expectedCodes
+     */
+    private function expectResponse($stream, array $expectedCodes, string $context): string
+    {
+        $response = $this->readResponse($stream);
+
+        if ($response === null) {
+            throw new RuntimeException(sprintf('%s: empty response from server', $context));
+        }
+
+        [$code, $message] = $response;
+
+        if (!in_array($code, $expectedCodes, true)) {
+            throw new RuntimeException(sprintf('%s: unexpected response %d %s', $context, $code, $message));
+        }
+
+        return $message;
+    }
+
+    /**
+     * @param resource $stream
+     * @return array{int, string}|null
+     */
+    private function readResponse($stream): ?array
+    {
+        $lines = [];
+
+        while (($line = fgets($stream)) !== false) {
+            $line = rtrim($line, "\r\n");
+            if ($line === '') {
+                continue;
+            }
+
+            $lines[] = $line;
+
+            if (strlen($line) >= 4 && $line[3] === ' ') {
+                break;
+            }
+        }
+
+        if ($lines === []) {
+            return null;
+        }
+
+        $firstLine = $lines[0];
+        $code = (int) substr($firstLine, 0, 3);
+        $message = implode("\n", $lines);
+
+        return [$code, $message];
+    }
+
+    /**
+     * @param resource $stream
+     */
+    private function sendData($stream, string $recipient, ?string $fromName, string $fromAddress, string $subject, string $message): void
+    {
+        $encodedSubject = $subject;
+        if (function_exists('mb_encode_mimeheader')) {
+            $encodedSubject = mb_encode_mimeheader($subject, 'UTF-8', 'B', "\r\n");
+        }
+
+        $headers = [
+            'Date: ' . date(DATE_RFC2822),
+            'From: ' . $this->formatAddress($fromName, $fromAddress),
+            'To: <' . $recipient . '>',
+            'Subject: ' . $encodedSubject,
+            'MIME-Version: 1.0',
+            'Content-Type: text/plain; charset=UTF-8',
+            'Content-Transfer-Encoding: 8bit',
+        ];
+
+        $body = implode("\r\n", $headers) . "\r\n\r\n";
+        $normalized = preg_replace('/\r\n|\r|\n/', "\r\n", $message);
+        if ($normalized === null) {
+            $normalized = '';
+        }
+
+        $lines = $normalized === '' ? [] : explode("\r\n", $normalized);
+        if ($lines === []) {
+            $lines = [''];
+        }
+
+        foreach ($lines as $line) {
+            if (isset($line[0]) && $line[0] === '.') {
+                $line = '.' . $line;
+            }
+
+            $body .= $line . "\r\n";
+        }
+
+        $body .= ".\r\n";
+
+        $this->writeToStream($stream, $body);
+    }
+
+    /**
+     * @param resource $stream
+     */
+    private function writeToStream($stream, string $data): void
+    {
+        $length = strlen($data);
+        $written = 0;
+
+        while ($written < $length) {
+            $chunk = @fwrite($stream, substr($data, $written));
+            if ($chunk === false) {
+                throw new RuntimeException('Failed to write to SMTP stream');
+            }
+
+            if ($chunk === 0) {
+                throw new RuntimeException('SMTP stream write returned zero bytes');
+            }
+
+            $written += $chunk;
+        }
     }
 }
