@@ -963,6 +963,9 @@ section h2 {
   color: #1c2753;
   font-size: 0.85rem;
   font-weight: 600;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .metric-tags {
@@ -978,6 +981,25 @@ section h2 {
   color: #1c2753;
   font-weight: 600;
   font-size: 0.85rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.2s ease, color 0.2s ease;
+}
+
+.metric-tag--normal {
+  background: #e3f7e9;
+  color: #0f5132;
+}
+
+.metric-tag--mild {
+  background: #e0ecff;
+  color: #1f3b8f;
+}
+
+.metric-tag--severe {
+  background: #fde5e7;
+  color: #7f1d1d;
 }
 
 .history-question {
@@ -1380,6 +1402,11 @@ details summary {
   .history-meta {
     flex-direction: column;
     align-items: flex-start;
+  }
+
+  .history-meta .history-tag {
+    width: 100%;
+    justify-content: center;
   }
 
   .settings-card {
