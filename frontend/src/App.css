@@ -49,7 +49,6 @@ body {
   flex-wrap: wrap;
   width: 100%;
   max-width: 960px;
-  margin: 0 auto;
 }
 
 .brand h1 {
@@ -194,6 +193,37 @@ body {
   height: 1.2rem;
 }
 
+@media (max-width: 640px) {
+  .topbar {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    grid-template-areas:
+      "language brand"
+      "profile profile";
+    column-gap: 1rem;
+    row-gap: 1rem;
+  }
+
+  .topbar .brand {
+    grid-area: brand;
+    justify-self: end;
+    text-align: right;
+  }
+
+  .language-selector.topbar-language {
+    grid-area: language;
+    justify-self: start;
+    justify-content: flex-start;
+  }
+
+  .topbar-profile {
+    grid-area: profile;
+    width: 100%;
+    justify-self: stretch;
+    justify-content: space-between;
+  }
+}
+
 .button.small,
 button.small {
   padding: 0.45rem 1.1rem;
@@ -208,8 +238,8 @@ button.small {
   width: 100%;
 }
 
-.content.topbar {
-  justify-content: space-between;
+.content-topbar {
+  flex: 0 0 auto;
 }
 
 .tab-container {

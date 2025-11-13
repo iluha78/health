@@ -588,12 +588,13 @@ const App = observer(() => {
 
   return (
     <div className="app-shell text-slate-900">
-      <header className="topbar content rounded-2xl bg-white/70 px-4 py-3 shadow-sm backdrop-blur md:px-6 md:py-4">
-        <div className="brand">
-          <h1>HlCoAi</h1>
-          <p>{t("common.tagline")}</p>
-        </div>
-        <LanguageSelector className="topbar-language" />
+      <div className="content content-topbar">
+        <header className="topbar rounded-2xl bg-white/70 px-4 py-3 shadow-sm backdrop-blur md:px-6 md:py-4">
+          <div className="brand">
+            <h1>HlCoAi</h1>
+            <p>{t("common.tagline")}</p>
+          </div>
+          <LanguageSelector className="topbar-language" />
         <div className="topbar-profile">
           <div className="topbar-profile-text">
             <span className="topbar-profile-email">{userStore.me?.email ?? email}</span>
@@ -620,7 +621,8 @@ const App = observer(() => {
             </button>
           </div>
         </div>
-      </header>
+        </header>
+      </div>
       <main className="content pb-6 md:pb-8">
         <div className="tab-container">
           {activeTab === "bp" && (
