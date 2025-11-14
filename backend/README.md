@@ -65,10 +65,24 @@ MAIL_SMTP_USERNAME=your-login
 MAIL_SMTP_PASSWORD=your-password
 MAIL_SMTP_TIMEOUT=30
 MAIL_SMTP_EHLO_DOMAIN=localhost
+MAIL_SMTP_TLS_VERIFY_PEER=true
+MAIL_SMTP_TLS_VERIFY_PEER_NAME=true
+MAIL_SMTP_TLS_ALLOW_SELF_SIGNED=false
+MAIL_SMTP_TLS_CAFILE=/path/to/cacert.pem
+MAIL_SMTP_TLS_CAPATH=/path/to/cadir
 ```
 
 Если SMTP-сервер не требует авторизации, установите `MAIL_SMTP_AUTH=false`. При значении `MAIL_SMTP_ENCRYPTION=none` шифрование будет отключено (и автоматическое повышение до TLS также), для SMTPS используйте `ssl`, для StartTLS — `tls` или `starttls`.
 При необходимости скорректируйте таймаут подключения через `MAIL_SMTP_TIMEOUT` (значение в секундах) и укажите домен, который будет отправлен в команде `EHLO`, через `MAIL_SMTP_EHLO_DOMAIN`.
+
+Для управления проверкой сертификатов TLS доступны дополнительные переменные окружения:
+
+- `MAIL_SMTP_TLS_VERIFY_PEER` — включить/отключить проверку сертификата сервера (по умолчанию `true`);
+- `MAIL_SMTP_TLS_VERIFY_PEER_NAME` — проверять соответствие имени хоста сертификату (по умолчанию `true`);
+- `MAIL_SMTP_TLS_ALLOW_SELF_SIGNED` — разрешить самоподписанные сертификаты (`false` по умолчанию);
+- `MAIL_SMTP_TLS_CAFILE`/`MAIL_SMTP_TLS_CAPATH` — путь к кастомному файлу/каталогу доверенных сертификатов, если стандартное хранилище не содержит цепочку вашего SMTP.
+
+Если TLS-рукопожатие завершается ошибкой проверки сертификата, вы можете временно отключить проверку (`MAIL_SMTP_TLS_VERIFY_PEER=false`) или указать собственный список доверенных сертификатов через `MAIL_SMTP_TLS_CAFILE`, чтобы корректно подключиться к серверу с самоподписанным сертификатом.
 
 > **Подсказка.** При активном драйвере `log` API дополнительно возвращает сам код подтверждения/восстановления в тексте ответа, чтобы вы могли сразу завершить сценарий даже без просмотра файла журнала.
 
