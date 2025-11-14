@@ -86,7 +86,26 @@ class EmailService
             throw new RuntimeException('SMTP authentication requires MAIL_SMTP_USERNAME and MAIL_SMTP_PASSWORD');
         }
 
-        $stream = $this->openSmtpStream($host, $port, $encryption, $timeout);
+        $verifyPeer = Env::bool('MAIL_SMTP_TLS_VERIFY_PEER', true);
+        $verifyPeerName = Env::bool('MAIL_SMTP_TLS_VERIFY_PEER_NAME', true);
+        $allowSelfSigned = Env::bool('MAIL_SMTP_TLS_ALLOW_SELF_SIGNED', false);
+        $caFile = Env::string('MAIL_SMTP_TLS_CAFILE');
+        $caPath = Env::string('MAIL_SMTP_TLS_CAPATH');
+
+        $tlsOptions = [];
+        $tlsOptions['verify_peer'] = $verifyPeer;
+        $tlsOptions['verify_peer_name'] = $verifyPeerName;
+        $tlsOptions['allow_self_signed'] = $allowSelfSigned;
+
+        if ($caFile !== null && $caFile !== '') {
+            $tlsOptions['cafile'] = $caFile;
+        }
+
+        if ($caPath !== null && $caPath !== '') {
+            $tlsOptions['capath'] = $caPath;
+        }
+
+        $stream = $this->openSmtpStream($host, $port, $encryption, $timeout, $tlsOptions);
 
         try {
             $this->expectResponse($stream, [220], 'SMTP greeting');
@@ -122,8 +141,16 @@ class EmailService
                     }
                 }
 
-                if (!stream_socket_enable_crypto($stream, true, $cryptoMethod)) {
-                    throw new RuntimeException('Unable to establish TLS encryption');
+                error_clear_last();
+                $cryptoEnabled = @stream_socket_enable_crypto($stream, true, $cryptoMethod);
+                if ($cryptoEnabled !== true) {
+                    $error = error_get_last();
+                    $details = '';
+                    if (is_array($error) && isset($error['message']) && $error['message'] !== '') {
+                        $details = ': ' . $error['message'];
+                    }
+
+                    throw new RuntimeException('Unable to establish TLS encryption' . $details);
                 }
 
                 $this->sendCommand($stream, sprintf('EHLO %s', $ehloDomain));
@@ -241,19 +268,36 @@ LOG;
     /**
      * @param resource $stream
      */
-    private function openSmtpStream(string $host, int $port, string $encryption, int $timeout)
+    private function openSmtpStream(string $host, int $port, string $encryption, int $timeout, array $tlsOptions)
     {
         $remote = sprintf('%s:%d', $host, $port);
         if (in_array($encryption, ['ssl', 'smtps'], true)) {
             $remote = sprintf('ssl://%s:%d', $host, $port);
         }
 
-        $stream = @stream_socket_client($remote, $errno, $errstr, $timeout, STREAM_CLIENT_CONNECT);
+        $context = stream_context_create();
+        foreach ($tlsOptions as $option => $value) {
+            if ($value === null) {
+                continue;
+            }
+
+            stream_context_set_option($context, 'ssl', $option, $value);
+        }
+
+        $stream = @stream_socket_client($remote, $errno, $errstr, $timeout, STREAM_CLIENT_CONNECT, $context);
         if ($stream === false) {
             throw new RuntimeException(sprintf('Unable to connect to SMTP server: %s (%d)', $errstr ?: 'unknown error', $errno));
         }
 
         stream_set_timeout($stream, $timeout);
+
+        foreach ($tlsOptions as $option => $value) {
+            if ($value === null) {
+                continue;
+            }
+
+            stream_context_set_option($stream, 'ssl', $option, $value);
+        }
 
         return $stream;
     }
