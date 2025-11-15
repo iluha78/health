@@ -3,6 +3,7 @@
 namespace App\Services;
 
 use App\Support\Env;
+use App\Support\Localization;
 use RuntimeException;
 
 class EmailService
@@ -10,10 +11,10 @@ class EmailService
     /**
      * @return array{driver: string, log_path: string|null}
      */
-    public function sendVerificationCode(string $email, string $code): array
+    public function sendVerificationCode(string $email, string $code, string $language): array
     {
-        $subject = 'Код подтверждения регистрации';
-        $message = "Ваш код подтверждения: {$code}\n\nВведите его в приложении, чтобы завершить регистрацию.";
+        $subject = Localization::email($language, 'verification_subject');
+        $message = Localization::email($language, 'verification_body', ['code' => $code]);
 
         return $this->sendEmail($email, $subject, $message, 'Unable to send verification email');
     }
@@ -21,10 +22,10 @@ class EmailService
     /**
      * @return array{driver: string, log_path: string|null}
      */
-    public function sendPasswordResetCode(string $email, string $code): array
+    public function sendPasswordResetCode(string $email, string $code, string $language): array
     {
-        $subject = 'Восстановление пароля CholestoFit';
-        $message = "Вы запросили восстановление пароля. Код: {$code}\n\nЕсли вы не запрашивали восстановление, просто проигнорируйте это письмо.";
+        $subject = Localization::email($language, 'reset_subject');
+        $message = Localization::email($language, 'reset_body', ['code' => $code]);
 
         return $this->sendEmail($email, $subject, $message, 'Unable to send password reset email');
     }

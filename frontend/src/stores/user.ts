@@ -59,7 +59,7 @@ export class UserStore {
             resp = await fetch(apiUrl("/auth/register"), {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ email, pass })
+                body: JSON.stringify({ email, pass, language: i18n.language })
             });
 
             bodyText = await resp.text();
@@ -144,7 +144,7 @@ export class UserStore {
             resp = await fetch(apiUrl("/auth/password/request"), {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ email })
+                body: JSON.stringify({ email, language: i18n.language })
             });
 
             bodyText = await resp.text();
