@@ -5,6 +5,7 @@ use App\Models\User;
 use App\Services\EmailService;
 use App\Services\SubscriptionService;
 use App\Support\Env;
+use App\Support\Localization;
 use App\Support\ResponseHelper;
 use Firebase\JWT\JWT;
 use Psr\Http\Message\ResponseInterface as Response;
@@ -22,6 +23,7 @@ class AuthController
     public function register(Request $request, Response $response): Response
     {
         $data = (array) $request->getParsedBody();
+        $language = Localization::normalize($data['language'] ?? null);
         $email = strtolower(trim($data['email'] ?? ''));
         $pass = $data['pass'] ?? '';
 
@@ -56,7 +58,7 @@ class AuthController
         ]);
 
         try {
-            $dispatch = $this->emailService->sendVerificationCode($user->email, $verificationCode);
+            $dispatch = $this->emailService->sendVerificationCode($user->email, $verificationCode, $language);
         } catch (\Throwable $exception) {
             $user->delete();
 
@@ -64,8 +66,11 @@ class AuthController
         }
 
         $verificationMessage = $dispatch['driver'] === 'log'
-            ? 'Код подтверждения: ' . $verificationCode . '. Также сохранен в журнале ' . $this->formatLogPathForDisplay($dispatch['log_path'])
-            : 'Код подтверждения отправлен на ваш email';
+            ? Localization::message($language, 'auth.register.log_message', [
+                'code' => $verificationCode,
+                'logPath' => $this->formatLogPathForDisplay($dispatch['log_path']),
+            ])
+            : Localization::message($language, 'auth.register.sent_message');
 
         return ResponseHelper::json($response, [
             'status' => 'verification_required',
@@ -135,6 +140,7 @@ class AuthController
     public function requestPasswordReset(Request $request, Response $response): Response
     {
         $data = (array) $request->getParsedBody();
+        $language = Localization::normalize($data['language'] ?? null);
         $email = strtolower(trim($data['email'] ?? ''));
 
         if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
@@ -145,7 +151,7 @@ class AuthController
         if (!$user) {
             return ResponseHelper::json($response, [
                 'status' => 'reset_code_sent',
-                'message' => $this->buildResetMessage(null),
+                'message' => $this->buildResetMessage(null, null, $language),
             ]);
         }
 
@@ -156,14 +162,14 @@ class AuthController
         $user->save();
 
         try {
-            $dispatch = $this->emailService->sendPasswordResetCode($user->email, $resetCode);
+            $dispatch = $this->emailService->sendPasswordResetCode($user->email, $resetCode, $language);
         } catch (\Throwable $exception) {
             return ResponseHelper::json($response, ['error' => 'Не удалось отправить код восстановления'], 500);
         }
 
         return ResponseHelper::json($response, [
             'status' => 'reset_code_sent',
-            'message' => $this->buildResetMessage($dispatch, $dispatch['driver'] === 'log' ? $resetCode : null),
+            'message' => $this->buildResetMessage($dispatch, $dispatch['driver'] === 'log' ? $resetCode : null, $language),
         ]);
     }
 
@@ -230,21 +236,26 @@ class AuthController
      * @param array{driver: string, log_path: string|null}|null $dispatch
      * @param string|null $code
      */
-    private function buildResetMessage(?array $dispatch, ?string $code = null): string
+    private function buildResetMessage(?array $dispatch, ?string $code = null, string $language = Localization::DEFAULT_LANGUAGE): string
     {
         if ($dispatch !== null && $dispatch['driver'] !== 'log') {
-            return 'Если email зарегистрирован, код восстановления отправлен';
+            return Localization::message($language, 'auth.reset.sent_message');
         }
 
         $logPath = $dispatch['log_path'] ?? null;
 
-        $baseMessage = 'Если email зарегистрирован, код восстановления сохранен в журнале ' . $this->formatLogPathForDisplay($logPath);
+        $baseMessage = Localization::message($language, 'auth.reset.logged_message', [
+            'logPath' => $this->formatLogPathForDisplay($logPath),
+        ]);
 
         if ($code === null) {
             return $baseMessage;
         }
 
-        return 'Код восстановления: ' . $code . '. ' . $baseMessage;
+        return Localization::message($language, 'auth.reset.logged_message_with_code', [
+            'code' => $code,
+            'logPath' => $this->formatLogPathForDisplay($logPath),
+        ]);
     }
 
     private function formatLogPathForDisplay(?string $absolutePath): string
