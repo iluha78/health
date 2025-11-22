@@ -10,11 +10,15 @@ use App\Controllers\AdviceController;
 use App\Controllers\BillingController;
 use App\Controllers\AnalysisController;
 use App\Controllers\AssistantController;
+use App\Controllers\PublicContentController;
 use App\Controllers\PressureController;
 use App\Middleware\JwtMiddleware;
 use Slim\Routing\RouteCollectorProxy;
 
 /** @var App $app */
+$app->get('/public/landing', [PublicContentController::class, 'landing']);
+$app->get('/public/news/{slug}', [PublicContentController::class, 'article']);
+
 $app->post('/auth/register', [AuthController::class, 'register']);
 $app->post('/auth/login',    [AuthController::class, 'login']);
 $app->post('/auth/verify',   [AuthController::class, 'verify']);
