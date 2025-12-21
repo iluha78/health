@@ -30,7 +30,9 @@ body {
 }
 
 .auth .auth-language select {
-  min-width: 140px;
+  border-radius: 10px;
+  background: none;
+  font-size: 20px;
 }
 
 .app-shell {
@@ -69,7 +71,7 @@ body {
   background: #ffffffcc;
   backdrop-filter: blur(6px);
   padding: 0.75rem 1.15rem;
-  border-radius: 999px;
+  border-radius: 10px;
   box-shadow: 0 12px 24px -18px rgba(47, 70, 175, 0.4);
   justify-content: center;
 }
@@ -89,7 +91,7 @@ body {
 }
 
 .language-selector.topbar-language {
-  justify-content: center;
+  justify-content: end;
 }
 
 .language-selector.topbar-language > * {
@@ -107,7 +109,9 @@ body {
 }
 
 .language-selector.topbar-language select {
-  width: min(100%, 280px);
+  border-radius: 10px;
+  background: none;
+  font-size: 20px;
 }
 
 .language-selector select:focus-visible {
@@ -149,8 +153,8 @@ body {
 
 .topbar-profile .button.ghost,
 .topbar-profile button.ghost {
-  border-color: rgba(58, 87, 241, 0.5);
-  color: #3a57f1;
+  border-color: rgb(15 164 150);
+  color: #12a99a;
 }
 
 .topbar-profile-text {
@@ -278,7 +282,7 @@ button.small {
 .tab-button {
   border: none;
   background: transparent;
-  color: #3a57f1;
+  color: #0d9488;
   padding: 0.55rem 0.5rem 0.65rem;
   border-radius: 0.85rem;
   font-weight: 600;
@@ -483,10 +487,10 @@ button.small {
   gap: 0.5rem;
   padding: 0.6rem 1.1rem;
   border-radius: 0.75rem;
-  background: #3c56ff;
-  color: #fff;
+  background: transparent;
+  border: 1px solid #0d9488;
+  color: #0d9488;
   font-weight: 600;
-  border: none;
   cursor: pointer;
   transition: background 0.2s ease, transform 0.2s ease;
   box-shadow: 0 10px 20px -15px rgba(35, 60, 140, 0.6);
@@ -638,6 +642,8 @@ button.small {
 .card button,
 .card textarea {
   font-size: 0.95rem;
+  border-radius: 0.9rem;
+
 }
 
 .password-input {
@@ -739,7 +745,7 @@ button,
 .button {
   cursor: pointer;
   border: none;
-  background: #3a57f1;
+  background: #0d9488;
   color: #fff;
   padding: 0.65rem 1.6rem;
   border-radius: 0.9rem;
@@ -755,7 +761,7 @@ button,
 
 button:hover,
 .button:hover {
-  background: #2b44c8;
+  background: linear-gradient(135deg, #fb7185, #f43f5e);
 }
 
 button:disabled {
@@ -774,8 +780,8 @@ button.ghost:disabled:hover,
 
 .ghost {
   background: transparent;
-  border: 1px solid #3a57f1;
-  color: #3a57f1;
+  border: 1px solid #0d9488;
+  color: #0d9488;
 }
 
 .ghost:hover {
@@ -1017,7 +1023,7 @@ section h2 {
 
 .metric-tag {
   padding: 0.25rem 0.7rem;
-  border-radius: 999px;
+  border-radius: 5px;
   background: #e8ecff;
   color: #1c2753;
   font-weight: 600;
@@ -1193,7 +1199,7 @@ section h2 {
 
 .assistant-message.user {
   align-self: flex-end;
-  background: linear-gradient(135deg, #5b7cff, #3a57f1);
+  background: linear-gradient(135deg, #14b3a3, #0b9f91);
   color: #fff;
 }
 
@@ -1434,7 +1440,9 @@ details summary {
   }
 
   .language-selector.topbar-language select {
-    width: 100%;
+    border-radius: 10px;
+    background: none;
+    font-size: 20px;
   }
 
   .topbar-profile .button,
@@ -1523,11 +1531,6 @@ details summary {
   gap: 0.35rem;
 }
 
-.assistant-message.user {
-  align-self: flex-end;
-  background: linear-gradient(135deg, #5b7cff, #3a57f1);
-  color: #fff;
-}
 
 .assistant-message.assistant {
   align-self: flex-start;
@@ -1712,7 +1715,7 @@ details summary {
 
 .settings-tab.active,
 .settings-tab:hover {
-  background: linear-gradient(135deg, #5b7cff, #3a57f1);
+  background: linear-gradient(135deg, #14b3a3, #0b9f91);
   color: #fff;
   box-shadow: 0 12px 24px -18px rgba(30, 63, 180, 0.6);
 }

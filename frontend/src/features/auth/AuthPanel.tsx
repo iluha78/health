@@ -73,7 +73,12 @@ export const AuthPanel = ({
   return (
     <div className="auth">
       <LanguageSelector className="auth-language" />
-      <h1>HlCoAi</h1>
+
+      <h1  className="flex items-center gap-2.5">
+        <div
+            className="w-11 h-11 bg-gradient-to-br from-teal-500 to-teal-600 rounded-xl flex items-center justify-center text-white font-extrabold text-xl shadow-lg">H
+        </div>
+        <span className="font-outfit text-2xl font-extrabold">Hl<span className="text-teal-600">CoAi</span></span></h1>
       <p>{t("auth.subtitle")}</p>
       <form className="card" onSubmit={onSubmit}>
         <label>

@@ -24,7 +24,7 @@ export const TabNavigation = ({ items, activeTab, onSelect, className }: TabNavi
         <button
           key={item.key}
           type="button"
-          className={`tab-button${activeTab === item.key ? " active" : ""}`}
+          className={`${activeTab === item.key ? " btn-cta" : "tab-button"}`}
           onClick={() => onSelect(item.key)}
           aria-current={activeTab === item.key ? "page" : undefined}
         >

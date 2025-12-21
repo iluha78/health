@@ -1,7 +1,7 @@
 import type { ChangeEvent, FormEvent } from "react";
 import { useTranslation } from "../../i18n";
 import { formatDateTime } from "../../lib/datetime";
-import { LIPID_RANGES, getMetricTagClassName } from "../../lib/metrics";
+import {LIPID_RANGES, getMetricTagClassName, BLOOD_PRESSURE_RANGES} from "../../lib/metrics";
 import type { LipidFormState, LipidRecord } from "../../types/forms";
 
 export type LipidTabProps = {
@@ -153,35 +153,51 @@ export const LipidTab = ({
                   <div className="history-meta">
                     <span className="history-tag">{formatDateTime(entry.createdAt)}</span>
                     <div className="metric-tags">
-                      {entry.date && <span className="metric-tag">{t("lipid.metrics.date", { value: entry.date })}</span>}
                       {entry.cholesterol && (
-                        <span
-                          className={getMetricTagClassName(entry.cholesterol, LIPID_RANGES.cholesterol)}
-                        >
-                          {t("lipid.metrics.cholesterol", { value: entry.cholesterol })}
-                        </span>
+                          <div
+                              className={`flex flex-col items-center 
+                              ${getMetricTagClassName(entry.cholesterol, LIPID_RANGES.cholesterol)}`}
+                          >
+                            <span className="opacity-70">{t("lipid.metrics.cholesterol")}</span>
+                            <span className="text-2xl font-bold leading-none">{entry.cholesterol}</span>
+                          </div>
                       )}
                       {entry.hdl && (
-                        <span className={getMetricTagClassName(entry.hdl, LIPID_RANGES.hdl)}>
-                          {t("lipid.metrics.hdl", { value: entry.hdl })}
-                        </span>
+                          <div
+                              className={`flex flex-col items-center 
+                              ${getMetricTagClassName(entry.hdl, LIPID_RANGES.hdl)}`}
+                          >
+                            <span className="opacity-70">{t("lipid.metrics.hdl")}</span>
+                            <span className="text-2xl font-bold leading-none">{entry.hdl}</span>
+                          </div>
                       )}
                       {entry.ldl && (
-                        <span className={getMetricTagClassName(entry.ldl, LIPID_RANGES.ldl)}>
-                          {t("lipid.metrics.ldl", { value: entry.ldl })}
-                        </span>
+                          <div
+                              className={`flex flex-col items-center 
+                              ${getMetricTagClassName(entry.ldl, LIPID_RANGES.ldl)}`}
+                          >
+                            <span className="opacity-70">{t("lipid.metrics.ldl")}</span>
+                            <span className="text-2xl font-bold leading-none">{entry.ldl}</span>
+                          </div>
                       )}
                       {entry.triglycerides && (
-                        <span
-                          className={getMetricTagClassName(entry.triglycerides, LIPID_RANGES.triglycerides)}
-                        >
-                          {t("lipid.metrics.triglycerides", { value: entry.triglycerides })}
-                        </span>
+                          <div
+                              className={`flex flex-col items-center 
+                              ${getMetricTagClassName(entry.triglycerides, LIPID_RANGES.triglycerides)}`}
+                          >
+                            <span className="opacity-70">{t("lipid.metrics.triglycerides")}</span>
+                            <span className="text-2xl font-bold leading-none">{entry.triglycerides}</span>
+                          </div>
                       )}
                       {entry.glucose && (
-                        <span className={getMetricTagClassName(entry.glucose, LIPID_RANGES.glucose)}>
-                          {t("lipid.metrics.glucose", { value: entry.glucose })}
-                        </span>
+                          <div
+                              className={`flex flex-col items-center 
+                              ${getMetricTagClassName(entry.glucose, LIPID_RANGES.glucose)}`}
+                          >
+                            <span className="opacity-70">{t("lipid.metrics.glucose")}</span>
+                            <span className="text-2xl font-bold leading-none">{entry.glucose}</span>
+                          </div>
+
                       )}
                     </div>
                   </div>

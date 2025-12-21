@@ -118,23 +118,31 @@ export const BloodPressureTab = ({
                     <span className="history-tag">{formatDateTime(entry.createdAt)}</span>
                     <div className="metric-tags">
                       {entry.systolic && (
-                        <span
-                          className={getMetricTagClassName(entry.systolic, BLOOD_PRESSURE_RANGES.systolic)}
-                        >
-                          {t("bp.metrics.systolic", { value: entry.systolic })}
-                        </span>
+                          <div
+                              className={`flex flex-col items-center 
+                              ${getMetricTagClassName(entry.systolic, BLOOD_PRESSURE_RANGES.systolic)}`}
+                          >
+                            <span className="opacity-70">{t("bp.metrics.systolic")}</span>
+                            <span className="text-2xl font-bold leading-none">{entry.systolic}</span>
+                          </div>
                       )}
                       {entry.diastolic && (
-                        <span
-                          className={getMetricTagClassName(entry.diastolic, BLOOD_PRESSURE_RANGES.diastolic)}
-                        >
-                          {t("bp.metrics.diastolic", { value: entry.diastolic })}
-                        </span>
+                          <div
+                              className={`flex flex-col items-center 
+                              ${getMetricTagClassName(entry.diastolic, BLOOD_PRESSURE_RANGES.diastolic)}`}
+                          >
+                            <span className="opacity-70">{t("bp.metrics.diastolic")}</span>
+                            <span className="text-2xl font-bold leading-none">{entry.diastolic}</span>
+                          </div>
                       )}
                       {entry.pulse && (
-                        <span className={getMetricTagClassName(entry.pulse, BLOOD_PRESSURE_RANGES.pulse)}>
-                          {t("bp.metrics.pulse", { value: entry.pulse })}
-                        </span>
+                          <div
+                              className={`flex flex-col items-center 
+                              ${getMetricTagClassName(entry.pulse, BLOOD_PRESSURE_RANGES.pulse)}`}
+                          >
+                            <span className="opacity-70">{t("bp.metrics.pulse")}</span>
+                            <span className="text-2xl font-bold leading-none">{entry.pulse}</span>
+                          </div>
                       )}
                     </div>
                   </div>

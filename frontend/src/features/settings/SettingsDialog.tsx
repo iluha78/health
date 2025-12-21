@@ -126,7 +126,6 @@ export const SettingsDialog = ({
         <div className="settings-header">
           <div className="settings-heading">
             <h2>{t("settings.title")}</h2>
-            <p>{t("settings.subtitle")}</p>
           </div>
           <button type="button" className="ghost" onClick={onClose}>
             {t("settings.close")}

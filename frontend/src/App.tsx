@@ -591,7 +591,11 @@ const App = observer(() => {
       <div className="content content-topbar">
         <header className="topbar rounded-2xl bg-white/70 px-4 py-3 shadow-sm backdrop-blur md:px-6 md:py-4">
           <div className="brand">
-            <h1>HlCoAi</h1>
+            <h1  className="flex items-center gap-2.5">
+              <div
+                  className="w-11 h-11 bg-gradient-to-br from-teal-500 to-teal-600 rounded-xl flex items-center justify-center text-white font-extrabold text-xl shadow-lg">H
+              </div>
+              <span className="font-outfit text-2xl font-extrabold">Hl<span className="text-teal-600">CoAi</span></span></h1>
             <p>{t("common.tagline")}</p>
           </div>
           <LanguageSelector className="topbar-language" />

@@ -120,9 +120,9 @@ const resources = {
         historyTitle: "Архив давления и пульса",
         historyRemove: "Удалить запись",
         metrics: {
-          systolic: "Систолическое: {{value}}",
-          diastolic: "Диастолическое: {{value}}",
-          pulse: "Пульс: {{value}}"
+          systolic: "Систолическое",
+          diastolic: "Диастолическое",
+          pulse: "Пульс"
         },
         question: "Вопрос",
         commentLabel: "Комментарий",
@@ -181,11 +181,11 @@ const resources = {
           "Добавить в запрос прошлые показатели, чтобы ассистент отметил динамику.",
         metrics: {
           date: "Дата анализа: {{value}}",
-          cholesterol: "Общий холестерин: {{value}}",
-          hdl: "ЛПВП: {{value}}",
-          ldl: "ЛНП: {{value}}",
-          triglycerides: "Триглицериды: {{value}}",
-          glucose: "Глюкоза: {{value}}"
+          cholesterol: "Общий холестерин",
+          hdl: "ЛПВП",
+          ldl: "ЛНП",
+          triglycerides: "Триглицериды",
+          glucose: "Глюкоза"
         },
         questionLabel: "Вопрос",
         commentLabel: "Комментарий"
@@ -462,9 +462,9 @@ const resources = {
         historyTitle: "Blood pressure history",
         historyRemove: "Remove entry",
         metrics: {
-          systolic: "Systolic: {{value}}",
-          diastolic: "Diastolic: {{value}}",
-          pulse: "Pulse: {{value}}"
+          systolic: "Systolic",
+          diastolic: "Diastolic",
+          pulse: "Pulse"
         },
         question: "Question",
         commentLabel: "Comment",
@@ -523,11 +523,11 @@ const resources = {
           "Include the last saved metrics so the assistant comments on the trend.",
         metrics: {
           date: "Test date: {{value}}",
-          cholesterol: "Total cholesterol: {{value}}",
-          hdl: "HDL: {{value}}",
-          ldl: "LDL: {{value}}",
-          triglycerides: "Triglycerides: {{value}}",
-          glucose: "Glucose: {{value}}"
+          cholesterol: "Total cholesterol",
+          hdl: "HDL",
+          ldl: "LDL",
+          triglycerides: "Triglycerides",
+          glucose: "Glucose"
         },
         questionLabel: "Question",
         commentLabel: "Comment"
@@ -804,9 +804,9 @@ const resources = {
         historyTitle: "Blutdruckarchiv",
         historyRemove: "Eintrag löschen",
         metrics: {
-          systolic: "Systolisch: {{value}}",
-          diastolic: "Diastolisch: {{value}}",
-          pulse: "Puls: {{value}}"
+          systolic: "Systolisch",
+          diastolic: "Diastolisch",
+          pulse: "Puls"
         },
         question: "Frage",
         commentLabel: "Kommentar",
@@ -865,11 +865,11 @@ const resources = {
           "Füge die zuletzt gespeicherten Werte hinzu, damit der Assistent den Trend bewertet.",
         metrics: {
           date: "Analysedatum: {{value}}",
-          cholesterol: "Gesamtcholesterin: {{value}}",
-          hdl: "HDL: {{value}}",
-          ldl: "LDL: {{value}}",
-          triglycerides: "Triglyceride: {{value}}",
-          glucose: "Glukose: {{value}}"
+          cholesterol: "Gesamtcholesterin",
+          hdl: "HDL",
+          ldl: "LDL",
+          triglycerides: "Triglyceride",
+          glucose: "Glukose"
         },
         questionLabel: "Frage",
         commentLabel: "Kommentar"
@@ -1146,9 +1146,9 @@ const resources = {
         historyTitle: "Historial de presión arterial",
         historyRemove: "Eliminar entrada",
         metrics: {
-          systolic: "Sistólica: {{value}}",
-          diastolic: "Diastólica: {{value}}",
-          pulse: "Pulso: {{value}}"
+          systolic: "Sistólica",
+          diastolic: "Diastólica",
+          pulse: "Pulso"
         },
         question: "Pregunta",
         commentLabel: "Comentario",
@@ -1207,11 +1207,11 @@ const resources = {
           "Incluye los últimos valores guardados para que el asistente comente la tendencia.",
         metrics: {
           date: "Fecha del análisis: {{value}}",
-          cholesterol: "Colesterol total: {{value}}",
-          hdl: "HDL: {{value}}",
-          ldl: "LDL: {{value}}",
-          triglycerides: "Triglicéridos: {{value}}",
-          glucose: "Glucosa: {{value}}"
+          cholesterol: "Colesterol total",
+          hdl: "HDL",
+          ldl: "LDL",
+          triglycerides: "Triglicéridos",
+          glucose: "Glucosa"
         },
         questionLabel: "Pregunta",
         commentLabel: "Comentario"

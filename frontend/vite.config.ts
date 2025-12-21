@@ -8,7 +8,7 @@ export default defineConfig({
     proxy: {
       // проксируем нужные API-пути на backend:8180
       '^/(auth|me|profile|targets|foods|lipids|pressure|advice|analysis|assistant|uploads|billing)': {
-        target: 'http://localhost:8180',
+        target: 'https://health.rekcom.ru/',
         changeOrigin: true,
         bypass(req) {
           const acceptHeader = req.headers.accept ?? '';
