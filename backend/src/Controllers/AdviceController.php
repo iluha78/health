@@ -322,22 +322,30 @@ class AdviceController
             }
         }
 
-        SubscriptionService::recordAdviceUsage($user);
+        try {
+            SubscriptionService::recordAdviceUsage($user);
 
-        NutritionPhotoEstimate::create([
-            'user_id' => $user->id,
-            'calories' => $calories,
-            'confidence' => $confidence,
-            'notes' => $notes,
-            'description' => $description !== '' ? $description : null,
-            'ingredients' => $ingredients,
-            'original_filename' => $originalName ?: null,
-        ]);
+            NutritionPhotoEstimate::create([
+                'user_id' => $user->id,
+                'calories' => $calories,
+                'confidence' => $confidence,
+                'notes' => $notes,
+                'description' => $description !== '' ? $description : null,
+                'ingredients' => $ingredients,
+                'original_filename' => $originalName ?: null,
+            ]);
 
-        $history = NutritionPhotoEstimate::where('user_id', $user->id)
-            ->orderByDesc('created_at')
-            ->limit(20)
-            ->get();
+            $history = NutritionPhotoEstimate::where('user_id', $user->id)
+                ->orderByDesc('created_at')
+                ->limit(20)
+                ->get();
+        } catch (\Throwable $e) {
+            $log(sprintf('storage error: %s', $e->getMessage()));
+            return ResponseHelper::json($response, [
+                'error' => 'Не удалось сохранить результат анализа',
+                'debug' => $debug,
+            ], 500);
+        }
 
         $log(sprintf('success calories=%s confidence=%s ingredients=%d',
             $calories === null ? 'null' : (string) $calories,
