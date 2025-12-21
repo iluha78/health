@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from "react";
 import type { FormEvent } from "react";
-import { useTranslation } from "../../i18n";
+import { i18n, useTranslation } from "../../i18n";
 import type { NutritionFormState, NutritionPhotoRecord, NutritionRecord } from "../../types/forms";
 import type {
   NutritionPhotoAnalysis,
@@ -261,7 +261,8 @@ export const useNutritionFeature = ({
           calories: form.calories.trim(),
           activity: form.activity.trim(),
           question: form.question.trim(),
-          comment: form.comment.trim()
+          comment: form.comment.trim(),
+          language: i18n.language
         };
         const { advice: reply, history: historyItems } = await submitNutritionAdvice(jsonHeaders, payload);
         setAdvice(reply);
