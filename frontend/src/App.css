@@ -563,6 +563,10 @@ button.small {
   padding: 0.8rem 1rem;
   color: #824100;
   font-size: 0.9rem;
+  display:none;
+}
+.hidden{
+  displa:none;
 }
 
 .photo-debug summary {
@@ -814,6 +818,15 @@ section h2 {
   grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
 }
 
+.ghost.small {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.trashIcon {
+  color: #f43f5e; /* твой розовый */
+}
 .list {
   list-style: none;
   padding: 0;
@@ -984,7 +997,7 @@ section h2 {
 }
 
 .history-header {
-  display: flex;
+
   align-items: flex-start;
   justify-content: space-between;
   gap: 0.75rem;
@@ -1001,6 +1014,7 @@ section h2 {
   align-items: center;
   margin-bottom: 0.75rem;
   max-width: 655px;
+  justify-content: space-between;
 }
 
 .history-tag {
@@ -1019,6 +1033,7 @@ section h2 {
   display: flex;
   flex-wrap: wrap;
   gap: 0.4rem;
+  width: 100%;
 }
 
 .metric-tag {
@@ -1460,12 +1475,10 @@ details summary {
   }
 
   .history-meta {
-    flex-direction: column;
     align-items: flex-start;
   }
 
   .history-meta .history-tag {
-    width: 100%;
     justify-content: center;
   }
 

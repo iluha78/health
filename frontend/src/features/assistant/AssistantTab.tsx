@@ -107,7 +107,7 @@ export const AssistantTab = ({
             disabled={disabled}
             rows={3}
           />
-          <div className="assistant-attachment-controls">
+          <div className="assistant-attachment-controls hidden">
             <input
               id={fileInputId}
               ref={fileInputRef}
