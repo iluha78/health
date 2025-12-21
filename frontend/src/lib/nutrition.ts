@@ -52,6 +52,7 @@ const buildFormData = (file: File, description: string): FormData => {
   if (description) {
     formData.append("description", description);
   }
+  formData.append("language", i18n.language);
   return formData;
 };
 
@@ -170,6 +171,7 @@ export type NutritionAdvicePayload = {
   activity: string;
   question: string;
   comment: string;
+  language: string;
 };
 
 export const submitNutritionAdvice = async (
