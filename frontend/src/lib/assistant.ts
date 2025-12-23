@@ -11,7 +11,7 @@ export const requestAssistantPrompt = async (
   const response = await fetch(apiUrl("/advice/general"), {
     method: "POST",
     headers,
-    body: JSON.stringify({ prompt })
+    body: JSON.stringify({ prompt, language: i18n.language })
   });
   const data = await response.json();
   if (!response.ok || typeof data.advice !== "string") {
