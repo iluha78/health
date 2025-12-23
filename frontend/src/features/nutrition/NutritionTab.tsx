@@ -25,7 +25,6 @@ export type NutritionTabProps = {
   photoResult: NutritionPhotoAnalysis | null;
   photoError: string | null;
   photoLoading: boolean;
-  photoDebug: string[];
   photoDescription: string;
   onPhotoChange: (file: File | null) => void;
   onPhotoClear: () => void;
@@ -53,7 +52,6 @@ export const NutritionTab = ({
   photoResult,
   photoError,
   photoLoading,
-  photoDebug,
   photoDescription,
   onPhotoChange,
   onPhotoClear,
@@ -200,18 +198,6 @@ export const NutritionTab = ({
           />
         </label>
         {photoError && <p className="error">{photoError}</p>}
-        {photoDebug.length > 0 && (
-          <details className="photo-debug" open>
-            <summary>{t("nutrition.photo.debugTitle")}</summary>
-            <ul>
-              {photoDebug.map((entry, index) => (
-                <li key={`${entry}-${index}`}>
-                  <code>{entry}</code>
-                </li>
-              ))}
-            </ul>
-          </details>
-        )}
         {photoResult && (
           <div className="photo-result">
             {caloriesText && <p className="photo-calories">{caloriesText}</p>}

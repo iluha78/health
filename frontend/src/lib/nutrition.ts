@@ -7,7 +7,6 @@ export type NutritionPhotoAnalysis = {
   notes: string;
   description: string;
   ingredients: string[];
-  debug: string[];
 };
 
 export type NutritionAdviceHistoryItem = {
@@ -33,8 +32,6 @@ export type NutritionPhotoHistoryItem = {
   ingredients: string[];
 };
 
-export type NutritionPhotoError = Error & { debug?: string[] };
-
 const parseJsonSafely = async (response: Response): Promise<unknown> => {
   try {
     return await response.json();
@@ -52,7 +49,7 @@ const buildFormData = (file: File, description: string): FormData => {
   if (description) {
     formData.append("description", description);
   }
-  formData.append("language", i18n.language);
+  formData.append("language", i18n.language || "ru");
   return formData;
 };
 
@@ -99,14 +96,7 @@ export const requestNutritionPhotoCalories = async (
       payload && typeof payload.error === "string"
         ? payload.error
         : i18n.t("common.adviceRequestFailed");
-    const debug = Array.isArray(payload.debug)
-      ? payload.debug.filter((item): item is string => typeof item === "string")
-      : [];
-    const error = new Error(message) as NutritionPhotoError;
-    if (debug.length > 0) {
-      error.debug = debug;
-    }
-    throw error;
+    throw new Error(message);
   }
 
   const payload = (data ?? {}) as Record<string, unknown>;
@@ -119,10 +109,6 @@ export const requestNutritionPhotoCalories = async (
   const ingredients = Array.isArray(payload.ingredients)
     ? payload.ingredients.filter((item: unknown): item is string => typeof item === "string")
     : [];
-  const debug = Array.isArray(payload.debug)
-    ? payload.debug.filter((item: unknown): item is string => typeof item === "string")
-    : [];
-
   const history = parsePhotoHistory(payload.history);
 
   return {
@@ -131,8 +117,7 @@ export const requestNutritionPhotoCalories = async (
       confidence,
       notes,
       description: responseDescription,
-      ingredients,
-      debug
+      ingredients
     },
     history
   };
