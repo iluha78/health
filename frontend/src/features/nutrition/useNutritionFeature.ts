@@ -4,7 +4,6 @@ import { i18n, useTranslation } from "../../i18n";
 import type { NutritionFormState, NutritionPhotoRecord, NutritionRecord } from "../../types/forms";
 import type {
   NutritionPhotoAnalysis,
-  NutritionPhotoError,
   NutritionAdviceHistoryItem,
   NutritionPhotoHistoryItem,
   NutritionAdvicePayload
@@ -86,7 +85,6 @@ export const useNutritionFeature = ({
   const [photoResult, setPhotoResult] = useState<NutritionPhotoAnalysis | null>(null);
   const [photoError, setPhotoError] = useState<string | null>(null);
   const [photoLoading, setPhotoLoading] = useState(false);
-  const [photoDebug, setPhotoDebug] = useState<string[]>([]);
   const [photoHistory, setPhotoHistory] = useState<NutritionPhotoRecord[]>([]);
   const [photoDescription, setPhotoDescription] = useState("");
   const updatePhotoDescription = useCallback((value: string) => {
@@ -180,14 +178,12 @@ export const useNutritionFeature = ({
     setPhotoResult(null);
     setPhotoError(null);
     setPhotoLoading(false);
-    setPhotoDebug([]);
     setPhotoHistory([]);
     setPhotoDescription("");
   }, []);
 
   const selectPhoto = useCallback((file: File | null) => {
     setPhotoFile(file);
-    setPhotoDebug([]);
   }, []);
 
   const clearPhoto = useCallback(() => {
@@ -195,7 +191,6 @@ export const useNutritionFeature = ({
     setPhotoResult(null);
     setPhotoError(null);
     setPhotoLoading(false);
-    setPhotoDebug([]);
     setPhotoDescription("");
   }, []);
 
@@ -206,22 +201,16 @@ export const useNutritionFeature = ({
     }
     setPhotoLoading(true);
     setPhotoError(null);
-    setPhotoDebug([]);
     try {
       const description = photoDescription.trim();
       const { analysis, history: historyItems } = await analyzePhoto(photoFile, description);
       setPhotoResult(analysis);
-      setPhotoDebug(analysis.debug ?? []);
       setPhotoHistory(mapPhotoHistory(historyItems));
       setPhotoDescription(analysis.description || description);
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : t("nutrition.photo.error");
-      const debug = err && typeof err === "object" && err !== null && "debug" in err
-        ? (err as NutritionPhotoError).debug ?? []
-        : [];
       setPhotoError(errorMessage);
       setPhotoResult(null);
-      setPhotoDebug(debug);
     } finally {
       setPhotoLoading(false);
     }
@@ -262,7 +251,7 @@ export const useNutritionFeature = ({
           activity: form.activity.trim(),
           question: form.question.trim(),
           comment: form.comment.trim(),
-          language: i18n.language
+          language: i18n.language || "ru"
         };
         const { advice: reply, history: historyItems } = await submitNutritionAdvice(jsonHeaders, payload);
         setAdvice(reply);
@@ -291,7 +280,6 @@ export const useNutritionFeature = ({
     photoResult,
     photoError,
     photoLoading,
-    photoDebug,
     photoHistory,
     photoDescription,
     selectPhoto,

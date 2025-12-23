@@ -237,7 +237,6 @@ const App = observer(() => {
     photoResult: nutritionPhotoResult,
     photoError: nutritionPhotoError,
     photoLoading: nutritionPhotoLoading,
-    photoDebug: nutritionPhotoDebug,
     photoHistory: nutritionPhotoHistory,
     photoDescription: nutritionPhotoDescription,
     selectPhoto: selectNutritionPhoto,
@@ -676,7 +675,6 @@ const App = observer(() => {
               photoResult={nutritionPhotoResult}
               photoError={nutritionPhotoError}
               photoLoading={nutritionPhotoLoading}
-              photoDebug={nutritionPhotoDebug}
               photoDescription={nutritionPhotoDescription}
               onPhotoChange={selectNutritionPhoto}
               onPhotoClear={clearNutritionPhoto}
