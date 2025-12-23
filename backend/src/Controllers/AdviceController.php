@@ -25,6 +25,7 @@ class AdviceController
             ->first();
 
         $data = (array) $request->getParsedBody();
+        $language = $this->normalizeLanguage($data['language'] ?? null);
 
         $weight = $this->parseFloat($data['weight'] ?? null);
         $height = $this->parseInt($data['height'] ?? null);
@@ -98,7 +99,7 @@ class AdviceController
             $advice = $service->chat([
                 [
                     'role' => 'system',
-                    'content' => 'Ты — российский врач-диетолог. Дай практичные советы по снижению холестерина на русском языке. Дай список шагов, пример дневного меню и напомни об ограничениях насыщенных жиров.',
+                    'content' => $this->nutritionSystemPrompt($language),
                 ],
                 [
                     'role' => 'user',
@@ -172,6 +173,7 @@ class AdviceController
         }
 
         $data = (array) $request->getParsedBody();
+        $language = $this->normalizeLanguage($data['language'] ?? null);
         $description = '';
         if (isset($data['description']) && is_string($data['description'])) {
             $description = trim($data['description']);
@@ -213,8 +215,7 @@ class AdviceController
 
         $dataUrl = 'data:' . $mediaType . ';base64,' . base64_encode($imageBinary);
 
-        $prompt = 'Оцени примерную калорийность блюда на фото. '
-            . 'Если блюдо сложно распознать, опиши сомнения. Ответь только JSON.';
+        $prompt = $this->nutritionPhotoUserPrompt($language);
         if ($description !== '') {
             $prompt .= "\n\nДополнительное описание блюда: " . $description;
         }
@@ -222,8 +223,7 @@ class AdviceController
         $messages = [
             [
                 'role' => 'system',
-                'content' => 'Ты — нутрициолог. Анализируй фото блюд и давай сдержанные оценки ' .
-                    'калорийности порции. Пиши по-русски, добавляй дисклеймер об ориентировочности.',
+                'content' => $this->nutritionPhotoSystemPrompt($language),
             ],
             [
                 'role' => 'user',
@@ -282,16 +282,15 @@ class AdviceController
             return ResponseHelper::json($response, [
                 'error' => 'Не удалось получить рекомендации: ' . $e->getMessage(),
                 'debug' => $debug,
-            ], 500);
+            ], 502);
         }
 
-        $decoded = json_decode($raw, true);
-        if (!is_array($decoded)) {
-            $log(sprintf('failed to decode response: %s', substr($raw, 0, 200)));
+        $decoded = $this->parseNutritionPhotoJson($raw, $debug, $log);
+        if ($decoded === null) {
             return ResponseHelper::json($response, [
                 'error' => 'Не удалось обработать ответ модели',
                 'debug' => $debug,
-            ], 500);
+            ], 422);
         }
 
         $calories = null;
@@ -321,22 +320,30 @@ class AdviceController
             }
         }
 
-        SubscriptionService::recordAdviceUsage($user);
+        try {
+            SubscriptionService::recordAdviceUsage($user);
 
-        NutritionPhotoEstimate::create([
-            'user_id' => $user->id,
-            'calories' => $calories,
-            'confidence' => $confidence,
-            'notes' => $notes,
-            'description' => $description !== '' ? $description : null,
-            'ingredients' => $ingredients,
-            'original_filename' => $originalName ?: null,
-        ]);
+            NutritionPhotoEstimate::create([
+                'user_id' => $user->id,
+                'calories' => $calories,
+                'confidence' => $confidence,
+                'notes' => $notes,
+                'description' => $description !== '' ? $description : null,
+                'ingredients' => $ingredients,
+                'original_filename' => $originalName ?: null,
+            ]);
 
-        $history = NutritionPhotoEstimate::where('user_id', $user->id)
-            ->orderByDesc('created_at')
-            ->limit(20)
-            ->get();
+            $history = NutritionPhotoEstimate::where('user_id', $user->id)
+                ->orderByDesc('created_at')
+                ->limit(20)
+                ->get();
+        } catch (\Throwable $e) {
+            $log(sprintf('storage error: %s', $e->getMessage()));
+            return ResponseHelper::json($response, [
+                'error' => 'Не удалось сохранить результат анализа',
+                'debug' => $debug,
+            ], 500);
+        }
 
         $log(sprintf('success calories=%s confidence=%s ingredients=%d',
             $calories === null ? 'null' : (string) $calories,
@@ -496,6 +503,68 @@ class AdviceController
         }, $records);
     }
 
+    private function nutritionSystemPrompt(string $language): string
+    {
+        $prompts = [
+            'ru' => 'Ты — российский врач-диетолог. Дай практичные советы по снижению холестерина на русском языке. Дай список шагов, пример дневного меню и напомни об ограничениях насыщенных жиров.',
+            'en' => 'You are a nutritionist. Provide practical tips for lowering cholesterol. Share a step-by-step plan, a sample daily menu, and remind about limits on saturated fats. Respond in English.',
+            'de' => 'Du bist Ernährungsberater. Gib praktische Tipps zur Senkung des Cholesterins. Teile einen Maßnahmenplan, ein Beispiel für einen Tagesplan und erinnere an Grenzen für gesättigte Fette. Antworte auf Deutsch.',
+            'es' => 'Eres nutricionista. Ofrece consejos prácticos para reducir el colesterol. Incluye pasos concretos, un ejemplo de menú diario y recuerda los límites de grasas saturadas. Responde en español.',
+        ];
+
+        return $prompts[$language] ?? $prompts['ru'];
+    }
+
+    private function nutritionPhotoSystemPrompt(string $language): string
+    {
+        $prompts = [
+            'ru' => 'Ты — нутрициолог. Анализируй фото блюд и давай сдержанные оценки калорийности порции. Пиши по-русски, добавляй дисклеймер об ориентировочности.',
+            'en' => 'You are a nutritionist. Analyze food photos and provide cautious calorie estimates per portion. Respond in English and include a disclaimer about approximate values.',
+            'de' => 'Du bist Ernährungsberater. Analysiere Essensfotos und gib vorsichtige Kalorien-Schätzungen pro Portion. Antworte auf Deutsch und füge einen Hinweis auf die Ungefähre hinzu.',
+            'es' => 'Eres nutricionista. Analiza fotos de comida y ofrece estimaciones prudentes de calorías por porción. Responde en español e incluye una nota de que los valores son aproximados.',
+        ];
+
+        return $prompts[$language] ?? $prompts['ru'];
+    }
+
+    private function nutritionPhotoUserPrompt(string $language): string
+    {
+        $prompts = [
+            'ru' => 'Оцени примерную калорийность блюда на фото. Если блюдо сложно распознать, опиши сомнения. Ответь только JSON.',
+            'en' => 'Estimate the approximate calories of the dish in the photo. If the dish is hard to recognize, describe the uncertainty. Reply with JSON only.',
+            'de' => 'Schätze die ungefähre Kalorienmenge des Gerichts auf dem Foto. Wenn das Gericht schwer zu erkennen ist, beschreibe die Unsicherheit. Antworte nur mit JSON.',
+            'es' => 'Estima las calorías aproximadas del plato de la foto. Si es difícil identificar el plato, describe las dudas. Responde solo con JSON.',
+        ];
+
+        return $prompts[$language] ?? $prompts['ru'];
+    }
+
+    /**
+     * @param array<int, string> $debug
+     * @param callable(string):void $logger
+     * @return array<string, mixed>|null
+     */
+    private function parseNutritionPhotoJson(string $raw, array &$debug, callable $logger): ?array
+    {
+        $decoded = json_decode($raw, true);
+        if (is_array($decoded)) {
+            return $decoded;
+        }
+
+        $logger(sprintf('failed to decode response: %s', substr($raw, 0, 200)));
+
+        if (preg_match('/\{.*\}/s', $raw, $matches)) {
+            $jsonCandidate = $matches[0];
+            $decoded = json_decode($jsonCandidate, true);
+            if (is_array($decoded)) {
+                $debug[] = '[nutritionPhoto] recovered json from text output';
+                return $decoded;
+            }
+        }
+
+        return null;
+    }
+
     private function formatValue($value): string
     {
         if ($value === null || $value === '') {
@@ -575,6 +644,25 @@ class AdviceController
             return is_numeric($normalized) ? (float) $normalized : null;
         }
         return null;
+    }
+
+    private function normalizeLanguage(?string $language): string
+    {
+        if ($language === null) {
+            return 'ru';
+        }
+
+        $normalized = strtolower(trim($language));
+        if ($normalized === '') {
+            return 'ru';
+        }
+
+        $shortCode = explode('-', $normalized)[0];
+        if (in_array($shortCode, ['ru', 'en', 'de', 'es'], true)) {
+            return $shortCode;
+        }
+
+        return 'ru';
     }
 
     private function parseInt($value): ?int

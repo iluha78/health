@@ -5,7 +5,6 @@ use App\Models\User;
 use App\Services\EmailService;
 use App\Services\SubscriptionService;
 use App\Support\Env;
-use App\Support\Localization;
 use App\Support\ResponseHelper;
 use Firebase\JWT\JWT;
 use Psr\Http\Message\ResponseInterface as Response;
@@ -23,7 +22,7 @@ class AuthController
     public function register(Request $request, Response $response): Response
     {
         $data = (array) $request->getParsedBody();
-        $language = Localization::normalize($data['language'] ?? null);
+        $language = $this->normalizeLanguage($data['language'] ?? null);
         $email = strtolower(trim($data['email'] ?? ''));
         $pass = $data['pass'] ?? '';
 
@@ -66,11 +65,11 @@ class AuthController
         }
 
         $verificationMessage = $dispatch['driver'] === 'log'
-            ? Localization::message($language, 'auth.register.log_message', [
+            ? $this->localizeMessage($language, 'auth.register.log_message', [
                 'code' => $verificationCode,
                 'logPath' => $this->formatLogPathForDisplay($dispatch['log_path']),
             ])
-            : Localization::message($language, 'auth.register.sent_message');
+            : $this->localizeMessage($language, 'auth.register.sent_message');
 
         return ResponseHelper::json($response, [
             'status' => 'verification_required',
@@ -140,7 +139,7 @@ class AuthController
     public function requestPasswordReset(Request $request, Response $response): Response
     {
         $data = (array) $request->getParsedBody();
-        $language = Localization::normalize($data['language'] ?? null);
+        $language = $this->normalizeLanguage($data['language'] ?? null);
         $email = strtolower(trim($data['email'] ?? ''));
 
         if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
@@ -236,15 +235,15 @@ class AuthController
      * @param array{driver: string, log_path: string|null}|null $dispatch
      * @param string|null $code
      */
-    private function buildResetMessage(?array $dispatch, ?string $code = null, string $language = Localization::DEFAULT_LANGUAGE): string
+    private function buildResetMessage(?array $dispatch, ?string $code = null, string $language = 'ru'): string
     {
         if ($dispatch !== null && $dispatch['driver'] !== 'log') {
-            return Localization::message($language, 'auth.reset.sent_message');
+            return $this->localizeMessage($language, 'auth.reset.sent_message');
         }
 
         $logPath = $dispatch['log_path'] ?? null;
 
-        $baseMessage = Localization::message($language, 'auth.reset.logged_message', [
+        $baseMessage = $this->localizeMessage($language, 'auth.reset.logged_message', [
             'logPath' => $this->formatLogPathForDisplay($logPath),
         ]);
 
@@ -252,11 +251,74 @@ class AuthController
             return $baseMessage;
         }
 
-        return Localization::message($language, 'auth.reset.logged_message_with_code', [
+        return $this->localizeMessage($language, 'auth.reset.logged_message_with_code', [
             'code' => $code,
             'logPath' => $this->formatLogPathForDisplay($logPath),
         ]);
     }
+
+    private function localizeMessage(string $language, string $key, array $params = []): string
+    {
+        $lang = $this->normalizeLanguage($language);
+        $template = self::MESSAGE_TEMPLATES[$lang][$key] ?? self::MESSAGE_TEMPLATES['ru'][$key] ?? '';
+
+        return preg_replace_callback('/{{\s*([^}\s]+)\s*}}/', function ($matches) use ($params) {
+            $name = $matches[1];
+            $value = $params[$name] ?? '';
+
+            return $value === null ? '' : (string) $value;
+        }, $template) ?? $template;
+    }
+
+    private function normalizeLanguage(?string $language): string
+    {
+        if ($language === null) {
+            return 'ru';
+        }
+
+        $normalized = strtolower(trim($language));
+        if ($normalized === '') {
+            return 'ru';
+        }
+
+        $shortCode = explode('-', $normalized)[0];
+        if (in_array($shortCode, ['ru', 'en', 'de', 'es'], true)) {
+            return $shortCode;
+        }
+
+        return 'ru';
+    }
+
+    private const MESSAGE_TEMPLATES = [
+        'ru' => [
+            'auth.register.log_message' => 'Код подтверждения: {{code}}. Также сохранен в журнале {{logPath}}',
+            'auth.register.sent_message' => 'Код подтверждения отправлен на ваш email',
+            'auth.reset.sent_message' => 'Если email зарегистрирован, код восстановления отправлен',
+            'auth.reset.logged_message' => 'Если email зарегистрирован, код восстановления сохранен в журнале {{logPath}}',
+            'auth.reset.logged_message_with_code' => 'Код восстановления: {{code}}. Если email зарегистрирован, код сохранен в журнале {{logPath}}',
+        ],
+        'en' => [
+            'auth.register.log_message' => 'Verification code: {{code}}. It is also saved to the log at {{logPath}}',
+            'auth.register.sent_message' => 'The verification code has been sent to your email',
+            'auth.reset.sent_message' => 'If the email is registered, a reset code has been sent',
+            'auth.reset.logged_message' => 'If the email is registered, the reset code is saved to the log at {{logPath}}',
+            'auth.reset.logged_message_with_code' => 'Reset code: {{code}}. If the email is registered, it is saved to the log at {{logPath}}',
+        ],
+        'de' => [
+            'auth.register.log_message' => 'Bestätigungscode: {{code}}. Er wurde außerdem im Protokoll unter {{logPath}} gespeichert',
+            'auth.register.sent_message' => 'Der Bestätigungscode wurde an Ihre E-Mail gesendet',
+            'auth.reset.sent_message' => 'Falls die E-Mail registriert ist, wurde ein Reset-Code gesendet',
+            'auth.reset.logged_message' => 'Falls die E-Mail registriert ist, wurde der Reset-Code im Protokoll unter {{logPath}} gespeichert',
+            'auth.reset.logged_message_with_code' => 'Reset-Code: {{code}}. Falls die E-Mail registriert ist, wurde er im Protokoll unter {{logPath}} gespeichert',
+        ],
+        'es' => [
+            'auth.register.log_message' => 'Código de verificación: {{code}}. También se guardó en el registro en {{logPath}}',
+            'auth.register.sent_message' => 'El código de verificación se envió a tu correo electrónico',
+            'auth.reset.sent_message' => 'Si el correo está registrado, se envió un código de restablecimiento',
+            'auth.reset.logged_message' => 'Si el correo está registrado, el código de restablecimiento se guardó en el registro en {{logPath}}',
+            'auth.reset.logged_message_with_code' => 'Código de restablecimiento: {{code}}. Si el correo está registrado, se guardó en el registro en {{logPath}}',
+        ],
+    ];
 
     private function formatLogPathForDisplay(?string $absolutePath): string
     {

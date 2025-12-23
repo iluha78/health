@@ -3,7 +3,6 @@
 namespace App\Services;
 
 use App\Support\Env;
-use App\Support\Localization;
 use RuntimeException;
 
 class EmailService
@@ -13,8 +12,8 @@ class EmailService
      */
     public function sendVerificationCode(string $email, string $code, string $language): array
     {
-        $subject = Localization::email($language, 'verification_subject');
-        $message = Localization::email($language, 'verification_body', ['code' => $code]);
+        $subject = $this->localizeEmail($language, 'verification_subject');
+        $message = $this->localizeEmail($language, 'verification_body', ['code' => $code]);
 
         return $this->sendEmail($email, $subject, $message, 'Unable to send verification email');
     }
@@ -24,8 +23,8 @@ class EmailService
      */
     public function sendPasswordResetCode(string $email, string $code, string $language): array
     {
-        $subject = Localization::email($language, 'reset_subject');
-        $message = Localization::email($language, 'reset_body', ['code' => $code]);
+        $subject = $this->localizeEmail($language, 'reset_subject');
+        $message = $this->localizeEmail($language, 'reset_body', ['code' => $code]);
 
         return $this->sendEmail($email, $subject, $message, 'Unable to send password reset email');
     }
@@ -429,4 +428,63 @@ LOG;
             $written += $chunk;
         }
     }
+
+    private function localizeEmail(string $language, string $key, array $params = []): string
+    {
+        $lang = $this->normalizeLanguage($language);
+        $template = self::EMAIL_TEMPLATES[$lang][$key] ?? self::EMAIL_TEMPLATES['ru'][$key] ?? '';
+
+        return preg_replace_callback('/{{\s*([^}\s]+)\s*}}/', function ($matches) use ($params) {
+            $name = $matches[1];
+            $value = $params[$name] ?? '';
+
+            return $value === null ? '' : (string) $value;
+        }, $template) ?? $template;
+    }
+
+    private function normalizeLanguage(?string $language): string
+    {
+        if ($language === null) {
+            return 'ru';
+        }
+
+        $normalized = strtolower(trim($language));
+        if ($normalized === '') {
+            return 'ru';
+        }
+
+        $shortCode = explode('-', $normalized)[0];
+        if (in_array($shortCode, ['ru', 'en', 'de', 'es'], true)) {
+            return $shortCode;
+        }
+
+        return 'ru';
+    }
+
+    private const EMAIL_TEMPLATES = [
+        'ru' => [
+            'verification_subject' => 'Код подтверждения регистрации',
+            'verification_body' => "Ваш код подтверждения: {{code}}\n\nВведите его в приложении, чтобы завершить регистрацию.",
+            'reset_subject' => 'Восстановление пароля CholestoFit',
+            'reset_body' => "Вы запросили восстановление пароля. Код: {{code}}\n\nЕсли вы не запрашивали восстановление, просто проигнорируйте это письмо.",
+        ],
+        'en' => [
+            'verification_subject' => 'Registration verification code',
+            'verification_body' => "Your verification code: {{code}}\n\nEnter it in the app to finish registration.",
+            'reset_subject' => 'CholestoFit password reset',
+            'reset_body' => "You requested a password reset. Code: {{code}}\n\nIf you didn't request it, simply ignore this email.",
+        ],
+        'de' => [
+            'verification_subject' => 'Bestätigungscode für die Registrierung',
+            'verification_body' => "Ihr Bestätigungscode: {{code}}\n\nGeben Sie ihn in der App ein, um die Registrierung abzuschließen.",
+            'reset_subject' => 'CholestoFit Passwort zurücksetzen',
+            'reset_body' => "Sie haben das Zurücksetzen des Passworts angefordert. Code: {{code}}\n\nWenn Sie dies nicht angefordert haben, ignorieren Sie diese E-Mail.",
+        ],
+        'es' => [
+            'verification_subject' => 'Código de verificación de registro',
+            'verification_body' => "Tu código de verificación: {{code}}\n\nIntrodúcelo en la aplicación para completar el registro.",
+            'reset_subject' => 'Restablecimiento de contraseña de CholestoFit',
+            'reset_body' => "Solicitaste restablecer la contraseña. Código: {{code}}\n\nSi no lo solicitaste, ignora este correo.",
+        ],
+    ];
 }

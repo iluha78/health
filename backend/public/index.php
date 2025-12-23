@@ -7,6 +7,11 @@ use Slim\Exception\HttpException;
 use Slim\Factory\AppFactory;
 
 require __DIR__ . '/../vendor/autoload.php';
+
+// Fallback for environments with stale optimized autoload caches: make sure
+// localization helpers are always available even if classmap-authoritative
+// builds missed the new file.
+require_once __DIR__ . '/../src/Support/Localization.php';
 Env::bootstrap([dirname(__DIR__), dirname(__DIR__, 2)]);
 
 $app = AppFactory::create();
