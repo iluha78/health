@@ -27,6 +27,7 @@ class AdviceController
 
         $data = (array) $request->getParsedBody();
         $language = Localization::normalize($data['language'] ?? null);
+        $labels = $this->promptTranslations($language);
 
         $weight = $this->parseFloat($data['weight'] ?? null);
         $height = $this->parseInt($data['height'] ?? null);
@@ -37,22 +38,22 @@ class AdviceController
 
         $focusParts = [];
         if ($weight !== null) {
-            $focusParts[] = sprintf('Вес: %s кг', $this->formatNumber($weight));
+            $focusParts[] = sprintf('%s: %s kg', $labels['weight_label'], $this->formatNumber($weight));
         }
         if ($height !== null) {
-            $focusParts[] = sprintf('Рост: %d см', $height);
+            $focusParts[] = sprintf('%s: %d cm', $labels['height_label'], $height);
         }
         if ($calories !== null) {
-            $focusParts[] = sprintf('Цель по калориям: %d ккал', $calories);
+            $focusParts[] = sprintf('%s: %d kcal', $labels['calories_label'], $calories);
         }
         if ($activity !== '') {
-            $focusParts[] = 'Уровень активности: ' . $activity;
+            $focusParts[] = $labels['activity_label'] . ': ' . $activity;
         }
         if ($question !== '') {
-            $focusParts[] = 'Вопрос пользователя: ' . $question;
+            $focusParts[] = $labels['question_label'] . ': ' . $question;
         }
         if ($comment !== '') {
-            $focusParts[] = 'Комментарий: ' . $comment;
+            $focusParts[] = $labels['comment_label'] . ': ' . $comment;
         }
 
         $focus = implode("\n", $focusParts);
@@ -70,30 +71,31 @@ class AdviceController
             ], 500);
         }
 
+        $fallback = $labels['not_specified'];
         $profileSummary = $profile ? sprintf(
-            "Пол: %s, возраст: %s, рост: %s см, вес: %s кг, активность: %s. Цели: калории %s ккал, насыщенные жиры %s г, клетчатка %s г.",
-            $profile->sex ?: 'не указан',
-            $profile->age ?: 'не указан',
-            $profile->height_cm ?: 'не указан',
-            $profile->weight_kg ?: 'не указан',
-            $this->activityLabel($profile->activity),
-            $profile->kcal_goal ?: 'не указано',
-            $profile->sfa_limit_g ?: 'не указано',
-            $profile->fiber_goal_g ?: 'не указано',
-        ) : 'Профиль пользователя отсутствует.';
+            $labels['profile_template'],
+            $this->sexLabel($profile->sex, $language),
+            $profile->age !== null ? (string) $profile->age : $fallback,
+            $profile->height_cm !== null ? (string) $profile->height_cm : $fallback,
+            $profile->weight_kg !== null ? $this->formatNumber((float) $profile->weight_kg) : $fallback,
+            $this->activityLabel($profile->activity, $language),
+            $profile->kcal_goal !== null ? (string) $profile->kcal_goal : $fallback,
+            $profile->sfa_limit_g !== null ? (string) $profile->sfa_limit_g : $fallback,
+            $profile->fiber_goal_g !== null ? (string) $profile->fiber_goal_g : $fallback,
+        ) : $labels['profile_missing'];
 
         $lipidSummary = $latestLipid ? sprintf(
-            "Последние липиды от %s: общий холестерин %s ммоль/л, HDL %s, LDL %s, триглицериды %s.",
+            $labels['lipid_template'],
             $latestLipid->dt,
             $this->formatValue($latestLipid->chol),
             $this->formatValue($latestLipid->hdl),
             $this->formatValue($latestLipid->ldl),
             $this->formatValue($latestLipid->trig)
-        ) : 'Нет сохранённых липидных анализов.';
+        ) : $labels['no_lipids'];
 
         $userPrompt = $profileSummary . "\n" . $lipidSummary;
         if ($focus !== '') {
-            $userPrompt .= "\nДополнительный запрос пользователя: " . $focus;
+            $userPrompt .= "\n" . $labels['extra_request_label'] . ': ' . $focus;
         }
 
         try {
@@ -218,7 +220,7 @@ class AdviceController
 
         $prompt = $this->nutritionPhotoUserPrompt($language);
         if ($description !== '') {
-            $prompt .= "\n\nДополнительное описание блюда: " . $description;
+            $prompt .= "\n\n" . sprintf($labels['photo_description_label'], $description);
         }
 
         $messages = [
@@ -406,6 +408,7 @@ class AdviceController
         if ($prompt === '') {
             return ResponseHelper::json($response, ['error' => 'Опишите вопрос для получения совета'], 422);
         }
+        $language = Localization::normalize($data['language'] ?? null);
 
         try {
             SubscriptionService::ensureAdviceAccess($user);
@@ -424,8 +427,7 @@ class AdviceController
             $advice = $service->chat([
                 [
                     'role' => 'system',
-                    'content' => 'Ты — заботливый российский врач. Дай практичные, безопасные и основанные на фактах советы по ' .
-                        'здоровью. Всегда напоминай о необходимости обратиться к врачу при тревожных симптомах.',
+                    'content' => $this->generalSystemPrompt($language),
                 ],
                 [
                     'role' => 'user',
@@ -554,16 +556,146 @@ class AdviceController
         return rtrim(rtrim(number_format($value, 2, '.', ''), '0'), '.');
     }
 
-    private function activityLabel(?string $activity): string
+    private function promptTranslations(string $language): array
     {
-        return match ($activity) {
-            'sed' => 'минимальная',
-            'light' => 'лёгкая',
-            'mod' => 'средняя',
-            'high' => 'высокая',
-            'ath' => 'спортивная',
-            default => 'не указана',
+        $translations = [
+            'ru' => [
+                'weight_label' => 'Вес',
+                'height_label' => 'Рост',
+                'calories_label' => 'Цель по калориям',
+                'activity_label' => 'Уровень активности',
+                'question_label' => 'Вопрос пользователя',
+                'comment_label' => 'Комментарий',
+                'extra_request_label' => 'Дополнительный запрос пользователя',
+                'profile_template' => 'Пол: %s, возраст: %s, рост: %s см, вес: %s кг, активность: %s. Цели: калории %s ккал, насыщенные жиры %s г, клетчатка %s г.',
+                'profile_missing' => 'Профиль пользователя отсутствует.',
+                'lipid_template' => 'Последние липиды от %s: общий холестерин %s ммоль/л, HDL %s, LDL %s, триглицериды %s.',
+                'no_lipids' => 'Нет сохранённых липидных анализов.',
+                'not_specified' => 'не указано',
+                'sex_male' => 'мужской',
+                'sex_female' => 'женский',
+                'sex_not_specified' => 'не указан',
+                'activity_sed' => 'минимальная',
+                'activity_light' => 'лёгкая',
+                'activity_mod' => 'средняя',
+                'activity_high' => 'высокая',
+                'activity_ath' => 'спортивная',
+                'activity_not_specified' => 'не указана',
+                'photo_description_label' => 'Дополнительное описание блюда: %s',
+                'general_system_prompt' => 'Ты — заботливый российский врач. Дай практичные, безопасные и основанные на фактах советы по здоровью. Всегда напоминай о необходимости обратиться к врачу при тревожных симптомах.',
+            ],
+            'en' => [
+                'weight_label' => 'Weight',
+                'height_label' => 'Height',
+                'calories_label' => 'Calorie goal',
+                'activity_label' => 'Activity level',
+                'question_label' => 'User question',
+                'comment_label' => 'Comment',
+                'extra_request_label' => 'Additional user request',
+                'profile_template' => 'Sex: %s, age: %s, height: %s cm, weight: %s kg, activity: %s. Goals: calories %s kcal, saturated fats %s g, fiber %s g.',
+                'profile_missing' => 'User profile is missing.',
+                'lipid_template' => 'Latest lipids from %s: total cholesterol %s mmol/L, HDL %s, LDL %s, triglycerides %s.',
+                'no_lipids' => 'No stored lipid tests.',
+                'not_specified' => 'not specified',
+                'sex_male' => 'male',
+                'sex_female' => 'female',
+                'sex_not_specified' => 'not specified',
+                'activity_sed' => 'sedentary',
+                'activity_light' => 'light',
+                'activity_mod' => 'moderate',
+                'activity_high' => 'high',
+                'activity_ath' => 'athletic',
+                'activity_not_specified' => 'not specified',
+                'photo_description_label' => 'Additional dish description: %s',
+                'general_system_prompt' => 'You are a caring physician. Provide practical, safe, evidence-based health advice. Always remind the user to seek medical care for concerning symptoms. Respond in English.',
+            ],
+            'de' => [
+                'weight_label' => 'Gewicht',
+                'height_label' => 'Größe',
+                'calories_label' => 'Kalorienziel',
+                'activity_label' => 'Aktivitätsniveau',
+                'question_label' => 'Frage des Nutzers',
+                'comment_label' => 'Kommentar',
+                'extra_request_label' => 'Zusätzliche Anfrage des Nutzers',
+                'profile_template' => 'Geschlecht: %s, Alter: %s, Größe: %s cm, Gewicht: %s kg, Aktivität: %s. Ziele: Kalorien %s kcal, gesättigte Fette %s g, Ballaststoffe %s g.',
+                'profile_missing' => 'Das Nutzerprofil fehlt.',
+                'lipid_template' => 'Letzte Lipide vom %s: Gesamtcholesterin %s mmol/L, HDL %s, LDL %s, Triglyceride %s.',
+                'no_lipids' => 'Keine gespeicherten Lipidwerte vorhanden.',
+                'not_specified' => 'nicht angegeben',
+                'sex_male' => 'männlich',
+                'sex_female' => 'weiblich',
+                'sex_not_specified' => 'nicht angegeben',
+                'activity_sed' => 'sitzend',
+                'activity_light' => 'leicht',
+                'activity_mod' => 'mittel',
+                'activity_high' => 'hoch',
+                'activity_ath' => 'sportlich',
+                'activity_not_specified' => 'nicht angegeben',
+                'photo_description_label' => 'Zusätzliche Beschreibung des Gerichts: %s',
+                'general_system_prompt' => 'Du bist ein fürsorglicher Arzt. Gib praktische, sichere und evidenzbasierte Gesundheitstipps. Erinnere stets daran, bei besorgniserregenden Symptomen ärztliche Hilfe zu suchen. Antworte auf Deutsch.',
+            ],
+            'es' => [
+                'weight_label' => 'Peso',
+                'height_label' => 'Altura',
+                'calories_label' => 'Objetivo de calorías',
+                'activity_label' => 'Nivel de actividad',
+                'question_label' => 'Pregunta del usuario',
+                'comment_label' => 'Comentario',
+                'extra_request_label' => 'Solicitud adicional del usuario',
+                'profile_template' => 'Sexo: %s, edad: %s, altura: %s cm, peso: %s kg, actividad: %s. Objetivos: calorías %s kcal, grasas saturadas %s g, fibra %s g.',
+                'profile_missing' => 'Falta el perfil del usuario.',
+                'lipid_template' => 'Últimos lípidos del %s: colesterol total %s mmol/L, HDL %s, LDL %s, triglicéridos %s.',
+                'no_lipids' => 'No hay análisis de lípidos guardados.',
+                'not_specified' => 'no especificado',
+                'sex_male' => 'masculino',
+                'sex_female' => 'femenino',
+                'sex_not_specified' => 'no especificado',
+                'activity_sed' => 'sedentario',
+                'activity_light' => 'ligera',
+                'activity_mod' => 'moderada',
+                'activity_high' => 'alta',
+                'activity_ath' => 'atlética',
+                'activity_not_specified' => 'no especificado',
+                'photo_description_label' => 'Descripción adicional del plato: %s',
+                'general_system_prompt' => 'Eres un médico atento. Ofrece consejos de salud prácticos, seguros y basados en evidencia. Recuerda siempre acudir al médico si hay síntomas preocupantes. Responde en español.',
+            ],
+        ];
+
+        $lang = Localization::normalize($language);
+
+        return $translations[$lang] ?? $translations[Localization::DEFAULT_LANGUAGE];
+    }
+
+    private function sexLabel(?string $sex, string $language): string
+    {
+        $labels = $this->promptTranslations($language);
+
+        return match ($sex) {
+            'male' => $labels['sex_male'],
+            'female' => $labels['sex_female'],
+            default => $labels['sex_not_specified'],
         };
+    }
+
+    private function activityLabel(?string $activity, string $language): string
+    {
+        $labels = $this->promptTranslations($language);
+
+        return match ($activity) {
+            'sed' => $labels['activity_sed'],
+            'light' => $labels['activity_light'],
+            'mod' => $labels['activity_mod'],
+            'high' => $labels['activity_high'],
+            'ath' => $labels['activity_ath'],
+            default => $labels['activity_not_specified'],
+        };
+    }
+
+    private function generalSystemPrompt(string $language): string
+    {
+        $labels = $this->promptTranslations($language);
+
+        return $labels['general_system_prompt'];
     }
 
     /**
