@@ -99,25 +99,35 @@ class AssistantController
                 return ResponseHelper::json($response, ['error' => 'Не удалось прочитать изображение'], 422);
             }
 
+            $clientFilename = $imageFile->getClientFilename();
+            $imageName = $clientFilename !== null && $clientFilename !== '' ? basename($clientFilename) : null;
+            $imageData = 'data:' . $mime . ';base64,' . base64_encode($contents);
+
             $directory = dirname(__DIR__, 2) . '/public/uploads/assistant';
             if (!is_dir($directory) && !mkdir($directory, 0775, true) && !is_dir($directory)) {
-                return ResponseHelper::json($response, ['error' => 'Не удалось подготовить хранилище изображений'], 500);
+                error_log('Assistant image storage unavailable: failed to create directory ' . $directory);
+                $directory = null;
             }
 
-            try {
-                $filename = date('Ymd_His') . '_' . bin2hex(random_bytes(6)) . '.' . self::ALLOWED_IMAGE_TYPES[$mime];
-            } catch (\Throwable $e) {
-                return ResponseHelper::json($response, ['error' => 'Не удалось сохранить изображение'], 500);
-            }
+            if ($directory !== null) {
+                try {
+                    $filename = date('Ymd_His') . '_' . bin2hex(random_bytes(6)) . '.' . self::ALLOWED_IMAGE_TYPES[$mime];
+                } catch (\Throwable $e) {
+                    error_log('Assistant image storage unavailable: ' . $e->getMessage());
+                    $filename = null;
+                }
 
-            if (file_put_contents($directory . '/' . $filename, $contents) === false) {
-                return ResponseHelper::json($response, ['error' => 'Не удалось сохранить изображение'], 500);
+                if ($filename !== null) {
+                    if (file_put_contents($directory . '/' . $filename, $contents) !== false) {
+                        $imagePath = '/uploads/assistant/' . $filename;
+                        if ($imageName === null) {
+                            $imageName = $filename;
+                        }
+                    } else {
+                        error_log('Assistant image storage unavailable: failed to write file ' . $filename);
+                    }
+                }
             }
-
-            $clientFilename = $imageFile->getClientFilename();
-            $imageName = $clientFilename !== null && $clientFilename !== '' ? basename($clientFilename) : $filename;
-            $imagePath = '/uploads/assistant/' . $filename;
-            $imageData = 'data:' . $mime . ';base64,' . base64_encode($contents);
         }
 
         try {
